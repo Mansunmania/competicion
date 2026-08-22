@@ -286,7 +286,6 @@
   </div>
 
 </div>
-
 <script>
 const STORAGE_KEY = 'classroom_cards_deck_v4';
 const STORAGE_TOPICS_KEY = 'classroom_cards_topics_v4';
@@ -306,14 +305,7 @@ const CELEBRATION_GIFS = {
   }
 };
 
-let deck = [
-  { course: "5º", subj: "Lengua", lvl: "Fácil", topics: ["Acentuación", "Ortografía"], q: "Clasifica la palabra 'árbol' según su acentuación.", a: "Llana (lleva tilde porque termina en L)", media: "" },
-  { course: "5º", subj: "Inglés", lvl: "Fácil", topics: ["Vocabulario", "Transporte"], q: "How do you say 'Aeropuerto' in English?", a: "AIRPORT", media: "https://www.youtube.com/watch?v=b4O4m1cEde8" },
-  { course: "6º", subj: "Inglés", lvl: "Medio", topics: ["Vocabulario", "Países"], q: "Translate to English: 'China'", a: "CHINA", media: "https://www.youtube.com/watch?v=RDrfE9I8_hs" },
-  { course: "5º", subj: "Lengua", lvl: "Medio", topics: ["Sintaxis", "Sujeto"], q: "Identifica el sujeto elíptico en: 'Fuimos al parque de atracciones ayer'.", a: "Nosotros / Nosotras", media: "" },
-  { course: "6º", subj: "Lengua", lvl: "Difícil", topics: ["Verbos", "Gramática"], q: "Di el tiempo, modo y persona de: 'Hubieras venido'.", a: "Pretérito pluscuamperfecto, modo subjuntivo, 2ª persona del singular", media: "" }
-];
-
+let deck = [];
 let filterCourse = 'ALL';
 let filterSubj = 'ALL';
 let filterLvl = 'ALL';
@@ -367,27 +359,38 @@ function saveTopics() {
   localStorage.setItem(STORAGE_TOPICS_KEY, JSON.stringify(customTopics)); 
 }
 
-function loadDeck() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (raw) { 
-    try { 
-      let parsed = JSON.parse(raw); 
-      deck = parsed.map(c => {
-        if (c.course === "Ambos (General)") c.course = "";
-        c.topics = getCardTopics(c);
-        c.topic = c.topics.join(', ');
-        c.media = c.media || "";
-        return c;
-      });
-    } catch(e) {} 
-  } else {
-    deck.forEach(c => {
+// Carga asíncrona: Intenta leer el JSON de GitHub y si falla usa LocalStorage
+async function loadDeck() {
+  try {
+    const res = await fetch('preguntas.json');
+    if (!res.ok) throw new Error('No se encontró preguntas.json');
+    const data = await res.json();
+    
+    deck = data.map(c => {
       if (c.course === "Ambos (General)") c.course = "";
       c.topics = getCardTopics(c);
       c.topic = c.topics.join(', ');
       c.media = c.media || "";
+      return c;
     });
+    console.log("Mazo cargado desde preguntas.json");
+  } catch (err) {
+    console.warn("No se pudo cargar preguntas.json, intentando LocalStorage:", err);
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) { 
+      try { 
+        let parsed = JSON.parse(raw); 
+        deck = parsed.map(c => {
+          if (c.course === "Ambos (General)") c.course = "";
+          c.topics = getCardTopics(c);
+          c.topic = c.topics.join(', ');
+          c.media = c.media || "";
+          return c;
+        });
+      } catch(e) {} 
+    }
   }
+
   const rawTopics = localStorage.getItem(STORAGE_TOPICS_KEY);
   if (rawTopics) {
     try { 
@@ -395,6 +398,15 @@ function loadDeck() {
       customTopics.sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
     } catch(e) {}
   }
+
+  // Refrescar temas según las preguntas cargadas
+  deck.forEach(c => {
+    c.topics.forEach(t => {
+      if (!customTopics.includes(t)) customTopics.push(t);
+    });
+  });
+
+  applyFilters();
 }
 
 function clearMemory() { filterMemory = {}; }
@@ -872,37 +884,8 @@ setupMultiAutocomplete('addCourse', 'menuAdd', getAllAvailableCourses);
 setupMultiAutocomplete('editTopic', 'menuEditTopic', getAllAvailableTopics);
 setupMultiAutocomplete('addTopic', 'menuAddTopic', getAllAvailableTopics);
 
-loadDeck();
-applyFilters();
+// Inicializar la carga automática al abrir la web
+window.addEventListener('DOMContentLoaded', loadDeck);
 </script>
-  <!-- Resto de tu HTML arriba -->
-
-  <script>
-    // Variable global donde guardaremos las preguntas
-    let misPreguntas = [];
-
-    // Función para cargar automáticamente el JSON desde GitHub Pages
-    async function cargarPreguntasAuto() {
-      try {
-        const respuesta = await fetch('preguntas.json');
-        if (!respuesta.ok) throw new Error('No se pudo encontrar el archivo JSON');
-        
-        misPreguntas = await respuesta.json();
-        console.log("Preguntas cargadas con éxito:", misPreguntas);
-        
-        // AQUÍ llamas a la función que inicia tu juego o dibuja la primera pregunta
-        iniciarJuego(); 
-      } catch (error) {
-        console.error("Error al cargar las preguntas automáticas:", error);
-      }
-    }
-
-    // Ejecutar la carga en cuanto la página esté lista
-    window.addEventListener('DOMContentLoaded', cargarPreguntasAuto);
-
-    function iniciarJuego() {
-      // Tu lógica actual para mostrar la primera tarjeta/pregunta
-    }
-  </script>
 </body>
 </html>
