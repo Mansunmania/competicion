@@ -875,5 +875,34 @@ setupMultiAutocomplete('addTopic', 'menuAddTopic', getAllAvailableTopics);
 loadDeck();
 applyFilters();
 </script>
+  <!-- Resto de tu HTML arriba -->
+
+  <script>
+    // Variable global donde guardaremos las preguntas
+    let misPreguntas = [];
+
+    // Función para cargar automáticamente el JSON desde GitHub Pages
+    async function cargarPreguntasAuto() {
+      try {
+        const respuesta = await fetch('preguntas.json');
+        if (!respuesta.ok) throw new Error('No se pudo encontrar el archivo JSON');
+        
+        misPreguntas = await respuesta.json();
+        console.log("Preguntas cargadas con éxito:", misPreguntas);
+        
+        // AQUÍ llamas a la función que inicia tu juego o dibuja la primera pregunta
+        iniciarJuego(); 
+      } catch (error) {
+        console.error("Error al cargar las preguntas automáticas:", error);
+      }
+    }
+
+    // Ejecutar la carga en cuanto la página esté lista
+    window.addEventListener('DOMContentLoaded', cargarPreguntasAuto);
+
+    function iniciarJuego() {
+      // Tu lógica actual para mostrar la primera tarjeta/pregunta
+    }
+  </script>
 </body>
 </html>
