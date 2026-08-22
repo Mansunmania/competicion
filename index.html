@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mazo Flippity Completo - Proyector Classroom</title>
+  <style>
+    :root {
+      --bg: #f0f4f8; --card: #ffffff; --ink: #1e293b; --muted: #64748b; --line: #cbd5e1;
+      --pri: #2563eb; --ok: #16a34a; --bad: #dc2626; --warn: #ea580c; --purple: #8b5cf6; --yt: #e11d48;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--ink); padding: 20px; }
+    .layout { max-width: 1000px; margin: 0 auto; display: grid; grid-template-columns: 1fr; gap: 20px; }
+    
+    .editor-box { background: var(--card); padding: 16px; border-radius: 12px; border: 1px solid var(--line); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+    .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 10px; align-items: end; }
+    label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
+    input, select, textarea, button { font: inherit; font-size: 14px; }
+    input, select, textarea { width: 100%; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); }
+    textarea { resize: vertical; }
+    
+    button { padding: 8px 16px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; transition: transform 0.1s, background 0.1s; }
+    .btn-pri { background: var(--pri); color: #fff; } .btn-pri:hover { background: #1d4ed8; }
+    .btn-ok { background: var(--ok); color: #fff; } .btn-ok:hover { background: #15803d; }
+    .btn-bad { background: var(--bad); color: #fff; } .btn-bad:hover { background: #b91c1c; }
+    .btn-warn { background: var(--warn); color: #fff; } .btn-warn:hover { background: #c2410c; }
+    .btn-flat { background: #e2e8f0; color: var(--ink); } .btn-flat:hover { background: #cbd5e1; }
+    .btn-media { background: #ffe4e6; color: var(--yt); border: 1px solid #fecdd3; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
+    .btn-media:hover { background: #fecdd3; transform: scale(1.03); }
+
+    .filters { display: flex; flex-wrap: wrap; gap: 10px; background: var(--card); padding: 12px; border-radius: 12px; border: 1px solid var(--line); }
+    .filter-btn { background: #e2e8f0; color: var(--ink); padding: 6px 12px; font-size: 13px; border-radius: 8px; }
+    .filter-btn.active { background: var(--pri); color: #fff; }
+    .btn-topic { background: #f3e8ff; color: #6b21a8; border: 1px solid #e9d5ff; padding: 6px 12px; font-size: 13px; border-radius: 8px; }
+    .btn-topic.active { background: var(--purple); color: #fff; border-color: var(--purple); }
+    .btn-special { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; padding: 6px 12px; font-size: 13px; border-radius: 8px; }
+    .btn-special.active { background: #d97706; color: #fff; border-color: #d97706; }
+    .filter-group { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; align-items: center; }
+
+    .flashcard-wrapper { display: flex; flex-direction: column; align-items: center; gap: 16px; margin: 15px auto; width: 100%; }
+    .flashcard { width: 100%; max-width: 750px; height: 380px; perspective: 1000px; cursor: pointer; }
+    
+    .card-inner { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 0.4s, opacity 0.15s; }
+    .flashcard.flipped .card-inner { transform: rotateY(180deg); }
+    
+    .card-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 20px; padding: 30px 40px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; box-shadow: 0 12px 20px -3px rgba(0,0,0,0.08), 0 4px 8px -4px rgba(0,0,0,0.05); border: 2.5px solid; overflow-y: auto; }
+    .card-front { background: #ffffff; color: var(--ink); border-color: var(--line); }
+    .card-back { background: #1e293b; color: #ffffff; border-color: #334155; transform: rotateY(180deg); }
+    
+    .card-meta { position: absolute; top: 14px; left: 16px; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; padding: 3px 10px; border-radius: 6px; }
+    .card-topic-meta { position: absolute; top: 14px; right: 16px; font-size: 12px; font-weight: 800; text-transform: uppercase; padding: 3px 10px; border-radius: 6px; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .meta-front { background: #f1f5f9; color: var(--muted); }
+    .meta-back { background: #334155; color: #94a3b8; }
+    .topic-front { background: #f3e8ff; color: #6b21a8; }
+    .topic-back { background: #581c87; color: #e9d5ff; }
+    
+    .card-text { font-size: 26px; font-weight: 700; line-height: 1.5; word-wrap: break-word; max-width: 95%; width: 100%; }
+
+    .card-media-anchor { position: absolute; bottom: 14px; left: 16px; z-index: 20; }
+
+    .success-actions { margin-top: 15px; width: 100%; display: flex; justify-content: center; z-index: 10; }
+    .btn-celebrate { background: var(--ok); color: white; font-size: 16px; padding: 10px 24px; border-radius: 50px; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 10px rgba(22, 163, 74, 0.4); }
+    .btn-celebrate:hover { background: #15803d; transform: scale(1.05); }
+
+    .gif-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.85); display: flex; justify-content: center; align-items: center; z-index: 2000; opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
+    .gif-modal.open { opacity: 1; pointer-events: auto; }
+    .gif-content { background: #fff; padding: 12px; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); max-width: 90%; max-height: 80%; display: flex; flex-direction: column; align-items: center; animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    .gif-content img { max-width: 100%; max-height: 420px; border-radius: 12px; object-fit: contain; background: #f8fafc; }
+    .gif-caption { margin-top: 10px; font-weight: 700; font-size: 16px; color: var(--ink); text-transform: uppercase; }
+    @keyframes popIn { 0% { transform: scale(0.7); } 100% { transform: scale(1); } }
+
+    .controls { display: flex; justify-content: center; align-items: center; gap: 14px; width: 100%; max-width: 750px; }
+    .counter { font-size: 15px; font-weight: 700; color: var(--muted); min-width: 80px; text-align: center; }
+
+    .edit-zone { background: #f8fafc; border: 2px dashed var(--line); padding: 14px; border-radius: 12px; margin-top: 10px; }
+    
+    .notion-dropdown { position: relative; width: 100%; }
+    .notion-input-wrapper { position: relative; display: flex; align-items: center; }
+    .notion-input-wrapper::after { content: '▾'; position: absolute; right: 12px; color: var(--muted); pointer-events: none; font-size: 12px; }
+    .notion-menu { 
+      position: absolute; top: 100%; left: 0; width: 100%; background: #ffffff; 
+      border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); 
+      z-index: 100; max-height: 200px; overflow-y: auto; display: none; margin-top: 4px; padding: 4px;
+    }
+    .notion-menu.open { display: block; }
+    .notion-item { 
+      padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px; 
+      color: var(--ink); display: flex; justify-content: space-between; align-items: center;
+    }
+    .notion-item:hover { background: #f1f5f9; }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+
+  <div class="filters">
+    <div style="font-weight:700; font-size:13px; color:var(--muted); width:100%; margin-bottom:4px;">Curso / Nivel:</div>
+    <div class="filter-group" id="courseFilterGroup"></div>
+
+    <div style="font-weight:700; font-size:13px; color:var(--muted); width:100%; margin-top:8px; margin-bottom:4px;">Asignatura:</div>
+    <div class="filter-group">
+      <button class="filter-btn active" id="btnSubj-ALL" onclick="setSubj('ALL')">Todas</button>
+      <button class="filter-btn" id="btnSubj-Lengua" onclick="setSubj('Lengua')">Lengua 🇪🇸</button>
+      <button class="filter-btn" id="btnSubj-Inglés" onclick="setSubj('Inglés')">Inglés 🇬🇧</button>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-top: 8px; margin-bottom: 4px; border-top: 1px dashed var(--line); padding-top: 8px;">
+      <div style="font-weight:700; font-size:13px; color:var(--muted);">Temas de Estudio (Tags):</div>
+      <div style="display: flex; gap: 4px; align-items: center;">
+        <input id="newTopicInput" placeholder="Añadir nuevo tema..." style="padding: 4px 8px; font-size: 12px; width: 160px;" />
+        <button class="btn-ok" id="addTopicBtn" style="padding: 4px 10px; font-size: 12px;">➕ Crear</button>
+      </div>
+    </div>
+    <div class="filter-group" id="topicFilterGroup"></div>
+    
+    <div style="font-weight:700; font-size:13px; color:var(--muted); width:100%; margin-top:8px; margin-bottom:4px;">Dificultad / Nivel de Liga:</div>
+    <div class="filter-group">
+      <button class="filter-btn active" id="btnLvl-ALL" onclick="setLvl('ALL')">Todos los niveles</button>
+      <button class="filter-btn" id="btnLvl-Fácil" onclick="setLvl('Fácil')">Fácil (Bart & Lisa Simpson)</button>
+      <button class="filter-btn" id="btnLvl-Medio" onclick="setLvl('Medio')">Medio (Donkey)</button>
+      <button class="filter-btn" id="btnLvl-Difícil" onclick="setLvl('Difícil')">Difícil (Shrek)</button>
+    </div>
+  </div>
+
+  <div class="flashcard-wrapper">
+    <div class="flashcard" id="cardElement" onclick="handleCardClick(this)">
+      <div class="card-inner" id="cardInnerElement">
+        <div class="card-face card-front">
+          <div class="card-meta meta-front" id="metaFront">---</div>
+          <div class="card-topic-meta topic-front" id="topicFront">Sin tema</div>
+          <div class="card-text" id="textFront">No hay preguntas con el filtro actual.</div>
+        </div>
+        <div class="card-face card-back">
+          <div class="card-meta meta-back" id="metaBack">RESPUESTA</div>
+          <div class="card-topic-meta topic-back" id="topicBack">Sin tema</div>
+          <div class="card-text" id="textBack">---</div>
+          <div class="card-media-anchor" id="mediaAnchorBack"></div>
+          <div class="success-actions">
+            <button class="btn-celebrate" id="celebrateBtn">👍 ¡Correcto!</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn-flat" id="prevBtn">⬅️ Anterior</button>
+      <div class="counter" id="cardCounter">0 / 0</div>
+      <button class="btn-flat" id="nextBtn">Siguiente ➡️</button>
+      <button class="btn-warn" id="shuffleBtn">🎯 Aleatorio</button>
+    </div>
+  </div>
+
+  <div class="gif-modal" id="gifModal" onclick="closeGifModal()">
+    <div class="gif-content" onclick="event.stopPropagation()">
+      <img id="gifViewer" src="" alt="Celebración" />
+      <div class="gif-caption" id="gifCaption">¡Puntos ganados!</div>
+    </div>
+  </div>
+
+  <div class="edit-zone" id="editZoneContainer">
+    <div style="font-weight: 800; font-size: 12px; text-transform: uppercase; color: var(--warn); margin-bottom: 8px; display: flex; justify-content: space-between;">
+      <span>✏️ Modificar esta tarjeta en tiempo real</span>
+      <span style="color:var(--muted)" id="editTargetIndex">ID: -</span>
+    </div>
+    <div class="row">
+      <div style="grid-column: span 2">
+        <label>Cambiar Enunciado (Pregunta)</label>
+        <input type="text" id="editQ" />
+      </div>
+      <div style="grid-column: span 2">
+        <label>Cambiar Solución (Respuesta)</label>
+        <input type="text" id="editA" />
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Asignatura</label>
+        <select id="editSubj">
+          <option value="Lengua">Lengua</option>
+          <option value="Inglés">Inglés</option>
+        </select>
+      </div>
+      <div>
+        <label>Temas / Tags</label>
+        <div class="notion-dropdown">
+          <div class="notion-input-wrapper">
+            <input type="text" id="editTopic" autocomplete="off" />
+          </div>
+          <div class="notion-menu" id="menuEditTopic"></div>
+        </div>
+      </div>
+      <div>
+        <label>Dificultad</label>
+        <select id="editLvl">
+          <option value="Fácil">Fácil (Bart & Lisa Simpson)</option>
+          <option value="Medio">Medio (Donkey)</option>
+          <option value="Difícil">Difícil (Shrek)</option>
+        </select>
+      </div>
+      <div>
+        <label>Curso</label>
+        <div class="notion-dropdown" id="dropdownEdit">
+          <div class="notion-input-wrapper">
+            <input type="text" id="editCourse" autocomplete="off"/>
+          </div>
+          <div class="notion-menu" id="menuEdit"></div>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div style="grid-column: span 3">
+        <label>Enlace de Inspiración / Música / Vídeo (URL de YouTube, audio, etc.)</label>
+        <input type="text" id="editMedia" placeholder="https://www.youtube.com/watch?v=..." />
+      </div>
+      <div style="display:flex; gap:6px;">
+        <button class="btn-ok" id="updateBtn" style="flex:1">💾 Guardar Cambios</button>
+        <button class="btn-bad" id="delBtn" style="padding:8px 12px;">🗑️ Borrar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="editor-box">
+    <div style="font-weight:700; margin-bottom:10px; color:var(--ink);">✨ Añadir Nueva Tarjeta al Mazo</div>
+    <div class="row">
+      <div style="grid-column: span 2">
+        <label>Enunciado de la pregunta</label>
+        <input type="text" id="addQ" />
+      </div>
+      <div style="grid-column: span 2">
+        <label>Solución oculta</label>
+        <input type="text" id="addA" />
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Asignatura</label>
+        <select id="addSubj">
+          <option value="Lengua">Lengua</option>
+          <option value="Inglés">Inglés</option>
+        </select>
+      </div>
+      <div>
+        <label>Temas / Tags</label>
+        <div class="notion-dropdown">
+          <div class="notion-input-wrapper">
+            <input type="text" id="addTopic" autocomplete="off" />
+          </div>
+          <div class="notion-menu" id="menuAddTopic"></div>
+        </div>
+      </div>
+      <div>
+        <label>Dificultad (Liga destino)</label>
+        <select id="addLvl">
+          <option value="Fácil">Fácil (Bart & Lisa Simpson)</option>
+          <option value="Medio">Medio (Donkey)</option>
+          <option value="Difícil">Difícil (Shrek)</option>
+        </select>
+      </div>
+      <div>
+        <label>Curso</label>
+        <div class="notion-dropdown" id="dropdownAdd">
+          <div class="notion-input-wrapper">
+            <input type="text" id="addCourse" autocomplete="off"/>
+          </div>
+          <div class="notion-menu" id="menuAdd"></div>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div style="grid-column: span 3">
+        <label>Enlace de Inspiración / Música / Vídeo (URL opcional)</label>
+        <input type="text" id="addMedia" placeholder="https://www.youtube.com/watch?v=..." />
+      </div>
+      <button class="btn-pri" id="addBtn">➕ Crear Tarjeta</button>
+    </div>
+
+    <div style="margin-top:15px; padding-top:12px; border-top:1px dashed var(--line); display:flex; justify-content:space-between; align-items:center;">
+      <button class="btn-flat" id="exportBtn" style="font-size:12px;">📥 Exportar Mazo (.json)</button>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <label style="margin:0; font-size:11px;">Cargar banco:</label>
+        <input type="file" id="importFile" accept="application/json" style="font-size:11px; width:180px; padding:4px;" />
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const STORAGE_KEY = 'classroom_cards_deck_v4';
+const STORAGE_TOPICS_KEY = 'classroom_cards_topics_v4';
+
+const CELEBRATION_GIFS = {
+  "Fácil": {
+    url: "https://media.tenor.com/YyKNQ-UFO8gAAAAM/the-simpsons-lisa-simpson.gif",
+    caption: "¡Lisa aprueba tu respuesta! ⭐"
+  },
+  "Medio": {
+    url: "https://media.tenor.com/EvNCyjP1IxQAAAAM/feliz-alegre.gif",
+    caption: "¡Donkey aprueba tu respuesta! 🐴"
+  },
+  "Difícil": {
+    url: "https://media.tenor.com/m4k271sucqgAAAAM/shrek-and-fiona-shrek.gif",
+    caption: "¡Brillante! ¡Nivel Shrek y Fiona dominado! 👹"
+  }
+};
+
+let deck = [
+  { course: "5º", subj: "Lengua", lvl: "Fácil", topics: ["Acentuación", "Ortografía"], q: "Clasifica la palabra 'árbol' según su acentuación.", a: "Llana (lleva tilde porque termina en L)", media: "" },
+  { course: "5º", subj: "Inglés", lvl: "Fácil", topics: ["Vocabulario", "Transporte"], q: "How do you say 'Aeropuerto' in English?", a: "AIRPORT", media: "https://www.youtube.com/watch?v=b4O4m1cEde8" },
+  { course: "6º", subj: "Inglés", lvl: "Medio", topics: ["Vocabulario", "Países"], q: "Translate to English: 'China'", a: "CHINA", media: "https://www.youtube.com/watch?v=RDrfE9I8_hs" },
+  { course: "5º", subj: "Lengua", lvl: "Medio", topics: ["Sintaxis", "Sujeto"], q: "Identifica el sujeto elíptico en: 'Fuimos al parque de atracciones ayer'.", a: "Nosotros / Nosotras", media: "" },
+  { course: "6º", subj: "Lengua", lvl: "Difícil", topics: ["Verbos", "Gramática"], q: "Di el tiempo, modo y persona de: 'Hubieras venido'.", a: "Pretérito pluscuamperfecto, modo subjuntivo, 2ª persona del singular", media: "" }
+];
+
+let filterCourse = 'ALL';
+let filterSubj = 'ALL';
+let filterLvl = 'ALL';
+let filterTopic = 'ALL'; 
+
+let customTopics = [];
+let filtered = [];
+let index = 0;
+let filterMemory = {};
+
+const BASE_COURSES = ["5º", "6º"];
+
+function parseInputItems(inputStr) {
+  if (!inputStr) return [];
+  return inputStr.split(',').map(t => t.trim()).filter(Boolean);
+}
+
+function getCardTopics(card) {
+  if (Array.isArray(card.topics)) return card.topics.map(t => t.trim()).filter(Boolean);
+  if (Array.isArray(card.topic)) return card.topic.map(t => t.trim()).filter(Boolean);
+  if (typeof card.topic === 'string' && card.topic.trim() !== "") {
+    return card.topic.split(',').map(t => t.trim()).filter(Boolean);
+  }
+  return [];
+}
+
+function getCardCourses(card) {
+  if (!card.course || card.course.trim() === "") return [];
+  return card.course.split(',').map(c => c.trim()).filter(Boolean);
+}
+
+function getAllAvailableTopics() {
+  const allTopics = new Set(customTopics);
+  deck.forEach(c => {
+    getCardTopics(c).forEach(t => allTopics.add(t));
+  });
+  return Array.from(allTopics).sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+}
+
+function getAllAvailableCourses() {
+  const allCourses = new Set(BASE_COURSES);
+  deck.forEach(c => {
+    getCardCourses(c).forEach(crs => allCourses.add(crs));
+  });
+  return Array.from(allCourses).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+}
+
+function saveDeck() { localStorage.setItem(STORAGE_KEY, JSON.stringify(deck)); }
+function saveTopics() { 
+  customTopics.sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+  localStorage.setItem(STORAGE_TOPICS_KEY, JSON.stringify(customTopics)); 
+}
+
+function loadDeck() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (raw) { 
+    try { 
+      let parsed = JSON.parse(raw); 
+      deck = parsed.map(c => {
+        if (c.course === "Ambos (General)") c.course = "";
+        c.topics = getCardTopics(c);
+        c.topic = c.topics.join(', ');
+        c.media = c.media || "";
+        return c;
+      });
+    } catch(e) {} 
+  } else {
+    deck.forEach(c => {
+      if (c.course === "Ambos (General)") c.course = "";
+      c.topics = getCardTopics(c);
+      c.topic = c.topics.join(', ');
+      c.media = c.media || "";
+    });
+  }
+  const rawTopics = localStorage.getItem(STORAGE_TOPICS_KEY);
+  if (rawTopics) {
+    try { 
+      customTopics = JSON.parse(rawTopics); 
+      customTopics.sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+    } catch(e) {}
+  }
+}
+
+function clearMemory() { filterMemory = {}; }
+
+function setupMultiAutocomplete(inputId, menuId, getAvailableItems) {
+  const input = document.getElementById(inputId);
+  const menu = document.getElementById(menuId);
+
+  function renderMenu() {
+    const fullText = input.value;
+    const parts = fullText.split(',');
+    const lastPart = parts[parts.length - 1];
+    const currentTerm = lastPart.trim().toLowerCase();
+
+    const existingItems = parts.slice(0, parts.length - 1).map(p => p.trim().toLowerCase());
+    const available = getAvailableItems().filter(item => !existingItems.includes(item.toLowerCase()));
+    
+    const matches = currentTerm === "" 
+      ? available 
+      : available.filter(item => item.toLowerCase().includes(currentTerm));
+
+    if (matches.length === 0) {
+      menu.classList.remove('open');
+      return;
+    }
+
+    let html = "";
+    matches.forEach(item => {
+      html += `<div class="notion-item" data-val="${item}">📌 ${item}</div>`;
+    });
+    menu.innerHTML = html;
+
+    menu.querySelectorAll('.notion-item[data-val]').forEach(el => {
+      el.onmousedown = (e) => {
+        e.preventDefault();
+        const selected = el.getAttribute('data-val');
+        
+        const currentParts = input.value.split(',').map(p => p.trim());
+        currentParts[currentParts.length - 1] = selected;
+        const cleaned = currentParts.filter(Boolean);
+        
+        input.value = cleaned.join(', ') + ', ';
+        renderMenu();
+        input.focus();
+      };
+    });
+  }
+
+  input.onfocus = () => { renderMenu(); menu.classList.add('open'); };
+  input.onblur = () => { setTimeout(() => menu.classList.remove('open'), 150); };
+  input.oninput = () => { renderMenu(); menu.classList.add('open'); };
+}
+
+function renderCourseFilterButtons() {
+  const container = document.getElementById('courseFilterGroup');
+  const activeCourses = new Set(BASE_COURSES);
+  
+  deck.forEach(card => {
+    getCardCourses(card).forEach(c => activeCourses.add(c));
+  });
+
+  const sortedActive = Array.from(activeCourses).sort((a, b) => 
+    a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'})
+  );
+
+  let html = `<button class="filter-btn ${filterCourse === 'ALL' ? 'active' : ''}" onclick="setCourse('ALL')">Todos los cursos</button>`;
+  sortedActive.forEach(c => {
+    html += `<button class="filter-btn ${filterCourse === c ? 'active' : ''}" onclick="setCourse('${c}')">${c}</button>`;
+  });
+  container.innerHTML = html;
+}
+
+function matchesCourseFilter(card, selectedCourseFilter) {
+  if (selectedCourseFilter === 'ALL') return true;
+  const cardCourses = getCardCourses(card);
+  if (cardCourses.length === 0) return true;
+  return cardCourses.includes(selectedCourseFilter);
+}
+
+function renderTopicControls() {
+  const topicsVisibles = new Set();
+  let hayPreguntasSinTema = false;
+
+  deck.forEach(card => {
+    const matchCourse = matchesCourseFilter(card, filterCourse);
+    const matchSubj = (filterSubj === 'ALL' || card.subj === filterSubj);
+
+    if (matchCourse && matchSubj) {
+      const cardTopics = getCardTopics(card);
+      if (cardTopics.length > 0) {
+        cardTopics.forEach(t => topicsVisibles.add(t));
+      } else {
+        hayPreguntasSinTema = true;
+      }
+    }
+  });
+
+  const topicsVisiblesOrdenados = Array.from(topicsVisibles).sort((a, b) => 
+    a.localeCompare(b, 'es', { sensitivity: 'base' })
+  );
+
+  const container = document.getElementById('topicFilterGroup');
+  let html = `<button class="filter-btn ${filterTopic === 'ALL' ? 'active' : ''}" onclick="setTopic('ALL')">📚 Todos los temas</button>`;
+  
+  if (hayPreguntasSinTema) {
+    html += `<button class="btn-special ${filterTopic === 'NONE' ? 'active' : ''}" onclick="setTopic('NONE')">🔍 Sin tema asignado</button>`;
+  } else if (filterTopic === 'NONE') {
+    filterTopic = 'ALL';
+  }
+  
+  topicsVisiblesOrdenados.forEach(t => {
+    html += `<button class="btn-topic ${filterTopic === t ? 'active' : ''}" onclick="setTopic('${t}')">${t}</button>`;
+  });
+
+  if (filterTopic !== 'ALL' && filterTopic !== 'NONE' && !topicsVisibles.has(filterTopic)) {
+    filterTopic = 'ALL';
+    setTimeout(() => applyFilters(), 0);
+    return;
+  }
+
+  container.innerHTML = html;
+}
+
+document.getElementById('addTopicBtn').onclick = (e) => {
+  e.preventDefault();
+  const input = document.getElementById('newTopicInput');
+  const name = input.value.trim();
+  if(!name) return;
+  if(customTopics.includes(name)) { alert("Este tema ya existe."); return; }
+  
+  customTopics.push(name);
+  saveTopics();
+  input.value = '';
+  applyFilters();
+};
+
+function setCourse(val) { filterCourse = val; applyFilters(); }
+function setSubj(val) { filterSubj = val; applyFilters(); }
+function setLvl(val) { filterLvl = val; applyFilters(); }
+function setTopic(val) { filterTopic = val; applyFilters(); }
+
+function updateVisualFilterButtons() {
+  document.querySelectorAll('[id^="btnSubj-"]').forEach(b => b.classList.remove('active'));
+  const activeSubjBtn = document.getElementById(`btnSubj-${filterSubj}`);
+  if (activeSubjBtn) activeSubjBtn.classList.add('active');
+
+  document.querySelectorAll('[id^="btnLvl-"]').forEach(b => b.classList.remove('active'));
+  const activeLvlBtn = document.getElementById(`btnLvl-${filterLvl}`);
+  if (activeLvlBtn) activeLvlBtn.classList.add('active');
+  
+  renderCourseFilterButtons();
+  renderTopicControls(); 
+}
+
+function applyFilters() {
+  updateVisualFilterButtons();
+
+  filtered = deck.filter(card => {
+    const matchCourse = matchesCourseFilter(card, filterCourse);
+    const matchSubj = (filterSubj === 'ALL' || card.subj === filterSubj);
+    const matchLvl = (filterLvl === 'ALL' || card.lvl === filterLvl);
+    
+    let matchTopic = true;
+    const cardTopics = getCardTopics(card);
+    if (filterTopic === 'NONE') {
+      matchTopic = (cardTopics.length === 0);
+    } else if (filterTopic !== 'ALL') {
+      matchTopic = cardTopics.includes(filterTopic);
+    }
+
+    return matchCourse && matchSubj && matchLvl && matchTopic;
+  });
+
+  const memoryKey = `${filterCourse}|${filterSubj}|${filterLvl}|${filterTopic}`;
+  if (filterMemory[memoryKey] !== undefined && filterMemory[memoryKey] < filtered.length) {
+    index = filterMemory[memoryKey];
+  } else {
+    index = 0;
+  }
+
+  updateView();
+}
+
+function openMediaLink(e, url) {
+  e.stopPropagation();
+  window.open(url, '_blank');
+}
+
+function updateView() {
+  const cardEl = document.getElementById('cardElement');
+  const innerEl = document.getElementById('cardInnerElement');
+  const wasFlipped = cardEl.classList.contains('flipped');
+  
+  if (wasFlipped && innerEl) innerEl.style.opacity = '0';
+  cardEl.classList.remove('flipped');
+
+  const counterEl = document.getElementById('cardCounter');
+  const txtF = document.getElementById('textFront');
+  const txtB = document.getElementById('textBack');
+  const metaF = document.getElementById('metaFront');
+  const topF = document.getElementById('topicFront');
+  const topB = document.getElementById('topicBack');
+  const mediaBack = document.getElementById('mediaAnchorBack');
+
+  if (!filtered.length) {
+    txtF.textContent = "No hay tarjetas con este filtro.";
+    txtB.textContent = "---";
+    metaF.textContent = "VACÍO";
+    topF.textContent = "-";
+    topB.textContent = "-";
+    counterEl.textContent = "0 / 0";
+    mediaBack.innerHTML = "";
+    
+    document.getElementById('editQ').value = '';
+    document.getElementById('editA').value = '';
+    document.getElementById('editCourse').value = '';
+    document.getElementById('editTopic').value = '';
+    document.getElementById('editMedia').value = '';
+    document.getElementById('editTargetIndex').textContent = "ID: -";
+    if (innerEl) innerEl.style.opacity = '1';
+    return;
+  }
+
+  setTimeout(() => {
+    counterEl.textContent = `${index + 1} / ${filtered.length}`;
+    const currentCard = filtered[index];
+    
+    txtF.textContent = currentCard.q;
+    
+    txtB.innerHTML = `<div style="font-size:15px; font-weight:400; opacity:0.75; margin-bottom:8px; text-transform:uppercase; letter-spacing:1px;">Pregunta:</div>
+                      <div style="font-size:18px; font-weight:600; margin-bottom:14px; line-height:1.3;">${currentCard.q}</div>
+                      <div style="border-top:1px dashed #475569; padding-top:12px; color:#38bdf8; font-size:24px;">${currentCard.a}</div>`;
+    
+    const cardCourses = getCardCourses(currentCard);
+    const courseLabel = cardCourses.length > 0 ? cardCourses.join(', ') : "Todos";
+    metaF.textContent = `[${courseLabel}] ${currentCard.subj} • ${currentCard.lvl}`;
+    
+    const cardTopics = getCardTopics(currentCard);
+    const topicLabel = cardTopics.length > 0 ? `📌 ${cardTopics.join(', ')}` : "🔍 Sin tema";
+    topF.textContent = topicLabel;
+    topB.textContent = topicLabel;
+
+    if (currentCard.media && currentCard.media.trim() !== "") {
+      mediaBack.innerHTML = `<button class="btn-media" onclick="openMediaLink(event, '${currentCard.media.replace(/'/g, "\\'")}')">🎵 Ver Canción / Clip en YouTube</button>`;
+    } else {
+      mediaBack.innerHTML = "";
+    }
+
+    document.getElementById('editQ').value = currentCard.q;
+    document.getElementById('editA').value = currentCard.a;
+    document.getElementById('editSubj').value = currentCard.subj;
+    document.getElementById('editLvl').value = currentCard.lvl;
+    document.getElementById('editCourse').value = cardCourses.join(', ');
+    document.getElementById('editTopic').value = cardTopics.join(', ');
+    document.getElementById('editMedia').value = currentCard.media || '';
+    
+    const realGlobalIndex = deck.indexOf(currentCard);
+    document.getElementById('editTargetIndex').textContent = `Nº Global: ${realGlobalIndex + 1}`;
+    
+    const memoryKey = `${filterCourse}|${filterSubj}|${filterLvl}|${filterTopic}`;
+    filterMemory[memoryKey] = index;
+
+    if (innerEl) innerEl.style.opacity = '1';
+  }, wasFlipped ? 130 : 0);
+}
+
+function handleCardClick(cardElement) {
+  cardElement.classList.toggle('flipped');
+  if (cardElement.classList.contains('flipped') && filtered.length) {
+    const currentCard = filtered[index];
+    if (currentCard.subj === 'Inglés') {
+      const palabraLimpia = currentCard.a.trim();
+      if (palabraLimpia.split(/\s+/).length <= 3) {
+        setTimeout(() => speakBritish(palabraLimpia), 250);
+      }
+    }
+  }
+}
+
+document.getElementById('celebrateBtn').onclick = (e) => {
+  e.stopPropagation(); 
+  if (!filtered.length) return;
+  
+  const currentCard = filtered[index];
+  const dificultad = currentCard.lvl || "Fácil";
+  const gifData = CELEBRATION_GIFS[dificultad];
+  
+  if (gifData) {
+    const viewer = document.getElementById('gifViewer');
+    const modal = document.getElementById('gifModal');
+    const caption = document.getElementById('gifCaption');
+    
+    viewer.src = ""; 
+    viewer.src = gifData.url;
+    caption.textContent = gifData.caption;
+    
+    modal.classList.add('open');
+  }
+};
+
+function closeGifModal() {
+  document.getElementById('gifModal').classList.remove('open');
+}
+
+function speakBritish(text) {
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  const voices = window.speechSynthesis.getVoices();
+  const ukVoice = voices.find(v => 
+    v.lang === 'en-GB' && (
+      v.name.includes('Google') || v.name.includes('Microsoft') || 
+      v.name.includes('Natural') || v.name.includes('Hazel')
+    )
+  ) || voices.find(v => v.lang === 'en-GB' || v.lang.startsWith('en-GB'));
+  
+  if (ukVoice) utterance.voice = ukVoice;
+  else utterance.lang = 'en-GB';
+  
+  utterance.rate = 0.82; 
+  window.speechSynthesis.speak(utterance);
+}
+
+if (typeof speechSynthesis !== 'undefined' && speechSynthesis.onvoiceschanged !== undefined) {
+  speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+}
+
+document.getElementById('updateBtn').onclick = () => {
+  if (!filtered.length) return;
+  const currentCard = filtered[index];
+  const realGlobalIndex = deck.indexOf(currentCard);
+  if (realGlobalIndex === -1) return;
+
+  const newQ = document.getElementById('editQ').value.trim();
+  const newA = document.getElementById('editA').value.trim();
+  const coursesArray = parseInputItems(document.getElementById('editCourse').value);
+  const topicsArray = parseInputItems(document.getElementById('editTopic').value);
+  
+  if (!newQ || !newA) { alert("El enunciado y la solución no pueden quedar vacíos."); return; }
+
+  deck[realGlobalIndex].q = newQ;
+  deck[realGlobalIndex].a = newA;
+  deck[realGlobalIndex].subj = document.getElementById('editSubj').value;
+  deck[realGlobalIndex].lvl = document.getElementById('editLvl').value;
+  deck[realGlobalIndex].course = coursesArray.join(', ');
+  deck[realGlobalIndex].topics = topicsArray;
+  deck[realGlobalIndex].topic = topicsArray.join(', ');
+  deck[realGlobalIndex].media = document.getElementById('editMedia').value.trim();
+
+  topicsArray.forEach(t => {
+    if (!customTopics.includes(t)) customTopics.push(t);
+  });
+  saveTopics();
+
+  saveDeck();
+  clearMemory(); 
+  const oldIndex = index;
+  applyFilters();
+  if (oldIndex < filtered.length) {
+    index = oldIndex;
+    updateView();
+  }
+  alert("¡Tarjeta modificada correctamente!");
+};
+
+document.getElementById('delBtn').onclick = () => {
+  if (!filtered.length) return;
+  if (!confirm("¿Seguro que quieres borrar permanentemente esta tarjeta del mazo?")) return;
+  const currentCard = filtered[index];
+  const realGlobalIndex = deck.indexOf(currentCard);
+  if (realGlobalIndex !== -1) {
+    deck.splice(realGlobalIndex, 1);
+    saveDeck();
+    clearMemory(); 
+    applyFilters();
+  }
+};
+
+document.getElementById('nextBtn').onclick = (e) => {
+  e.stopPropagation();
+  if (filtered.length) { index = (index + 1) % filtered.length; updateView(); }
+};
+document.getElementById('prevBtn').onclick = (e) => {
+  e.stopPropagation();
+  if (filtered.length) { index = (index - 1 + filtered.length) % filtered.length; updateView(); }
+};
+
+document.getElementById('shuffleBtn').onclick = () => {
+  if (deck.length < 2) return;
+  for (let i = deck.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [deck[i], deck[j]] = [deck[j], deck[i]];
+  }
+  saveDeck();
+  clearMemory(); 
+  applyFilters();
+};
+
+document.getElementById('addBtn').onclick = () => {
+  const q = document.getElementById('addQ').value.trim();
+  const a = document.getElementById('addA').value.trim();
+  const subj = document.getElementById('addSubj').value;
+  const lvl = document.getElementById('addLvl').value;
+  const topicsArray = parseInputItems(document.getElementById('addTopic').value);
+  const coursesArray = parseInputItems(document.getElementById('addCourse').value);
+  const media = document.getElementById('addMedia').value.trim();
+  
+  if (!q || !a) { alert("Por favor, rellena el enunciado y la solución."); return; }
+  
+  deck.push({ 
+    course: coursesArray.join(', '), 
+    subj, 
+    lvl, 
+    topics: topicsArray, 
+    topic: topicsArray.join(', '), 
+    q, 
+    a,
+    media 
+  });
+
+  topicsArray.forEach(t => {
+    if (!customTopics.includes(t)) customTopics.push(t);
+  });
+  saveTopics();
+
+  saveDeck();
+  clearMemory(); 
+  
+  document.getElementById('addQ').value = '';
+  document.getElementById('addA').value = '';
+  document.getElementById('addTopic').value = '';
+  document.getElementById('addCourse').value = '';
+  document.getElementById('addMedia').value = '';
+  
+  alert("¡Tarjeta añadida al mazo!");
+  applyFilters();
+};
+
+document.getElementById('exportBtn').onclick = () => {
+  const blob = new Blob([JSON.stringify(deck, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'banco_preguntas_aula.json'; a.click();
+};
+
+document.getElementById('importFile').addEventListener('change', async (e) => {
+  const file = e.target.files[0]; if (!file) return;
+  const text = await file.text();
+  try {
+    const data = JSON.parse(text);
+    if (Array.isArray(data)) {
+      deck = data.map(c => {
+        if (c.course === "Ambos (General)") c.course = "";
+        c.topics = getCardTopics(c);
+        c.topic = c.topics.join(', ');
+        c.media = c.media || "";
+        return c;
+      });
+      
+      deck.forEach(c => {
+        c.topics.forEach(t => {
+          if (!customTopics.includes(t)) customTopics.push(t);
+        });
+      });
+      
+      saveTopics();
+      saveDeck();
+      clearMemory();
+      applyFilters();
+      alert("¡Mazo cargado e importado con éxito!");
+    } else { alert("Formato de mazo JSON inválido."); }
+  } catch(err) { alert("Error al leer el archivo JSON."); }
+  e.target.value = '';
+});
+
+setupMultiAutocomplete('editCourse', 'menuEdit', getAllAvailableCourses);
+setupMultiAutocomplete('addCourse', 'menuAdd', getAllAvailableCourses);
+setupMultiAutocomplete('editTopic', 'menuEditTopic', getAllAvailableTopics);
+setupMultiAutocomplete('addTopic', 'menuAddTopic', getAllAvailableTopics);
+
+loadDeck();
+applyFilters();
+</script>
+</body>
+</html>
