@@ -427,17 +427,6 @@ async function loadDeck() {
   applyFilters();
 }
 
-function mostrarAvisoOrigen(texto) {
-  let badge = document.getElementById('data-source-badge');
-  if (!badge) {
-    badge = document.createElement('div');
-    badge.id = 'data-source-badge';
-    badge.style.cssText = 'position:fixed; bottom:10px; right:10px; background:#1e293b; color:#94a3b8; border:1px solid #334155; padding:4px 10px; border-radius:20px; font-size:11px; z-index:9999; pointer-events:none; opacity:0.85;';
-    document.body.appendChild(badge);
-  }
-  badge.textContent = `Fuente: ${texto || 'Desconocida'}`;
-}
-
 function procesarMazo(datos) {
   deck = datos.map(c => {
     if (c.course === "Ambos (General)") c.course = "";
@@ -452,6 +441,17 @@ function procesarMazo(datos) {
       if (!customTopics.includes(t)) customTopics.push(t);
     });
   });
+}
+
+function mostrarAvisoOrigen(texto) {
+  let badge = document.getElementById('data-source-badge');
+  if (!badge) {
+    badge = document.createElement('div');
+    badge.id = 'data-source-badge';
+    badge.style.cssText = 'position:fixed; bottom:10px; right:10px; background:#1e293b; color:#94a3b8; border:1px solid #334155; padding:4px 10px; border-radius:20px; font-size:11px; z-index:9999; pointer-events:none; opacity:0.85;';
+    document.body.appendChild(badge);
+  }
+  badge.textContent = `Fuente: ${texto || 'Desconocida'}`;
 }
 
 function clearMemory() { filterMemory = {}; }
