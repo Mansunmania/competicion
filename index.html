@@ -130,7 +130,7 @@
         <div class="card-face card-front">
           <div class="card-meta meta-front" id="metaFront">---</div>
           <div class="card-topic-meta topic-front" id="topicFront">Sin tema</div>
-          <div class="card-text" id="textFront">No hay preguntas con el filtro actual.</div>
+          <div class="card-text" id="textFront">Cargando preguntas...</div>
         </div>
         <div class="card-face card-back">
           <div class="card-meta meta-back" id="metaBack">RESPUESTA</div>
@@ -286,6 +286,7 @@
   </div>
 
 </div>
+
 <script>
 const STORAGE_KEY = 'classroom_cards_deck_v4';
 const STORAGE_TOPICS_KEY = 'classroom_cards_topics_v4';
@@ -361,15 +362,14 @@ function saveTopics() {
 
 // Carga asíncrona robusta con aviso de origen
 async function loadDeck() {
-  // Pega aquí la URL que te ha dado Google Apps Script al desplegar
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwItjSwkUFP9OxZqUep856hdZroh-Ms1ic-_Bk_zVZhDU3eLviBK5RRRUlimYKdvQ7AvQ/exec';
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxmsFEuwrNg7QV3lEB9V2BuH8RkfpOOnrwEPZdVQ8dRbAaEbJkqRGVIOGwTprSPHUO5Hg/exec';
   
   let origenCargado = "";
   let cargadoConExito = false;
 
   // INTENTO 1: Cargar desde Google Drive vía Apps Script
   try {
-    const resDrive = await fetch(APPS_SCRIPT_URL);
+    const resDrive = await fetch(APPS_SCRIPT_URL, { redirect: 'follow' });
     if (!resDrive.ok) throw new Error(`Status: ${resDrive.status}`);
     
     const dataDrive = await resDrive.json();
@@ -426,7 +426,18 @@ async function loadDeck() {
 
   applyFilters();
 }
-  
+
+function mostrarAvisoOrigen(texto) {
+  let badge = document.getElementById('data-source-badge');
+  if (!badge) {
+    badge = document.createElement('div');
+    badge.id = 'data-source-badge';
+    badge.style.cssText = 'position:fixed; bottom:10px; right:10px; background:#1e293b; color:#94a3b8; border:1px solid #334155; padding:4px 10px; border-radius:20px; font-size:11px; z-index:9999; pointer-events:none; opacity:0.85;';
+    document.body.appendChild(badge);
+  }
+  badge.textContent = `Fuente: ${texto || 'Desconocida'}`;
+}
+
 function procesarMazo(datos) {
   deck = datos.map(c => {
     if (c.course === "Ambos (General)") c.course = "";
@@ -749,163 +760,128 @@ function speakBritish(text) {
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
   const voices = window.speechSynthesis.getVoices();
-  const ukVoice = voices.find(v => 
-    v.lang === 'en-GB' && (
-      v.name.includes('Google') || v.name.includes('Microsoft') || 
-      v.name.includes('Natural') || v.name.includes('Hazel')
-    )
-  ) || voices.find(v => v.lang === 'en-GB' || v.lang.startsWith('en-GB'));
-  
+  const ukVoice = voices.find(v => v.lang === 'en-GB' || v.lang === 'en_GB');
   if (ukVoice) utterance.voice = ukVoice;
-  else utterance.lang = 'en-GB';
-  
-  utterance.rate = 0.82; 
+  utterance.lang = 'en-GB';
   window.speechSynthesis.speak(utterance);
 }
 
-if (typeof speechSynthesis !== 'undefined' && speechSynthesis.onvoiceschanged !== undefined) {
-  speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
-}
+// Controles de navegación
+document.getElementById('prevBtn').onclick = () => {
+  if (!filtered.length) return;
+  index = (index - 1 + filtered.length) % filtered.length;
+  updateView();
+};
 
+document.getElementById('nextBtn').onclick = () => {
+  if (!filtered.length) return;
+  index = (index + 1) % filtered.length;
+  updateView();
+};
+
+document.getElementById('shuffleBtn').onclick = () => {
+  if (!filtered.length) return;
+  index = Math.floor(Math.random() * filtered.length);
+  updateView();
+};
+
+// Guardar y Borrar modificaciones
 document.getElementById('updateBtn').onclick = () => {
   if (!filtered.length) return;
   const currentCard = filtered[index];
-  const realGlobalIndex = deck.indexOf(currentCard);
-  if (realGlobalIndex === -1) return;
-
-  const newQ = document.getElementById('editQ').value.trim();
-  const newA = document.getElementById('editA').value.trim();
-  const coursesArray = parseInputItems(document.getElementById('editCourse').value);
-  const topicsArray = parseInputItems(document.getElementById('editTopic').value);
   
-  if (!newQ || !newA) { alert("El enunciado y la solución no pueden quedar vacíos."); return; }
-
-  deck[realGlobalIndex].q = newQ;
-  deck[realGlobalIndex].a = newA;
-  deck[realGlobalIndex].subj = document.getElementById('editSubj').value;
-  deck[realGlobalIndex].lvl = document.getElementById('editLvl').value;
-  deck[realGlobalIndex].course = coursesArray.join(', ');
-  deck[realGlobalIndex].topics = topicsArray;
-  deck[realGlobalIndex].topic = topicsArray.join(', ');
-  deck[realGlobalIndex].media = document.getElementById('editMedia').value.trim();
-
-  topicsArray.forEach(t => {
-    if (!customTopics.includes(t)) customTopics.push(t);
-  });
-  saveTopics();
+  currentCard.q = document.getElementById('editQ').value.trim();
+  currentCard.a = document.getElementById('editA').value.trim();
+  currentCard.subj = document.getElementById('editSubj').value;
+  currentCard.lvl = document.getElementById('editLvl').value;
+  currentCard.course = document.getElementById('editCourse').value.trim();
+  currentCard.topics = parseInputItems(document.getElementById('editTopic').value);
+  currentCard.topic = currentCard.topics.join(', ');
+  currentCard.media = document.getElementById('editMedia').value.trim();
 
   saveDeck();
-  clearMemory(); 
-  const oldIndex = index;
   applyFilters();
-  if (oldIndex < filtered.length) {
-    index = oldIndex;
-    updateView();
-  }
-  alert("¡Tarjeta modificada correctamente!");
 };
 
 document.getElementById('delBtn').onclick = () => {
   if (!filtered.length) return;
-  if (!confirm("¿Seguro que quieres borrar permanentemente esta tarjeta del mazo?")) return;
+  if (!confirm("¿Seguro que deseas eliminar esta tarjeta?")) return;
+
   const currentCard = filtered[index];
-  const realGlobalIndex = deck.indexOf(currentCard);
-  if (realGlobalIndex !== -1) {
-    deck.splice(realGlobalIndex, 1);
+  const globalIndex = deck.indexOf(currentCard);
+  if (globalIndex > -1) {
+    deck.splice(globalIndex, 1);
     saveDeck();
-    clearMemory(); 
     applyFilters();
   }
 };
 
-document.getElementById('nextBtn').onclick = (e) => {
-  e.stopPropagation();
-  if (filtered.length) { index = (index + 1) % filtered.length; updateView(); }
-};
-document.getElementById('prevBtn').onclick = (e) => {
-  e.stopPropagation();
-  if (filtered.length) { index = (index - 1 + filtered.length) % filtered.length; updateView(); }
-};
-
-document.getElementById('shuffleBtn').onclick = () => {
-  if (deck.length < 2) return;
-  for (let i = deck.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [deck[i], deck[j]] = [deck[j], deck[i]];
-  }
-  saveDeck();
-  clearMemory(); 
-  applyFilters();
-};
-
+// Añadir nueva tarjeta
 document.getElementById('addBtn').onclick = () => {
   const q = document.getElementById('addQ').value.trim();
   const a = document.getElementById('addA').value.trim();
-  const subj = document.getElementById('addSubj').value;
-  const lvl = document.getElementById('addLvl').value;
-  const topicsArray = parseInputItems(document.getElementById('addTopic').value);
-  const coursesArray = parseInputItems(document.getElementById('addCourse').value);
-  const media = document.getElementById('addMedia').value.trim();
-  
-  if (!q || !a) { alert("Por favor, rellena el enunciado y la solución."); return; }
-  
-  deck.push({ 
-    course: coursesArray.join(', '), 
-    subj, 
-    lvl, 
-    topics: topicsArray, 
-    topic: topicsArray.join(', '), 
-    q, 
-    a,
-    media 
-  });
+  if (!q || !a) { alert("Completa al menos la pregunta y la respuesta."); return; }
 
-  topicsArray.forEach(t => {
-    if (!customTopics.includes(t)) customTopics.push(t);
-  });
-  saveTopics();
+  const topics = parseInputItems(document.getElementById('addTopic').value);
+  const newCard = {
+    q, a,
+    subj: document.getElementById('addSubj').value,
+    lvl: document.getElementById('addLvl').value,
+    course: document.getElementById('addCourse').value.trim(),
+    topics: topics,
+    topic: topics.join(', '),
+    media: document.getElementById('addMedia').value.trim()
+  };
 
+  deck.push(newCard);
   saveDeck();
-  clearMemory(); 
   
   document.getElementById('addQ').value = '';
   document.getElementById('addA').value = '';
-  document.getElementById('addTopic').value = '';
-  document.getElementById('addCourse').value = '';
   document.getElementById('addMedia').value = '';
   
-  alert("¡Tarjeta añadida al mazo!");
   applyFilters();
 };
 
+// Exportar e Importar JSON
 document.getElementById('exportBtn').onclick = () => {
-  const blob = new Blob([JSON.stringify(deck, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'banco_preguntas_aula.json'; a.click();
+  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(deck, null, 2));
+  const downloadAnchor = document.createElement('a');
+  downloadAnchor.setAttribute("href", dataStr);
+  downloadAnchor.setAttribute("download", "preguntas.json");
+  document.body.appendChild(downloadAnchor);
+  downloadAnchor.click();
+  downloadAnchor.remove();
 };
 
-document.getElementById('importFile').addEventListener('change', async (e) => {
-  const file = e.target.files[0]; if (!file) return;
-  const text = await file.text();
-  try {
-    const data = JSON.parse(text);
-    if (Array.isArray(data)) {
-      procesarMazo(data);
-      saveTopics();
-      saveDeck();
-      clearMemory();
-      applyFilters();
-      alert("¡Mazo cargado e importado con éxito!");
-    } else { alert("Formato de mazo JSON inválido."); }
-  } catch(err) { alert("Error al leer el archivo JSON."); }
-  e.target.value = '';
-});
+document.getElementById('importFile').onchange = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    try {
+      const importedData = JSON.parse(evt.target.result);
+      if (Array.isArray(importedData)) {
+        procesarMazo(importedData);
+        saveDeck();
+        applyFilters();
+        alert("¡Mazo cargado e importado con éxito!");
+      }
+    } catch(err) {
+      alert("El archivo subido no es un JSON válido.");
+    }
+  };
+  reader.readAsText(file);
+};
 
-setupMultiAutocomplete('editCourse', 'menuEdit', getAllAvailableCourses);
+// Autocompletados estilo Notion
 setupMultiAutocomplete('addCourse', 'menuAdd', getAllAvailableCourses);
-setupMultiAutocomplete('editTopic', 'menuEditTopic', getAllAvailableTopics);
+setupMultiAutocomplete('editCourse', 'menuEdit', getAllAvailableCourses);
 setupMultiAutocomplete('addTopic', 'menuAddTopic', getAllAvailableTopics);
+setupMultiAutocomplete('editTopic', 'menuEditTopic', getAllAvailableTopics);
 
-window.addEventListener('DOMContentLoaded', loadDeck);
+// Inicializar la aplicación
+loadDeck();
 </script>
 </body>
 </html>
