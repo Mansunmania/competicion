@@ -359,14 +359,12 @@ function saveTopics() {
   localStorage.setItem(STORAGE_TOPICS_KEY, JSON.stringify(customTopics)); 
 }
 
-// Carga asíncrona: Intenta leer el JSON de GitHub y si falla usa LocalStorage
-
+// Carga asíncrona robusta (Drive -> GitHub -> LocalStorage)
 async function loadDeck() {
-  // 1. Coloca aquí el ID de tu archivo de Google Drive
   const DRIVE_FILE_ID = '1yiuEg9meK_UXU_P6yMi_zP5PpvT3ppz5';
   
-  // Usamos un proxy para saltarnos las restricciones CORS de Drive
-  const driveUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://drive.google.com/uc?export=download&id=${DRIVE_FILE_ID}`)}`;
+  // Usamos corsproxy.io para saltarnos las restricciones CORS de Google Drive
+  const driveUrl = `https://corsproxy.io/?${encodeURIComponent(`https://drive.google.com/uc?export=download&id=${DRIVE_FILE_ID}`)}`;
   
   let cargadoConExito = false;
 
@@ -378,11 +376,11 @@ async function loadDeck() {
     
     if (Array.isArray(dataDrive)) {
       procesarMazo(dataDrive);
-      console.log(" Mazo cargado correctamente desde Google Drive");
+      console.log("Mazo cargado correctamente desde Google Drive");
       cargadoConExito = true;
     }
   } catch (errDrive) {
-    console.warn(" No se pudo cargar desde Drive, probando repositorio local:", errDrive);
+    console.warn("No se pudo cargar desde Drive, probando repositorio local:", errDrive);
   }
 
   // INTENTO 2: Si falla Drive, intentar cargar 'preguntas.json' del repositorio GitHub
@@ -394,11 +392,11 @@ async function loadDeck() {
       
       if (Array.isArray(dataLocal)) {
         procesarMazo(dataLocal);
-        console.log(" Mazo cargado desde preguntas.json local");
+        console.log("Mazo cargado desde preguntas.json local");
         cargadoConExito = true;
       }
     } catch (errLocal) {
-      console.warn(" Tampoco se pudo cargar preguntas.json local, recurriendo a LocalStorage:", errLocal);
+      console.warn("Tampoco se pudo cargar preguntas.json local, recurriendo a LocalStorage:", errLocal);
     }
   }
 
@@ -409,12 +407,12 @@ async function loadDeck() {
       try { 
         let parsed = JSON.parse(raw); 
         procesarMazo(parsed);
-        console.log(" Mazo cargado desde LocalStorage");
+        console.log("Mazo cargado desde LocalStorage");
       } catch(e) {} 
     }
   }
 
-  // Cargar temas guardados
+  // Cargar temas personalizados guardados en LocalStorage
   const rawTopics = localStorage.getItem(STORAGE_TOPICS_KEY);
   if (rawTopics) {
     try { 
@@ -426,7 +424,6 @@ async function loadDeck() {
   applyFilters();
 }
 
-// Función auxiliar para formatear las preguntas entrantes
 function procesarMazo(datos) {
   deck = datos.map(c => {
     if (c.course === "Ambos (General)") c.course = "";
@@ -441,15 +438,6 @@ function procesarMazo(datos) {
       if (!customTopics.includes(t)) customTopics.push(t);
     });
   });
-}
-  // Refrescar temas según las preguntas cargadas
-  deck.forEach(c => {
-    c.topics.forEach(t => {
-      if (!customTopics.includes(t)) customTopics.push(t);
-    });
-  });
-
-  applyFilters();
 }
 
 function clearMemory() { filterMemory = {}; }
@@ -898,20 +886,7 @@ document.getElementById('importFile').addEventListener('change', async (e) => {
   try {
     const data = JSON.parse(text);
     if (Array.isArray(data)) {
-      deck = data.map(c => {
-        if (c.course === "Ambos (General)") c.course = "";
-        c.topics = getCardTopics(c);
-        c.topic = c.topics.join(', ');
-        c.media = c.media || "";
-        return c;
-      });
-      
-      deck.forEach(c => {
-        c.topics.forEach(t => {
-          if (!customTopics.includes(t)) customTopics.push(t);
-        });
-      });
-      
+      procesarMazo(data);
       saveTopics();
       saveDeck();
       clearMemory();
@@ -927,7 +902,6 @@ setupMultiAutocomplete('addCourse', 'menuAdd', getAllAvailableCourses);
 setupMultiAutocomplete('editTopic', 'menuEditTopic', getAllAvailableTopics);
 setupMultiAutocomplete('addTopic', 'menuAddTopic', getAllAvailableTopics);
 
-// Inicializar la carga automática al abrir la web
 window.addEventListener('DOMContentLoaded', loadDeck);
 </script>
 </body>
