@@ -360,37 +360,62 @@ function saveTopics() {
 }
 
 // Carga asíncrona: Intenta leer el JSON de GitHub y si falla usa LocalStorage
+1yiuEg9meK_UXU_P6yMi_zP5PpvT3ppz5
+
 async function loadDeck() {
+  // 1. Coloca aquí el ID de tu archivo de Google Drive
+  const DRIVE_FILE_ID = '1yiuEg9meK_UXU_P6yMi_zP5PpvT3ppz5';
+  
+  // Usamos un proxy para saltarnos las restricciones CORS de Drive
+  const driveUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://drive.google.com/uc?export=download&id=${DRIVE_FILE_ID}`)}`;
+  
+  let cargadoConExito = false;
+
+  // INTENTO 1: Cargar desde Google Drive
   try {
-    const res = await fetch('preguntas.json');
-    if (!res.ok) throw new Error('No se encontró preguntas.json');
-    const data = await res.json();
+    const resDrive = await fetch(driveUrl);
+    if (!resDrive.ok) throw new Error('Error al conectar con Drive');
+    const dataDrive = await resDrive.json();
     
-    deck = data.map(c => {
-      if (c.course === "Ambos (General)") c.course = "";
-      c.topics = getCardTopics(c);
-      c.topic = c.topics.join(', ');
-      c.media = c.media || "";
-      return c;
-    });
-    console.log("Mazo cargado desde preguntas.json");
-  } catch (err) {
-    console.warn("No se pudo cargar preguntas.json, intentando LocalStorage:", err);
+    if (Array.isArray(dataDrive)) {
+      procesarMazo(dataDrive);
+      console.log(" Mazo cargado correctamente desde Google Drive");
+      cargadoConExito = true;
+    }
+  } catch (errDrive) {
+    console.warn(" No se pudo cargar desde Drive, probando repositorio local:", errDrive);
+  }
+
+  // INTENTO 2: Si falla Drive, intentar cargar 'preguntas.json' del repositorio GitHub
+  if (!cargadoConExito) {
+    try {
+      const resLocal = await fetch('preguntas.json');
+      if (!resLocal.ok) throw new Error('No se encontró preguntas.json local');
+      const dataLocal = await resLocal.json();
+      
+      if (Array.isArray(dataLocal)) {
+        procesarMazo(dataLocal);
+        console.log(" Mazo cargado desde preguntas.json local");
+        cargadoConExito = true;
+      }
+    } catch (errLocal) {
+      console.warn(" Tampoco se pudo cargar preguntas.json local, recurriendo a LocalStorage:", errLocal);
+    }
+  }
+
+  // INTENTO 3: Si todo falla, usar el almacenamiento del navegador (LocalStorage)
+  if (!cargadoConExito) {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) { 
       try { 
         let parsed = JSON.parse(raw); 
-        deck = parsed.map(c => {
-          if (c.course === "Ambos (General)") c.course = "";
-          c.topics = getCardTopics(c);
-          c.topic = c.topics.join(', ');
-          c.media = c.media || "";
-          return c;
-        });
+        procesarMazo(parsed);
+        console.log(" Mazo cargado desde LocalStorage");
       } catch(e) {} 
     }
   }
 
+  // Cargar temas guardados
   const rawTopics = localStorage.getItem(STORAGE_TOPICS_KEY);
   if (rawTopics) {
     try { 
@@ -399,6 +424,25 @@ async function loadDeck() {
     } catch(e) {}
   }
 
+  applyFilters();
+}
+
+// Función auxiliar para formatear las preguntas entrantes
+function procesarMazo(datos) {
+  deck = datos.map(c => {
+    if (c.course === "Ambos (General)") c.course = "";
+    c.topics = getCardTopics(c);
+    c.topic = c.topics.join(', ');
+    c.media = c.media || "";
+    return c;
+  });
+
+  deck.forEach(c => {
+    c.topics.forEach(t => {
+      if (!customTopics.includes(t)) customTopics.push(t);
+    });
+  });
+}
   // Refrescar temas según las preguntas cargadas
   deck.forEach(c => {
     c.topics.forEach(t => {
