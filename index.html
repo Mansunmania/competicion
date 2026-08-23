@@ -359,60 +359,63 @@ function saveTopics() {
   localStorage.setItem(STORAGE_TOPICS_KEY, JSON.stringify(customTopics)); 
 }
 
-// Carga asíncrona robusta (Drive -> GitHub -> LocalStorage)
+// Carga asíncrona robusta con aviso de origen
 async function loadDeck() {
   const DRIVE_FILE_ID = '1yiuEg9meK_UXU_P6yMi_zP5PpvT3ppz5';
   
-  // Usamos corsproxy.io para saltarnos las restricciones CORS de Google Drive
-  const driveUrl = `https://corsproxy.io/?${encodeURIComponent(`https://drive.google.com/uc?export=download&id=${DRIVE_FILE_ID}`)}`;
+  // Endpoint directo de exportación mediante proxy para evitar CORS/redirecciones de Drive
+  const driveDirectUrl = `https://corsproxy.io/?` + encodeURIComponent(`https://drive.google.com/uc?id=${DRIVE_FILE_ID}&export=download`);
   
+  let origenCargado = "";
   let cargadoConExito = false;
 
   // INTENTO 1: Cargar desde Google Drive
   try {
-    const resDrive = await fetch(driveUrl);
-    if (!resDrive.ok) throw new Error('Error al conectar con Drive');
+    const resDrive = await fetch(driveDirectUrl);
+    if (!resDrive.ok) throw new Error(`HTTP Error status: ${resDrive.status}`);
+    
     const dataDrive = await resDrive.json();
     
-    if (Array.isArray(dataDrive)) {
+    if (Array.isArray(dataDrive) && dataDrive.length > 0) {
       procesarMazo(dataDrive);
-      console.log("Mazo cargado correctamente desde Google Drive");
+      origenCargado = "☁️ Google Drive";
       cargadoConExito = true;
     }
   } catch (errDrive) {
-    console.warn("No se pudo cargar desde Drive, probando repositorio local:", errDrive);
+    console.warn("Fallo al cargar desde Drive:", errDrive);
   }
 
   // INTENTO 2: Si falla Drive, intentar cargar 'preguntas.json' del repositorio GitHub
   if (!cargadoConExito) {
     try {
-      const resLocal = await fetch('preguntas.json');
+      // Añadimos timestamp para evitar que el navegador use la versión en caché de GitHub
+      const resLocal = await fetch('preguntas.json?v=' + new Date().getTime());
       if (!resLocal.ok) throw new Error('No se encontró preguntas.json local');
       const dataLocal = await resLocal.json();
       
       if (Array.isArray(dataLocal)) {
         procesarMazo(dataLocal);
-        console.log("Mazo cargado desde preguntas.json local");
+        origenCargado = "📁 GitHub (preguntas.json)";
         cargadoConExito = true;
       }
     } catch (errLocal) {
-      console.warn("Tampoco se pudo cargar preguntas.json local, recurriendo a LocalStorage:", errLocal);
+      console.warn("Fallo al cargar preguntas.json local:", errLocal);
     }
   }
 
-  // INTENTO 3: Si todo falla, usar el almacenamiento del navegador (LocalStorage)
+  // INTENTO 3: Almacenamiento local del navegador
   if (!cargadoConExito) {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) { 
       try { 
         let parsed = JSON.parse(raw); 
         procesarMazo(parsed);
-        console.log("Mazo cargado desde LocalStorage");
+        origenCargado = "💾 Memoria Local (LocalStorage)";
       } catch(e) {} 
     }
   }
 
-  // Cargar temas personalizados guardados en LocalStorage
+  // Cargar temas personalizados guardados
   const rawTopics = localStorage.getItem(STORAGE_TOPICS_KEY);
   if (rawTopics) {
     try { 
@@ -421,9 +424,25 @@ async function loadDeck() {
     } catch(e) {}
   }
 
+  // Notificar al usuario por consola y en pantalla
+  console.log(`%c[Mazo] Origen activo: ${origenCargado}`, 'color: #38bdf8; font-weight: bold;');
+  mostrarAvisoOrigen(origenCargado);
+
   applyFilters();
 }
 
+// Función auxiliar para mostrar un aviso flotante de la fuente de datos
+function mostrarAvisoOrigen(texto) {
+  let badge = document.getElementById('data-source-badge');
+  if (!badge) {
+    badge = document.createElement('div');
+    badge.id = 'data-source-badge';
+    badge.style.cssText = 'position:fixed; bottom:10px; right:10px; background:#1e293b; color:#94a3b8; border:1px solid #334155; padding:4px 10px; border-radius:20px; font-size:11px; z-index:9999; pointer-events:none; opacity:0.8;';
+    document.body.appendChild(badge);
+  }
+  badge.textContent = `Fuente: ${texto || 'Desconocida'}`;
+}
+  
 function procesarMazo(datos) {
   deck = datos.map(c => {
     if (c.course === "Ambos (General)") c.course = "";
