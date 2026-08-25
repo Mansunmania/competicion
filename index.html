@@ -32,11 +32,36 @@
     .filters { display: flex; flex-wrap: wrap; gap: 10px; background: var(--card); padding: 12px; border-radius: 12px; border: 1px solid var(--line); }
     .filter-btn { background: #e2e8f0; color: var(--ink); padding: 6px 12px; font-size: 13px; border-radius: 8px; }
     .filter-btn.active { background: var(--pri); color: #fff; }
-    .btn-topic { background: #f3e8ff; color: #6b21a8; border: 1px solid #e9d5ff; padding: 6px 12px; font-size: 13px; border-radius: 8px; }
-    .btn-topic.active { background: var(--purple); color: #fff; border-color: var(--purple); }
-    .btn-special { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; padding: 6px 12px; font-size: 13px; border-radius: 8px; }
-    .btn-special.active { background: #d97706; color: #fff; border-color: #d97706; }
+    
+    .btn-topic { background: #f3e8ff; color: #6b21a8; border: 1px solid #e9d5ff; padding: 6px 12px; font-size: 13px; border-radius: 20px; transition: all 0.2s; user-select: none; }
+    .btn-topic:hover { background: #e9d5ff; }
+    .btn-topic.selected { background: var(--purple); color: #fff; border-color: var(--purple); font-weight: bold; transform: scale(1.03); }
+    
+    .btn-special { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; padding: 6px 12px; font-size: 13px; border-radius: 20px; }
+    .btn-special.selected { background: #d97706; color: #fff; border-color: #d97706; font-weight: bold; }
+    
     .filter-group { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; align-items: center; }
+
+    /* Barra de confirmación de temas */
+    .confirmation-bar {
+      width: 100%;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-left: 4px solid var(--purple);
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-top: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      animation: fadeIn 0.2s ease-in-out;
+    }
+    .selected-pills-preview { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .pill-preview { background: #e9d5ff; color: #6b21a8; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 12px; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 
     .flashcard-wrapper { display: flex; flex-direction: column; align-items: center; gap: 16px; margin: 15px auto; width: 100%; }
     .flashcard { width: 100%; max-width: 750px; height: 380px; perspective: 1000px; cursor: pointer; }
@@ -107,14 +132,33 @@
     </div>
 
     <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-top: 8px; margin-bottom: 4px; border-top: 1px dashed var(--line); padding-top: 8px;">
-      <div style="font-weight:700; font-size:13px; color:var(--muted);">Temas de Estudio (Tags):</div>
+      <div style="font-weight:700; font-size:13px; color:var(--muted); display:flex; align-items:center; gap:8px;">
+        <span>Temas de Estudio (Tags):</span>
+        <button id="btnSelectAllTopics" class="btn-flat" style="padding: 2px 8px; font-size: 11px;" onclick="toggleSelectAllTopics()">Seleccionar todos</button>
+      </div>
       <div style="display: flex; gap: 4px; align-items: center;">
         <input id="newTopicInput" placeholder="Añadir nuevo tema..." style="padding: 4px 8px; font-size: 12px; width: 160px;" />
         <button class="btn-ok" id="addTopicBtn" style="padding: 4px 10px; font-size: 12px;">➕ Crear</button>
       </div>
     </div>
+    
+    <!-- Contenedor de Botones de Tema -->
     <div class="filter-group" id="topicFilterGroup"></div>
     
+    <!-- Barra de Confirmación de Temas -->
+    <div id="topicConfirmZone" class="confirmation-bar" style="display: none;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:12px; font-weight:700; color:var(--muted);">Selección actual:</span>
+        <div id="topicPillsPreview" class="selected-pills-preview"></div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn-flat" onclick="clearTopicSelection()" style="padding: 6px 12px; font-size: 12px;">🧹 Ver todo</button>
+        <button class="btn-pri" id="btnApplyTopics" onclick="confirmTopicSelection()" style="padding: 6px 16px; font-size: 13px;">
+          ✅ Confirmar selección (<span id="selectedTopicsCount">0</span>)
+        </button>
+      </div>
+    </div>
+
     <div style="font-weight:700; font-size:13px; color:var(--muted); width:100%; margin-top:8px; margin-bottom:4px;">Dificultad / Nivel de Liga:</div>
     <div class="filter-group">
       <button class="filter-btn active" id="btnLvl-ALL" onclick="setLvl('ALL')">Todos los niveles</button>
@@ -310,7 +354,9 @@ let deck = [];
 let filterCourse = 'ALL';
 let filterSubj = 'ALL';
 let filterLvl = 'ALL';
-let filterTopic = 'ALL'; 
+
+let selectedTopics = []; 
+let confirmedTopics = []; 
 
 let customTopics = [];
 let filtered = [];
@@ -318,6 +364,13 @@ let index = 0;
 let filterMemory = {};
 
 const BASE_COURSES = ["5º", "6º"];
+
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+}
 
 function parseInputItems(inputStr) {
   if (!inputStr) return [];
@@ -360,20 +413,15 @@ function saveTopics() {
   localStorage.setItem(STORAGE_TOPICS_KEY, JSON.stringify(customTopics)); 
 }
 
-// Carga asíncrona robusta con aviso de origen
 async function loadDeck() {
   const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxmsFEuwrNg7QV3lEB9V2BuH8RkfpOOnrwEPZdVQ8dRbAaEbJkqRGVIOGwTprSPHUO5Hg/exec';
-  
   let origenCargado = "";
   let cargadoConExito = false;
 
-  // INTENTO 1: Cargar desde Google Drive vía Apps Script
   try {
     const resDrive = await fetch(APPS_SCRIPT_URL, { redirect: 'follow' });
     if (!resDrive.ok) throw new Error(`Status: ${resDrive.status}`);
-    
     const dataDrive = await resDrive.json();
-    
     if (Array.isArray(dataDrive) && dataDrive.length > 0) {
       procesarMazo(dataDrive);
       origenCargado = "☁️ Google Drive";
@@ -383,13 +431,11 @@ async function loadDeck() {
     console.warn("Fallo al cargar desde Drive via Apps Script:", errDrive);
   }
 
-  // INTENTO 2: Repositorio GitHub
   if (!cargadoConExito) {
     try {
       const resLocal = await fetch('preguntas.json?v=' + new Date().getTime());
       if (!resLocal.ok) throw new Error('No se encontró preguntas.json local');
       const dataLocal = await resLocal.json();
-      
       if (Array.isArray(dataLocal)) {
         procesarMazo(dataLocal);
         origenCargado = "📁 GitHub (preguntas.json)";
@@ -400,7 +446,6 @@ async function loadDeck() {
     }
   }
 
-  // INTENTO 3: LocalStorage
   if (!cargadoConExito) {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) { 
@@ -412,7 +457,6 @@ async function loadDeck() {
     }
   }
 
-  // Cargar temas
   const rawTopics = localStorage.getItem(STORAGE_TOPICS_KEY);
   if (rawTopics) {
     try { 
@@ -421,9 +465,7 @@ async function loadDeck() {
     } catch(e) {}
   }
 
-  console.log(`%c[Mazo] Origen activo: ${origenCargado}`, 'color: #38bdf8; font-weight: bold;');
   mostrarAvisoOrigen(origenCargado);
-
   applyFilters();
 }
 
@@ -453,8 +495,6 @@ function mostrarAvisoOrigen(texto) {
   }
   badge.textContent = `Fuente: ${texto || 'Desconocida'}`;
 }
-
-function clearMemory() { filterMemory = {}; }
 
 function setupMultiAutocomplete(inputId, menuId, getAvailableItems) {
   const input = document.getElementById(inputId);
@@ -488,11 +528,9 @@ function setupMultiAutocomplete(inputId, menuId, getAvailableItems) {
       el.onmousedown = (e) => {
         e.preventDefault();
         const selected = el.getAttribute('data-val');
-        
         const currentParts = input.value.split(',').map(p => p.trim());
         currentParts[currentParts.length - 1] = selected;
         const cleaned = currentParts.filter(Boolean);
-        
         input.value = cleaned.join(', ') + ', ';
         renderMenu();
         input.focus();
@@ -554,25 +592,86 @@ function renderTopicControls() {
   );
 
   const container = document.getElementById('topicFilterGroup');
-  let html = `<button class="filter-btn ${filterTopic === 'ALL' ? 'active' : ''}" onclick="setTopic('ALL')">📚 Todos los temas</button>`;
+  let html = "";
   
   if (hayPreguntasSinTema) {
-    html += `<button class="btn-special ${filterTopic === 'NONE' ? 'active' : ''}" onclick="setTopic('NONE')">🔍 Sin tema asignado</button>`;
-  } else if (filterTopic === 'NONE') {
-    filterTopic = 'ALL';
+    const isSelected = selectedTopics.includes('NONE');
+    html += `<button class="btn-special ${isSelected ? 'selected' : ''}" onclick="toggleTopicSelection('NONE')">${isSelected ? '✓ ' : ''}🔍 Sin tema asignado</button>`;
   }
   
   topicsVisiblesOrdenados.forEach(t => {
-    html += `<button class="btn-topic ${filterTopic === t ? 'active' : ''}" onclick="setTopic('${t}')">${t}</button>`;
+    const isSelected = selectedTopics.includes(t);
+    html += `<button class="btn-topic ${isSelected ? 'selected' : ''}" onclick="toggleTopicSelection('${t.replace(/'/g, "\\'")}')">${isSelected ? '✓ ' : ''}${t}</button>`;
   });
 
-  if (filterTopic !== 'ALL' && filterTopic !== 'NONE' && !topicsVisibles.has(filterTopic)) {
-    filterTopic = 'ALL';
-    setTimeout(() => applyFilters(), 0);
+  container.innerHTML = html;
+  updateTopicConfirmZone();
+}
+
+function toggleTopicSelection(topic) {
+  if (selectedTopics.includes(topic)) {
+    selectedTopics = selectedTopics.filter(t => t !== topic);
+  } else {
+    selectedTopics.push(topic);
+  }
+
+  // SI SE DESELECCIONAN TODOS LOS TEMAS, LIMPIAR EL FILTRO AUTOMÁTICAMENTE
+  if (selectedTopics.length === 0) {
+    confirmedTopics = [];
+    applyFilters();
+  } else {
+    renderTopicControls();
+  }
+}
+
+function clearTopicSelection() {
+  selectedTopics = [];
+  confirmedTopics = [];
+  applyFilters();
+}
+
+function toggleSelectAllTopics() {
+  const visibleTopics = [];
+  deck.forEach(card => {
+    if (matchesCourseFilter(card, filterCourse) && (filterSubj === 'ALL' || card.subj === filterSubj)) {
+      getCardTopics(card).forEach(t => { if(!visibleTopics.includes(t)) visibleTopics.push(t); });
+    }
+  });
+
+  if (selectedTopics.length === visibleTopics.length) {
+    selectedTopics = [];
+    confirmedTopics = [];
+    applyFilters();
+  } else {
+    selectedTopics = [...visibleTopics];
+    renderTopicControls();
+  }
+}
+
+function updateTopicConfirmZone() {
+  const confirmZone = document.getElementById('topicConfirmZone');
+  const pillsPreview = document.getElementById('topicPillsPreview');
+  const countSpan = document.getElementById('selectedTopicsCount');
+
+  if (selectedTopics.length === 0) {
+    confirmZone.style.display = 'none';
     return;
   }
 
-  container.innerHTML = html;
+  confirmZone.style.display = 'flex';
+  countSpan.textContent = selectedTopics.length;
+
+  let html = "";
+  selectedTopics.forEach(t => {
+    const label = (t === 'NONE') ? 'Sin tema' : t;
+    html += `<span class="pill-preview">${label}</span>`;
+  });
+  pillsPreview.innerHTML = html;
+}
+
+function confirmTopicSelection() {
+  confirmedTopics = [...selectedTopics];
+  applyFilters();
 }
 
 document.getElementById('addTopicBtn').onclick = (e) => {
@@ -591,7 +690,6 @@ document.getElementById('addTopicBtn').onclick = (e) => {
 function setCourse(val) { filterCourse = val; applyFilters(); }
 function setSubj(val) { filterSubj = val; applyFilters(); }
 function setLvl(val) { filterLvl = val; applyFilters(); }
-function setTopic(val) { filterTopic = val; applyFilters(); }
 
 function updateVisualFilterButtons() {
   document.querySelectorAll('[id^="btnSubj-"]').forEach(b => b.classList.remove('active'));
@@ -615,17 +713,18 @@ function applyFilters() {
     const matchLvl = (filterLvl === 'ALL' || card.lvl === filterLvl);
     
     let matchTopic = true;
-    const cardTopics = getCardTopics(card);
-    if (filterTopic === 'NONE') {
-      matchTopic = (cardTopics.length === 0);
-    } else if (filterTopic !== 'ALL') {
-      matchTopic = cardTopics.includes(filterTopic);
+    if (confirmedTopics.length > 0) {
+      const cardTopics = getCardTopics(card);
+      matchTopic = confirmedTopics.some(t => {
+        if (t === 'NONE') return cardTopics.length === 0;
+        return cardTopics.includes(t);
+      });
     }
 
     return matchCourse && matchSubj && matchLvl && matchTopic;
   });
 
-  const memoryKey = `${filterCourse}|${filterSubj}|${filterLvl}|${filterTopic}`;
+  const memoryKey = `${filterCourse}|${filterSubj}|${filterLvl}|${confirmedTopics.join(',')}`;
   if (filterMemory[memoryKey] !== undefined && filterMemory[memoryKey] < filtered.length) {
     index = filterMemory[memoryKey];
   } else {
@@ -711,7 +810,7 @@ function updateView() {
     const realGlobalIndex = deck.indexOf(currentCard);
     document.getElementById('editTargetIndex').textContent = `Nº Global: ${realGlobalIndex + 1}`;
     
-    const memoryKey = `${filterCourse}|${filterSubj}|${filterLvl}|${filterTopic}`;
+    const memoryKey = `${filterCourse}|${filterSubj}|${filterLvl}|${confirmedTopics.join(',')}`;
     filterMemory[memoryKey] = index;
 
     if (innerEl) innerEl.style.opacity = '1';
@@ -766,7 +865,7 @@ function speakBritish(text) {
   window.speechSynthesis.speak(utterance);
 }
 
-// Controles de navegación
+// Navegación
 document.getElementById('prevBtn').onclick = () => {
   if (!filtered.length) return;
   index = (index - 1 + filtered.length) % filtered.length;
@@ -779,9 +878,11 @@ document.getElementById('nextBtn').onclick = () => {
   updateView();
 };
 
+// BOTÓN ALEATORIO: Baraja realmente el array de preguntas activas
 document.getElementById('shuffleBtn').onclick = () => {
   if (!filtered.length) return;
-  index = Math.floor(Math.random() * filtered.length);
+  shuffleArray(filtered);
+  index = 0;
   updateView();
 };
 
@@ -880,7 +981,7 @@ setupMultiAutocomplete('editCourse', 'menuEdit', getAllAvailableCourses);
 setupMultiAutocomplete('addTopic', 'menuAddTopic', getAllAvailableTopics);
 setupMultiAutocomplete('editTopic', 'menuEditTopic', getAllAvailableTopics);
 
-// Inicializar la aplicación
+// Inicializar
 loadDeck();
 </script>
 </body>
