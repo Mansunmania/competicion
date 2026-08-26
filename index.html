@@ -872,37 +872,54 @@ function applyFilters() {
   updateView();
 }
 
-// Extrae el ID del vídeo y convierte marcas de tiempo (1m30s, 90s, t=90, etc.) a segundos totales
-function parseYouTubeUrl(url) {
-  if (!url) return null;
+function openMediaLink(e, url) { 
+  e.stopPropagation(); 
+  window.open(url, '_blank'); 
+}
 
-  // Extraer ID (11 caracteres)
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-  const match = url.match(regExp);
-  const id = (match && match[2].length === 11) ? match[2] : null;
+// Extrae el ID del vídeo y convierte cualquier marca de tiempo a segundos exactos
+function parseYouTubeUrl(urlStr) {
+  if (!urlStr) return null;
 
-  if (!id) return null;
+  try {
+    const parsedUrl = new URL(urlStr);
+    let id = null;
 
-  // Extraer el tiempo si existe (?t=, &t=, ?start=, &start=)
-  let startSeconds = 0;
-  const timeMatch = url.match(/[?&](?:t|start)=([^&]+)/);
-
-  if (timeMatch && timeMatch[1]) {
-    const rawTime = timeMatch[1].replace('s', ''); // Eliminar la 's' final si la hay
-
-    if (rawTime.includes('m')) {
-      // Formato tipo 1m30 o 2m05s
-      const parts = rawTime.split('m');
-      const minutes = parseInt(parts[0], 10) || 0;
-      const seconds = parseInt(parts[1], 10) || 0;
-      startSeconds = (minutes * 60) + seconds;
-    } else {
-      // Formato solo en segundos (ej. 90 o 120s)
-      startSeconds = parseInt(rawTime, 10) || 0;
+    // Obtener el ID según el tipo de enlace
+    if (parsedUrl.hostname === 'youtu.be') {
+      id = parsedUrl.pathname.slice(1);
+    } else if (parsedUrl.hostname.includes('youtube.com')) {
+      id = parsedUrl.searchParams.get('v');
     }
-  }
 
-  return { id, startSeconds };
+    if (!id) return null;
+
+    // Limpiar posibles barras extras en el ID
+    id = id.split('/')[0];
+
+    // Extraer el parámetro de tiempo (t o start)
+    const timeParam = parsedUrl.searchParams.get('t') || parsedUrl.searchParams.get('start');
+    let startSeconds = 0;
+
+    if (timeParam) {
+      const rawTime = timeParam.replace('s', ''); // Eliminar 's' final si la hay
+
+      if (rawTime.includes('m')) {
+        // Formato con minutos y segundos (ej. 1m30)
+        const parts = rawTime.split('m');
+        const minutes = parseInt(parts[0], 10) || 0;
+        const seconds = parseInt(parts[1], 10) || 0;
+        startSeconds = (minutes * 60) + seconds;
+      } else {
+        // Formato directo en segundos (ej. 11 o 90)
+        startSeconds = parseInt(rawTime, 10) || 0;
+      }
+    }
+
+    return { id, startSeconds };
+  } catch (e) {
+    return null;
+  }
 }
 
 function updateView() {
