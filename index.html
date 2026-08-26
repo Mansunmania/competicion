@@ -455,7 +455,6 @@ function initAudio() {
   }
 }
 
-// EFECTO DE DESLIZAMIENTO DE CARTA (Ruido blanco filtrado)
 function playCardSlide() {
   initAudio();
   const bufferSize = audioCtx.sampleRate * 0.12;
@@ -487,7 +486,6 @@ function playCardSlide() {
   noise.start();
 }
 
-// EFECTO DE ARPEGIO / REVELADO
 function playArpa() {
   initAudio();
   const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51]; 
@@ -557,11 +555,13 @@ function saveTopics() {
   localStorage.setItem(STORAGE_TOPICS_KEY, JSON.stringify(customTopics)); 
 }
 
+// ORDEN SOLICITADO: Google Drive > LocalStorage > GitHub
 async function loadDeck() {
   const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxmsFEuwrNg7QV3lEB9V2BuH8RkfpOOnrwEPZdVQ8dRbAaEbJkqRGVIOGwTprSPHUO5Hg/exec';
   let origenCargado = "";
   let cargadoConExito = false;
 
+  // 1. Intentar cargar desde Google Drive (vía Apps Script)
   try {
     const resDrive = await fetch(APPS_SCRIPT_URL, { redirect: 'follow' });
     if (!resDrive.ok) throw new Error(`Status: ${resDrive.status}`);
@@ -575,29 +575,34 @@ async function loadDeck() {
     console.warn("Fallo al cargar desde Drive via Apps Script:", errDrive);
   }
 
-  if (!cargadoConExito) {
-    try {
-      const resLocal = await fetch('preguntas.json?v=' + new Date().getTime());
-      if (!resLocal.ok) throw new Error('No se encontró preguntas.json local');
-      const dataLocal = await resLocal.json();
-      if (Array.isArray(dataLocal)) {
-        procesarMazo(dataLocal);
-        origenCargado = "📁 GitHub (preguntas.json)";
-        cargadoConExito = true;
-      }
-    } catch (errLocal) {
-      console.warn("Fallo al cargar preguntas.json local:", errLocal);
-    }
-  }
-
+  // 2. Si falla Drive, intentar cargar desde Memoria Local (LocalStorage)
   if (!cargadoConExito) {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) { 
       try { 
         let parsed = JSON.parse(raw); 
-        procesarMazo(parsed);
-        origenCargado = "💾 Memoria Local (LocalStorage)";
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          procesarMazo(parsed);
+          origenCargado = "💾 Memoria Local (LocalStorage)";
+          cargadoConExito = true;
+        }
       } catch(e) {} 
+    }
+  }
+
+  // 3. Si tampoco hay en LocalStorage, intentar cargar desde GitHub (preguntas.json)
+  if (!cargadoConExito) {
+    try {
+      const resLocal = await fetch('preguntas.json?v=' + new Date().getTime());
+      if (!resLocal.ok) throw new Error('No se encontró preguntas.json local');
+      const dataLocal = await resLocal.json();
+      if (Array.isArray(dataLocal) && dataLocal.length > 0) {
+        procesarMazo(dataLocal);
+        origenCargado = "📁 GitHub (preguntas.json)";
+        cargadoConExito = true;
+      }
+    } catch (errLocal) {
+      console.warn("Fallo al cargar preguntas.json desde GitHub/local:", errLocal);
     }
   }
 
@@ -877,7 +882,6 @@ function openMediaLink(e, url) {
   window.open(url, '_blank'); 
 }
 
-// Extrae el ID y calcula el segundo exacto para el iFrame
 function parseYouTubeUrl(urlStr) {
   if (!urlStr) return null;
 
@@ -885,7 +889,6 @@ function parseYouTubeUrl(urlStr) {
     const url = new URL(urlStr.trim());
     let id = null;
 
-    // Detectar ID en diferentes formatos de URL
     if (url.hostname === 'youtu.be') {
       id = url.pathname.slice(1);
     } else if (url.hostname.includes('youtube.com')) {
@@ -896,9 +899,8 @@ function parseYouTubeUrl(urlStr) {
     }
 
     if (!id) return null;
-    id = id.split('?')[0].split('&')[0]; // Limpiar cualquier residuo en el ID
+    id = id.split('?')[0].split('&')[0];
 
-    // Extraer parámetro de tiempo
     const timeParam = url.searchParams.get('t') || url.searchParams.get('start');
     let startSeconds = 0;
 
@@ -966,44 +968,23 @@ function updateView() {
     const topicLabel = cardTopics.length > 0 ? `📌 ${cardTopics.join(', ')}` : "🔍 Sin tema";
     topF.textContent = topicLabel; topB.textContent = topicLabel;
 
-// 1. En updateView() solo dejamos preparado el contenedor y guardamos los datos del vídeo
-if (currentCard.media && currentCard.media.trim() !== "") {
-  const mediaUrl = currentCard.media.trim();
-  const ytData = parseYouTubeUrl(mediaUrl);
+    if (currentCard.media && currentCard.media.trim() !== "") {
+      const mediaUrl = currentCard.media.trim();
+      const ytData = parseYouTubeUrl(mediaUrl);
 
-  if (ytData) {
-    // Guardamos la información en data-attributes para cargar el iframe SOLO al girar
-    mediaBack.dataset.ytId = ytData.id;
-    mediaBack.dataset.ytStart = ytData.startSeconds;
-    mediaBack.dataset.hasYt = "true";
-    mediaBack.innerHTML = ""; // Limpio hasta que se gire la tarjeta
-  } else {
-    mediaBack.dataset.hasYt = "false";
-    mediaBack.innerHTML = `<button class="btn-media" onclick="openMediaLink(event, '${mediaUrl.replace(/'/g, "\\'")}')">🔗 Abrir Enlace Web</button>`;
-  }
-} else {
-  mediaBack.dataset.hasYt = "false";
-  mediaBack.innerHTML = "";
-}
-    
-    mediaBack.innerHTML = `
-      <div style="width: 100%; max-width: 320px; height: 180px; margin-top: 10px; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.3);" onclick="event.stopPropagation()">
-        <iframe 
-          width="100%" 
-          height="100%" 
-          src="${embedUrl}" 
-          title="YouTube video" 
-          frameborder="0" 
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-          allowfullscreen>
-        </iframe>
-      </div>`;
-  } else {
-    mediaBack.innerHTML = `<button class="btn-media" onclick="openMediaLink(event, '${mediaUrl.replace(/'/g, "\\'")}')">🔗 Abrir Enlace Web</button>`;
-  }
-} else {
-  mediaBack.innerHTML = "";
-}
+      if (ytData) {
+        mediaBack.dataset.ytId = ytData.id;
+        mediaBack.dataset.ytStart = ytData.startSeconds;
+        mediaBack.dataset.hasYt = "true";
+        mediaBack.innerHTML = "";
+      } else {
+        mediaBack.dataset.hasYt = "false";
+        mediaBack.innerHTML = `<button class="btn-media" onclick="openMediaLink(event, '${mediaUrl.replace(/'/g, "\\'")}')">🔗 Abrir Enlace Web</button>`;
+      }
+    } else {
+      mediaBack.dataset.hasYt = "false";
+      mediaBack.innerHTML = "";
+    }
     
     document.getElementById('editQContext').value = currentCard.qContext || '';
     document.getElementById('editQ').value = currentCard.q;
@@ -1021,7 +1002,6 @@ if (currentCard.media && currentCard.media.trim() !== "") {
   }, wasFlipped ? 130 : 0);
 }
 
-// 2. Modificamos handleCardClick para inyectar/destruir el iframe al girar
 function handleCardClick(cardElement) {
   cardElement.classList.toggle('flipped');
   const isFlipped = cardElement.classList.contains('flipped');
@@ -1030,12 +1010,10 @@ function handleCardClick(cardElement) {
   if (isFlipped) {
     playArpa();
 
-    // Si la tarjeta tiene un vídeo de YouTube, inyectamos el iframe JUSTO AHORA que es visible
     if (mediaBack && mediaBack.dataset.hasYt === "true") {
       const id = mediaBack.dataset.ytId;
       const start = mediaBack.dataset.ytStart;
       
-      // Añadimos autoplay=1 para que arranque justo en el segundo indicado
       const embedUrl = `https://www.youtube-nocookie.com/embed/${id}?start=${start}&autoplay=1&rel=0`;
 
       mediaBack.innerHTML = `
@@ -1064,7 +1042,6 @@ function handleCardClick(cardElement) {
   } else {
     playCardSlide();
     
-    // Al volver a la cara frontal, limpiamos el iframe para detener el audio/vídeo
     if (mediaBack && mediaBack.dataset.hasYt === "true") {
       mediaBack.innerHTML = "";
     }
@@ -1155,6 +1132,7 @@ document.getElementById('exportBtn').onclick = () => {
   downloadAnchor.click(); downloadAnchor.remove();
 };
 
+// Carga manual de banco de preguntas mediante input de archivo
 document.getElementById('importFile').onchange = (e) => {
   const file = e.target.files[0];
   if (!file) return;
@@ -1162,7 +1140,13 @@ document.getElementById('importFile').onchange = (e) => {
   reader.onload = (evt) => {
     try {
       const importedData = JSON.parse(evt.target.result);
-      if (Array.isArray(importedData)) { procesarMazo(importedData); saveDeck(); applyFilters(); alert("¡Mazo importado con éxito!"); }
+      if (Array.isArray(importedData)) { 
+        procesarMazo(importedData); 
+        saveDeck(); // Se guarda en LocalStorage automáticamente
+        mostrarAvisoOrigen("📁 Archivo importado manualmente");
+        applyFilters(); 
+        alert("¡Mazo importado con éxito!"); 
+      }
     } catch(err) { alert("Archivo JSON no válido."); }
   };
   reader.readAsText(file);
@@ -1173,7 +1157,7 @@ setupMultiAutocomplete('editCourse', 'menuEdit', getAllAvailableCourses);
 setupMultiAutocomplete('addTopic', 'menuAddTopic', getAllAvailableTopics);
 setupMultiAutocomplete('editTopic', 'menuEditTopic', getAllAvailableTopics);
 
-/* LÓGICA DE CONTROL REMOTO CON PEERJS CONSTRUIDO PARA HTTPS */
+/* LÓGICA DE CONTROL REMOTO CON PEERJS */
 let peer = null, conn = null;
 const urlParams = new URLSearchParams(window.location.search);
 const remoteTargetId = urlParams.get('remote');
