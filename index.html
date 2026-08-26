@@ -872,16 +872,37 @@ function applyFilters() {
   updateView();
 }
 
-function openMediaLink(e, url) { 
-  e.stopPropagation(); 
-  window.open(url, '_blank'); 
-}
-
-function getYouTubeId(url) {
+// Extrae el ID del vídeo y convierte marcas de tiempo (1m30s, 90s, t=90, etc.) a segundos totales
+function parseYouTubeUrl(url) {
   if (!url) return null;
+
+  // Extraer ID (11 caracteres)
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
   const match = url.match(regExp);
-  return (match && match[2].length === 11) ? match[2] : null;
+  const id = (match && match[2].length === 11) ? match[2] : null;
+
+  if (!id) return null;
+
+  // Extraer el tiempo si existe (?t=, &t=, ?start=, &start=)
+  let startSeconds = 0;
+  const timeMatch = url.match(/[?&](?:t|start)=([^&]+)/);
+
+  if (timeMatch && timeMatch[1]) {
+    const rawTime = timeMatch[1].replace('s', ''); // Eliminar la 's' final si la hay
+
+    if (rawTime.includes('m')) {
+      // Formato tipo 1m30 o 2m05s
+      const parts = rawTime.split('m');
+      const minutes = parseInt(parts[0], 10) || 0;
+      const seconds = parseInt(parts[1], 10) || 0;
+      startSeconds = (minutes * 60) + seconds;
+    } else {
+      // Formato solo en segundos (ej. 90 o 120s)
+      startSeconds = parseInt(rawTime, 10) || 0;
+    }
+  }
+
+  return { id, startSeconds };
 }
 
 function updateView() {
@@ -930,17 +951,20 @@ function updateView() {
     const topicLabel = cardTopics.length > 0 ? `📌 ${cardTopics.join(', ')}` : "🔍 Sin tema";
     topF.textContent = topicLabel; topB.textContent = topicLabel;
 
+    // LÓGICA DE MEDIA / IFRAME YOUTUBE CON TIEMPO DE INICIO
     if (currentCard.media && currentCard.media.trim() !== "") {
       const mediaUrl = currentCard.media.trim();
-      const ytId = getYouTubeId(mediaUrl);
+      const ytData = parseYouTubeUrl(mediaUrl);
 
-      if (ytId) {
+      if (ytData) {
+        const startParam = ytData.startSeconds > 0 ? `&start=${ytData.startSeconds}` : '';
+        
         mediaBack.innerHTML = `
           <div style="width: 100%; max-width: 320px; height: 180px; margin-top: 10px; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.3);" onclick="event.stopPropagation()">
             <iframe 
               width="100%" 
               height="100%" 
-              src="https://www.youtube-nocookie.com/embed/${ytId}?rel=0" 
+              src="https://www.youtube-nocookie.com/embed/${ytData.id}?rel=0${startParam}" 
               title="YouTube video player" 
               frameborder="0" 
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
