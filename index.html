@@ -966,14 +966,25 @@ function updateView() {
     const topicLabel = cardTopics.length > 0 ? `📌 ${cardTopics.join(', ')}` : "🔍 Sin tema";
     topF.textContent = topicLabel; topB.textContent = topicLabel;
 
-    // Renderizado del reproductor en la tarjeta
+// 1. En updateView() solo dejamos preparado el contenedor y guardamos los datos del vídeo
 if (currentCard.media && currentCard.media.trim() !== "") {
   const mediaUrl = currentCard.media.trim();
   const ytData = parseYouTubeUrl(mediaUrl);
 
   if (ytData) {
-    // URL estandarizada para embeber con inicio automático en el segundo exacto
-    const embedUrl = `https://www.youtube.com/embed/${ytData.id}?start=${ytData.startSeconds}&rel=0`;
+    // Guardamos la información en data-attributes para cargar el iframe SOLO al girar
+    mediaBack.dataset.ytId = ytData.id;
+    mediaBack.dataset.ytStart = ytData.startSeconds;
+    mediaBack.dataset.hasYt = "true";
+    mediaBack.innerHTML = ""; // Limpio hasta que se gire la tarjeta
+  } else {
+    mediaBack.dataset.hasYt = "false";
+    mediaBack.innerHTML = `<button class="btn-media" onclick="openMediaLink(event, '${mediaUrl.replace(/'/g, "\\'")}')">🔗 Abrir Enlace Web</button>`;
+  }
+} else {
+  mediaBack.dataset.hasYt = "false";
+  mediaBack.innerHTML = "";
+}
     
     mediaBack.innerHTML = `
       <div style="width: 100%; max-width: 320px; height: 180px; margin-top: 10px; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.3);" onclick="event.stopPropagation()">
@@ -1010,23 +1021,52 @@ if (currentCard.media && currentCard.media.trim() !== "") {
   }, wasFlipped ? 130 : 0);
 }
 
+// 2. Modificamos handleCardClick para inyectar/destruir el iframe al girar
 function handleCardClick(cardElement) {
   cardElement.classList.toggle('flipped');
   const isFlipped = cardElement.classList.contains('flipped');
+  const mediaBack = document.getElementById('mediaAnchorBack');
 
   if (isFlipped) {
     playArpa();
+
+    // Si la tarjeta tiene un vídeo de YouTube, inyectamos el iframe JUSTO AHORA que es visible
+    if (mediaBack && mediaBack.dataset.hasYt === "true") {
+      const id = mediaBack.dataset.ytId;
+      const start = mediaBack.dataset.ytStart;
+      
+      // Añadimos autoplay=1 para que arranque justo en el segundo indicado
+      const embedUrl = `https://www.youtube-nocookie.com/embed/${id}?start=${start}&autoplay=1&rel=0`;
+
+      mediaBack.innerHTML = `
+        <div style="width: 100%; max-width: 320px; height: 180px; margin-top: 10px; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.3);" onclick="event.stopPropagation()">
+          <iframe 
+            width="100%" 
+            height="100%" 
+            src="${embedUrl}" 
+            title="YouTube video" 
+            frameborder="0" 
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+            allowfullscreen>
+          </iframe>
+        </div>`;
+    }
+
+    if (filtered.length) {
+      const currentCard = filtered[index];
+      if (currentCard.subj === 'Inglés') {
+        const palabraLimpia = currentCard.a.trim();
+        if (palabraLimpia.split(/\s+/).length <= 3) {
+          setTimeout(() => speakBritish(palabraLimpia), 250);
+        }
+      }
+    }
   } else {
     playCardSlide();
-  }
-
-  if (isFlipped && filtered.length) {
-    const currentCard = filtered[index];
-    if (currentCard.subj === 'Inglés') {
-      const palabraLimpia = currentCard.a.trim();
-      if (palabraLimpia.split(/\s+/).length <= 3) {
-        setTimeout(() => speakBritish(palabraLimpia), 250);
-      }
+    
+    // Al volver a la cara frontal, limpiamos el iframe para detener el audio/vídeo
+    if (mediaBack && mediaBack.dataset.hasYt === "true") {
+      mediaBack.innerHTML = "";
     }
   }
 }
