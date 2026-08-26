@@ -443,7 +443,7 @@ let filterMemory = {};
 
 const BASE_COURSES = ["5º", "6º"];
 
-/* SÍNTESIS DE AUDIO CON WEB AUDIO API */
+/* SÍNTESIS DE AUDIO REALISTA CON WEB AUDIO API */
 let audioCtx = null;
 
 function initAudio() {
@@ -455,25 +455,39 @@ function initAudio() {
   }
 }
 
-function playPac() {
+// EFECTO DE DESLIZAMIENTO DE CARTA (Ruido blanco filtrado)
+function playCardSlide() {
   initAudio();
-  const osc = audioCtx.createOscillator();
+  const bufferSize = audioCtx.sampleRate * 0.12;
+  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+
+  for (let i = 0; i < bufferSize; i++) {
+    data[i] = Math.random() * 2 - 1;
+  }
+
+  const noise = audioCtx.createBufferSource();
+  noise.buffer = buffer;
+
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.frequency.setValueAtTime(800, audioCtx.currentTime);
+  filter.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.12);
+  filter.Q.value = 1.2;
+
   const gain = audioCtx.createGain();
+  gain.gain.setValueAtTime(0.01, audioCtx.currentTime);
+  gain.gain.linearRampToValueAtTime(0.35, audioCtx.currentTime + 0.03);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
 
-  osc.type = 'sine';
-  osc.frequency.setValueAtTime(160, audioCtx.currentTime);
-  osc.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.05);
-
-  gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
-
-  osc.connect(gain);
+  noise.connect(filter);
+  filter.connect(gain);
   gain.connect(audioCtx.destination);
 
-  osc.start();
-  osc.stop(audioCtx.currentTime + 0.05);
+  noise.start();
 }
 
+// EFECTO DE ARPEGIO / REVELADO
 function playArpa() {
   initAudio();
   const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51]; 
@@ -497,7 +511,6 @@ function playArpa() {
   });
 }
 
-// Activar contexto de audio en primer interacción
 document.addEventListener('click', () => initAudio(), { once: true });
 
 function shuffleArray(array) {
@@ -644,12 +657,11 @@ function toggleFullscreen(e) {
 function navCard(e, dir) {
   if (e) e.stopPropagation();
   if (!filtered.length) return;
-  playPac(); // Sonido pac al cambiar tarjeta
+  playCardSlide();
   index = (index + dir + filtered.length) % filtered.length;
   updateView();
 }
 
-/* TECLADO FILTRADO: SOLO PANTALLA COMPLETA Y FUERA DE INPUTS */
 document.addEventListener('keydown', (e) => {
   const cardEl = document.getElementById('cardElement');
   const isFs = cardEl.classList.contains('fullscreen');
@@ -860,7 +872,17 @@ function applyFilters() {
   updateView();
 }
 
-function openMediaLink(e, url) { e.stopPropagation(); window.open(url, '_blank'); }
+function openMediaLink(e, url) { 
+  e.stopPropagation(); 
+  window.open(url, '_blank'); 
+}
+
+function getYouTubeId(url) {
+  if (!url) return null;
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? match[2] : null;
+}
 
 function updateView() {
   const cardEl = document.getElementById('cardElement');
@@ -909,8 +931,28 @@ function updateView() {
     topF.textContent = topicLabel; topB.textContent = topicLabel;
 
     if (currentCard.media && currentCard.media.trim() !== "") {
-      mediaBack.innerHTML = `<button class="btn-media" onclick="openMediaLink(event, '${currentCard.media.replace(/'/g, "\\'")}')">🎵 Ver Canción / Clip en YouTube</button>`;
-    } else mediaBack.innerHTML = "";
+      const mediaUrl = currentCard.media.trim();
+      const ytId = getYouTubeId(mediaUrl);
+
+      if (ytId) {
+        mediaBack.innerHTML = `
+          <div style="width: 100%; max-width: 320px; height: 180px; margin-top: 10px; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.3);" onclick="event.stopPropagation()">
+            <iframe 
+              width="100%" 
+              height="100%" 
+              src="https://www.youtube-nocookie.com/embed/${ytId}?rel=0" 
+              title="YouTube video player" 
+              frameborder="0" 
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+              allowfullscreen>
+            </iframe>
+          </div>`;
+      } else {
+        mediaBack.innerHTML = `<button class="btn-media" onclick="openMediaLink(event, '${mediaUrl.replace(/'/g, "\\'")}')">🔗 Abrir Enlace Web</button>`;
+      }
+    } else {
+      mediaBack.innerHTML = "";
+    }
 
     document.getElementById('editQContext').value = currentCard.qContext || '';
     document.getElementById('editQ').value = currentCard.q;
@@ -933,9 +975,9 @@ function handleCardClick(cardElement) {
   const isFlipped = cardElement.classList.contains('flipped');
 
   if (isFlipped) {
-    playArpa(); // Sonido arpa al dar la vuelta para ver la respuesta
+    playArpa();
   } else {
-    playPac();
+    playCardSlide();
   }
 
   if (isFlipped && filtered.length) {
@@ -975,7 +1017,7 @@ function speakBritish(text) {
 
 document.getElementById('shuffleBtn').onclick = () => {
   if (!filtered.length) return;
-  playPac();
+  playCardSlide();
   shuffleArray(filtered); index = 0; updateView();
 };
 
@@ -1051,13 +1093,12 @@ setupMultiAutocomplete('editCourse', 'menuEdit', getAllAvailableCourses);
 setupMultiAutocomplete('addTopic', 'menuAddTopic', getAllAvailableTopics);
 setupMultiAutocomplete('editTopic', 'menuEditTopic', getAllAvailableTopics);
 
-/* LÓGICA DE CONTROL REMOTO CON PEERJS */
+/* LÓGICA DE CONTROL REMOTO CON PEERJS CONSTRUIDO PARA HTTPS */
 let peer = null, conn = null;
 const urlParams = new URLSearchParams(window.location.search);
 const remoteTargetId = urlParams.get('remote');
 
 if (remoteTargetId) {
-  // MODO MANDO MÓVIL
   document.getElementById('appView').style.display = 'none';
   document.getElementById('remoteView').style.display = 'flex';
   peer = new Peer();
@@ -1068,10 +1109,9 @@ if (remoteTargetId) {
     if (navigator.vibrate) navigator.vibrate(40);
   }
 } else {
-  // MODO RECEPTOR EN PC
   peer = new Peer();
   peer.on('open', (id) => {
-    const remoteUrl = `${window.location.origin}${window.location.pathname}?remote=${id}`;
+    const remoteUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}?remote=${id}`;
     const qrContainer = document.getElementById("qrcode");
     qrContainer.innerHTML = "";
     new QRCode(qrContainer, { text: remoteUrl, width: 200, height: 200 });
@@ -1087,7 +1127,7 @@ if (remoteTargetId) {
   });
 }
 
-function openQRModal() { document.getElementById('qrModal').classList.add('open'); }
+function openQRModal() { document.getElementById('qrModal').classList.open ? null : document.getElementById('qrModal').classList.add('open'); }
 function closeQRModal() { document.getElementById('qrModal').classList.remove('open'); }
 
 loadDeck();
