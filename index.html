@@ -158,6 +158,9 @@
     .remote-card-info { background: #0f172a; border: 1px solid #334155; padding: 14px; border-radius: 16px; text-align: left; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); }
     .btn-remote { flex: 1; border: none; border-radius: 16px; font-size: 1.4rem; font-weight: bold; color: white; background: var(--pri); touch-action: manipulation; }
     .btn-remote-flip { background: var(--ok); }
+    .remote-status { font-size: 11px; text-align: center; border-radius: 6px; padding: 4px 8px; font-weight: bold; }
+    .remote-status.connected { background: #16a34a22; color: #4ade80; border: 1px solid #16a34a; }
+    .remote-status.disconnected { background: #dc262622; color: #f87171; border: 1px solid #dc2626; }
   </style>
 </head>
 <body>
@@ -406,6 +409,8 @@
 
 <!-- VISTA MANDO REMOTO MÓVIL CON VISTA DE RESPUESTA EN TIEMPO REAL -->
 <div id="remoteView" class="remote-layout">
+  <div id="remoteStatus" class="remote-status disconnected">Conectando...</div>
+
   <div class="remote-card-info">
     <div style="font-size: 11px; text-transform: uppercase; color: #94a3b8; font-weight: 700; margin-bottom: 2px;">Pregunta Activa</div>
     <div id="remoteQuestionText" style="font-size: 14px; color: #f8fafc; font-weight: 500; margin-bottom: 10px; line-height: 1.3;">-</div>
@@ -943,7 +948,7 @@ function syncRemoteData() {
     });
   }
 }
-  
+
 function updateView() {
   const cardEl = document.getElementById('cardElement');
   const innerEl = document.getElementById('cardInnerElement');
@@ -1219,31 +1224,95 @@ setupMultiAutocomplete('editCourse', 'menuEdit', getAllAvailableCourses);
 setupMultiAutocomplete('addTopic', 'menuAddTopic', getAllAvailableTopics);
 setupMultiAutocomplete('editTopic', 'menuEditTopic', getAllAvailableTopics);
 
-/* LÓGICA DE CONTROL REMOTO CON PEERJS */
+/* LÓGICA DE CONTROL REMOTO CON PEERJS MEJORADA (STUN/TURN + RECONEXIÓN) */
+const PEER_CONFIG = {
+  debug: 1,
+  config: {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun2.l.google.com:19302' }
+    ]
+  }
+};
+
 let peer = null, conn = null;
 const urlParams = new URLSearchParams(window.location.search);
 const remoteTargetId = urlParams.get('remote');
 
-if (remoteTargetId) {
-  document.getElementById('appView').style.display = 'none';
-  document.getElementById('remoteView').style.display = 'flex';
-  peer = new Peer();
-  peer.on('open', () => { 
-    conn = peer.connect(remoteTargetId);
-    conn.on('data', (data) => {
+function updateRemoteStatus(text, isConnected) {
+  const el = document.getElementById('remoteStatus');
+  if (!el) return;
+  el.textContent = text;
+  el.className = `remote-status ${isConnected ? 'connected' : 'disconnected'}`;
+}
+
+function bindConnectionEvents(connection) {
+  conn = connection;
+
+  conn.on('open', () => {
+    updateRemoteStatus('🟢 Conectado con el Proyector', true);
+    if (!remoteTargetId) syncRemoteData();
+  });
+
+  conn.on('data', (data) => {
+    if (remoteTargetId) {
       if (data && data.type === 'CARD_SYNC') {
         document.getElementById('remoteQuestionText').textContent = data.question || 'Sin pregunta';
         document.getElementById('remoteAnswerText').textContent = data.answer || 'Sin respuesta';
       }
-    });
+    } else {
+      const cardEl = document.getElementById('cardElement');
+      if (data === 'NEXT') navCard(null, 1);
+      if (data === 'PREV') navCard(null, -1);
+      if (data === 'FLIP') handleCardClick(cardEl);
+    }
+  });
+
+  conn.on('close', () => {
+    updateRemoteStatus('🔴 Conexión perdida. Reintentando...', false);
+    if (remoteTargetId) setTimeout(connectToHost, 3000);
+  });
+
+  conn.on('error', (err) => {
+    console.error('Error en conexión Peer:', err);
+    updateRemoteStatus('⚠️ Error de transmisión', false);
+  });
+}
+
+function connectToHost() {
+  if (!remoteTargetId) return;
+  updateRemoteStatus('🟡 Conectando al proyector...', false);
+  const newConn = peer.connect(remoteTargetId, { reliable: true });
+  bindConnectionEvents(newConn);
+}
+
+if (remoteTargetId) {
+  document.getElementById('appView').style.display = 'none';
+  document.getElementById('remoteView').style.display = 'flex';
+
+  peer = new Peer(PEER_CONFIG);
+
+  peer.on('open', () => {
+    connectToHost();
+  });
+
+  peer.on('error', (err) => {
+    console.error('Error Peer Client:', err);
+    updateRemoteStatus('❌ Error al conectar ID', false);
   });
 
   function sendRemoteCmd(cmd) {
-    if (conn) conn.send(cmd);
-    if (navigator.vibrate) navigator.vibrate(40);
+    if (conn && conn.open) {
+      conn.send(cmd);
+      if (navigator.vibrate) navigator.vibrate(40);
+    } else {
+      updateRemoteStatus('⚠️ No hay conexión activa', false);
+    }
   }
 } else {
-  peer = new Peer();
+  peer = new Peer(PEER_CONFIG);
+
   peer.on('open', (id) => {
     const remoteUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}?remote=${id}`;
     const qrContainer = document.getElementById("qrcode");
@@ -1252,20 +1321,15 @@ if (remoteTargetId) {
   });
 
   peer.on('connection', (c) => {
-    conn = c;
-    conn.on('open', () => {
-      syncRemoteData();
-    });
-    conn.on('data', (cmd) => {
-      const cardEl = document.getElementById('cardElement');
-      if (cmd === 'NEXT') navCard(null, 1);
-      if (cmd === 'PREV') navCard(null, -1);
-      if (cmd === 'FLIP') handleCardClick(cardEl);
-    });
+    bindConnectionEvents(c);
+  });
+
+  peer.on('error', (err) => {
+    console.error('Error Peer Server:', err);
   });
 }
 
-function openQRModal() { document.getElementById('qrModal').classList.open ? null : document.getElementById('qrModal').classList.add('open'); }
+function openQRModal() { document.getElementById('qrModal').classList.contains('open') ? null : document.getElementById('qrModal').classList.add('open'); }
 function closeQRModal() { document.getElementById('qrModal').classList.remove('open'); }
 
 loadDeck();
