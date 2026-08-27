@@ -1239,8 +1239,12 @@ if (remoteTargetId) {
         username: 'openrelay',
         credential: 'openrelay'
       }
-    ]
-  }
+    ],
+    // Forzar política de candidatos ICE de transporte público
+    iceCandidatePoolSize: 10
+  },
+  // Forzar conexiones seguras con el servidor de señalización de PeerJS
+  secure: true
 });
   peer.on('open', () => { 
     conn = peer.connect(remoteTargetId);
