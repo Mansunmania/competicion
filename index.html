@@ -1235,11 +1235,11 @@ const remoteTargetId = urlParams.get('remote');
 
 // Configuración de PeerJS optimizada y limpia para Chromium
 const peerConfig = {
-  debug: 1,
+  debug: 3, // Activamos el log máximo en consola para ver dónde se atasca
   config: {
     iceServers: [
       { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' }
+      { urls: 'stun:global.stun.twilio.com:3478' }
     ]
   }
 };
