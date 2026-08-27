@@ -3,264 +3,200 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mando de Control</title>
-
+  <title>Tarjetas Didácticas & Control Remoto</title>
   <style>
-    /* 1. ESTILOS GENERALES */
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: system-ui, -apple-system, sans-serif;
-    }
+    /* ESTILOS GENERALES */
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    body { background-color: #121212; color: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 15px; }
 
-    body {
-      background-color: #121212;
-      color: #ffffff;
-      padding: 15px;
-      max-width: 600px;
-      margin: 0 auto;
-    }
+    /* VISTA PROYECTOR / PC */
+    #vistaProyector { width: 100%; max-width: 800px; text-align: center; }
+    .tarjeta { background: #1e1e1e; border: 2px solid #333; border-radius: 16px; padding: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+    .tarjeta h2 { margin-bottom: 15px; color: #4da6ff; }
+    .tarjeta p { font-size: 1.2rem; margin-bottom: 15px; }
+    .contenedor-iframe { position: relative; width: 100%; padding-bottom: 56.25%; height: 0; border-radius: 12px; overflow: hidden; background: #000; margin-top: 15px; }
+    .contenedor-iframe iframe { position: absolute; top:0; left:0; width:100%; height:100%; border:0; }
 
-    /* 2. BOTONES PRINCIPALES DEL MANDO */
-    .mando-btn {
-      width: 100%;
-      padding: 14px;
-      margin-bottom: 10px;
-      font-size: 16px;
-      font-weight: bold;
-      border: none;
-      border-radius: 10px;
-      background-color: #2b3a4a;
-      color: #ffffff;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
+    /* VISTA MANDO MÓVIL */
+    #vistaMando { width: 100%; max-width: 450px; display: flex; flex-direction: column; gap: 12px; }
+    .mando-btn { width: 100%; padding: 14px; font-size: 16px; font-weight: bold; border: none; border-radius: 10px; background-color: #2b3a4a; color: #fff; cursor: pointer; }
+    .mando-btn:active { transform: scale(0.98); }
+    
+    .panel-oculto { display: none !important; }
+    #panelSeleccion { background: #1e1e1e; border: 1px solid #333; padding: 15px; border-radius: 12px; display: flex; flex-direction: column; gap: 12px; }
+    .grid-botones { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px; margin-top: 5px; }
+    .btn-asig { background: #007bff; color: white; padding: 10px; border: none; border-radius: 8px; font-weight: bold; }
+    .btn-tema { background: #28a745; color: white; padding: 10px; border: none; border-radius: 8px; font-weight: bold; }
 
-    .mando-btn:active {
-      transform: scale(0.98);
-    }
-
-    /* 3. PANEL PLEGABLE (ASIGNATURAS Y TEMAS) */
-    .panel-oculto {
-      display: none !important;
-    }
-
-    #panelSeleccion {
-      background: #1e1e1e;
-      border: 1px solid #333;
-      padding: 15px;
-      border-radius: 12px;
-      margin-bottom: 15px;
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-    }
-
-    .seccion-bloque h3 {
-      font-size: 14px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: #888;
-      margin-bottom: 8px;
-    }
-
-    .grid-botones {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-      gap: 8px;
-    }
-
-    .btn-asignatura, .btn-tema {
-      padding: 12px;
-      font-size: 14px;
-      font-weight: bold;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      color: #ffffff;
-    }
-
-    .btn-asignatura { background-color: #007bff; }
-    .btn-tema { background-color: #28a745; }
-
-    .btn-asignatura:active, .btn-tema:active {
-      opacity: 0.8;
-    }
-
-    /* 4. ENTRADA DE VÍDEO Y REPRODUCTOR */
-    .control-video {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 15px;
-    }
-
-    .control-video input {
-      flex: 1;
-      padding: 12px;
-      font-size: 16px;
-      border-radius: 8px;
-      border: 1px solid #333;
-      background-color: #1e1e1e;
-      color: #fff;
-    }
-
-    .control-video button {
-      padding: 12px 16px;
-      font-weight: bold;
-      background-color: #ff0000;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-
-    /* Contenedor adaptativo 16:9 para el iframe */
-    .contenedor-iframe {
-      position: relative;
-      width: 100%;
-      padding-bottom: 56.25%; /* Relación de aspecto 16:9 */
-      height: 0;
-      border-radius: 12px;
-      overflow: hidden;
-      background-color: #000;
-    }
-
-    .contenedor-iframe iframe {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      border: 0;
-    }
+    /* VISOR DE PREGUNTA/RESPUESTA EN EL MÓVIL */
+    .visor-mando { background: #222; border-left: 4px solid #007bff; padding: 12px; border-radius: 6px; text-align: left; margin-bottom: 5px; }
+    .visor-mando h4 { color: #888; font-size: 12px; text-transform: uppercase; margin-bottom: 4px; }
+    .visor-mando p { font-size: 15px; color: #fff; }
   </style>
 </head>
 <body>
 
   <!-- ========================================== -->
-  <!-- 1. CONTROLES DEL MANDO                    -->
+  <!-- 1. VISTA PANTALLA PRINCIPAL (PC / PROYECTOR)-->
   <!-- ========================================== -->
-  <button id="btnToggleMenu" class="mando-btn">📂 Seleccionar Tema / Asignatura</button>
-  <button id="btnFullscreen" class="mando-btn">📱 Pantalla Completa</button>
+  <div id="vistaProyector">
+    <div id="tarjetaContenedor" class="tarjeta">
+      <h2 id="pcPregunta">Cargando pregunta...</h2>
+      <div id="pcRespuestaContenedor" style="display: none;">
+        <p id="pcRespuesta"></p>
+      </div>
+      <div class="contenedor-iframe" id="pcMediaBox">
+        <iframe id="pcIframe" src="" allowfullscreen allow="autoplay"></iframe>
+      </div>
+    </div>
+  </div>
 
   <!-- ========================================== -->
-  <!-- 2. PANEL DESPLEGABLE (OCULTO POR DEFECTO)  -->
+  <!-- 2. VISTA MANDO A DISTANCIA (MÓVIL)         -->
   <!-- ========================================== -->
-  <div id="panelSeleccion" class="panel-oculto">
+  <div id="vistaMando" style="display: none;">
+    <!-- VISOR DE ESTADO ACTUAL EN EL MÓVIL -->
+    <div class="visor-mando">
+      <h4>Pregunta Actual</h4>
+      <p id="movilPregunta">-</p>
+    </div>
+    <div class="visor-mando" style="border-color: #28a745;">
+      <h4>Respuesta / Info</h4>
+      <p id="movilRespuesta">-</p>
+    </div>
+
+    <!-- CONTROLES -->
+    <button id="btnToggleMenu" class="mando-btn">📂 Asignaturas y Temas</button>
     
-    <div class="seccion-bloque">
-      <h3>Asignaturas</h3>
-      <div class="grid-botones">
-        <button class="btn-asignatura" data-asignatura="matematicas">Matemáticas</button>
-        <button class="btn-asignatura" data-asignatura="lengua">Lengua</button>
-        <button class="btn-asignatura" data-asignatura="ciencias">Ciencias</button>
+    <!-- PANEL DESPLEGABLE -->
+    <div id="panelSeleccion" class="panel-oculto">
+      <div>
+        <small style="color:#aaa;">ASIGNATURAS</small>
+        <div class="grid-botones">
+          <button class="btn-asig" onclick="filtrarAsignatura('Matemáticas')">Mates</button>
+          <button class="btn-asig" onclick="filtrarAsignatura('Lengua')">Lengua</button>
+        </div>
+      </div>
+      <div>
+        <small style="color:#aaa;">TEMAS</small>
+        <div class="grid-botones">
+          <button class="btn-tema" onclick="filtrarTema(1)">Tema 1</button>
+          <button class="btn-tema" onclick="filtrarTema(2)">Tema 2</button>
+        </div>
       </div>
     </div>
 
-    <div class="seccion-bloque">
-      <h3>Temas</h3>
-      <div class="grid-botones">
-        <button class="btn-tema" data-tema="1">Tema 1</button>
-        <button class="btn-tema" data-tema="2">Tema 2</button>
-        <button class="btn-tema" data-tema="3">Tema 3</button>
-      </div>
-    </div>
-
+    <button id="btnMostrarRespuesta" class="mando-btn" style="background:#007bff;">👁️ Mostrar / Ocultar Respuesta</button>
+    <button id="btnSiguiente" class="mando-btn">➡️ Siguiente Tarjeta</button>
+    <button id="btnFullscreenPC" class="mando-btn" style="background:#6c5ce7;">🖥️ Pantalla Completa (Proyector)</button>
   </div>
 
-  <!-- ========================================== -->
-  <!-- 3. ENTRADA Y REPRODUCTOR DE VÍDEO          -->
-  <!-- ========================================== -->
-  <div class="control-video">
-    <input type="text" id="inputUrl" placeholder="Pega URL de YouTube o Short...">
-    <button id="btnCargar">Cargar</button>
-  </div>
-
-  <div class="contenedor-iframe">
-    <iframe id="reproductor" src="" allowfullscreen allow="autoplay"></iframe>
-  </div>
-
-  <!-- ========================================== -->
-  <!-- 4. LÓGICA JAVASCRIPT                       -->
-  <!-- ========================================== -->
   <script>
-    // --- A. MOSTRAR / OCULTAR PANEL DE BOTONES ---
-    const btnToggleMenu = document.getElementById('btnToggleMenu');
-    const panelSeleccion = document.getElementById('panelSeleccion');
-
-    btnToggleMenu.addEventListener('click', () => {
-      panelSeleccion.classList.toggle('panel-oculto');
-    });
-
-    // --- B. CONTROL PANTALLA COMPLETA ---
-    const btnFullscreen = document.getElementById('btnFullscreen');
-
-    btnFullscreen.addEventListener('click', () => {
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(err => {
-          console.error(`Error al activar pantalla completa: ${err.message}`);
-        });
-      } else {
-        if (document.exitFullscreen) {
-          document.exitFullscreen();
-        }
+    // BASE DE DATOS DE TARJETAS (Acepta URLs normales y Shorts)
+    const tarjetas = [
+      {
+        pregunta: "¿Qué es la fotosíntesis?",
+        respuesta: "Proceso mediante el cual las plantas transforman luz en energía química.",
+        videoUrl: "https://www.youtube.com/shorts/dQw4w9WgXcQ" // Ejemplo de Short
+      },
+      {
+        pregunta: "¿Cuánto es 8 x 7?",
+        respuesta: "56",
+        videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" // Ejemplo de vídeo normal
       }
-    });
+    ];
 
-    document.addEventListener('fullscreenchange', () => {
-      btnFullscreen.textContent = document.fullscreenElement 
-        ? '❌ Salir de Pantalla Completa' 
-        : '📱 Pantalla Completa';
-    });
+    let indiceActual = 0;
+    const esMovil = window.location.search.includes('modo=mando') || /Android|iPhone/i.test(navigator.userAgent);
+    const canal = new BroadcastChannel('canal_mando_tarjetas');
 
-    // --- C. TRANSFORMACIÓN DE URLS (INCLUYE YOUTUBE SHORTS) ---
+    // CONVERTIDOR DE URLS (Normales y Shorts a Embed)
     function obtenerUrlEmbed(url) {
+      if (!url) return '';
       let videoId = '';
-
       if (url.includes('/shorts/')) {
-        // Enlaces tipo: youtube.com/shorts/ID_DEL_VIDEO
         videoId = url.split('/shorts/')[1].split('?')[0];
       } else if (url.includes('v=')) {
-        // Enlaces tipo: youtube.com/watch?v=ID_DEL_VIDEO
         videoId = url.split('v=')[1].split('&')[0];
       } else if (url.includes('youtu.be/')) {
-        // Enlaces tipo: youtu.be/ID_DEL_VIDEO
         videoId = url.split('youtu.be/')[1].split('?')[0];
       }
-
       return videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1` : url;
     }
 
-    // Cargar enlace en iframe
-    document.getElementById('btnCargar').addEventListener('click', () => {
-      const urlOriginal = document.getElementById('inputUrl').value.trim();
-      if (urlOriginal) {
-        const urlEmbed = obtenerUrlEmbed(urlOriginal);
-        document.getElementById('reproductor').src = urlEmbed;
+    // INICIALIZACIÓN DE VISTAS
+    if (esMovil) {
+      document.getElementById('vistaProyector').style.display = 'none';
+      document.getElementById('vistaMando').style.display = 'flex';
+      actualizarVisorMovil();
+    } else {
+      cargarTarjetaPC(indiceActual);
+    }
+
+    // LÓGICA PROYECTOR / PC
+    function cargarTarjetaPC(index) {
+      const data = tarjetas[index];
+      document.getElementById('pcPregunta').textContent = data.pregunta;
+      document.getElementById('pcRespuesta').textContent = data.respuesta;
+      document.getElementById('pcRespuestaContenedor').style.display = 'none';
+      document.getElementById('pcIframe').src = obtenerUrlEmbed(data.videoUrl);
+
+      // Notificar al móvil los datos actualizados
+      canal.postMessage({ accion: 'sincronizar', data: data });
+    }
+
+    // RECEPTOR DE ÓRDENES EN EL PC
+    canal.onmessage = (e) => {
+      const msg = e.data;
+      if (msg.accion === 'toggle_respuesta') {
+        const resBox = document.getElementById('pcRespuestaContenedor');
+        resBox.style.display = resBox.style.display === 'none' ? 'block' : 'none';
+      } else if (msg.accion === 'siguiente') {
+        indiceActual = (indiceActual + 1) % tarjetas.length;
+        cargarTarjetaPC(indiceActual);
+      } else if (msg.accion === 'fullscreen') {
+        const tarjetaDiv = document.getElementById('tarjetaContenedor');
+        if (!document.fullscreenElement) {
+          tarjetaDiv.requestFullscreen().catch(err => console.error(err));
+        } else {
+          document.exitFullscreen();
+        }
+      } else if (msg.accion === 'sincronizar') {
+        // Actualiza la pantalla del móvil cuando cambia la tarjeta
+        document.getElementById('movilPregunta').textContent = msg.data.pregunta;
+        document.getElementById('movilRespuesta').textContent = msg.data.respuesta;
       }
+    };
+
+    // LÓGICA MANDO MÓVIL
+    document.getElementById('btnToggleMenu').addEventListener('click', () => {
+      document.getElementById('panelSeleccion').classList.toggle('panel-oculto');
     });
 
-    // --- D. CAPTURA DE CLICS EN ASIGNATURAS Y TEMAS ---
-    document.querySelectorAll('.btn-asignatura').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const asignatura = e.target.dataset.asignatura;
-        console.log('Asignatura seleccionada:', asignatura);
-        // Añade aquí tu función para filtrar por asignatura
-      });
+    document.getElementById('btnMostrarRespuesta').addEventListener('click', () => {
+      canal.postMessage({ accion: 'toggle_respuesta' });
     });
 
-    document.querySelectorAll('.btn-tema').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const tema = e.target.dataset.tema;
-        console.log('Tema seleccionado:', tema);
-        // Añade aquí tu función para cargar vídeos del tema
-      });
+    document.getElementById('btnSiguiente').addEventListener('click', () => {
+      canal.postMessage({ accion: 'siguiente' });
     });
+
+    document.getElementById('btnFullscreenPC').addEventListener('click', () => {
+      canal.postMessage({ accion: 'fullscreen' });
+    });
+
+    function actualizarVisorMovil() {
+      const data = tarjetas[indiceActual];
+      document.getElementById('movilPregunta').textContent = data.pregunta;
+      document.getElementById('movilRespuesta').textContent = data.respuesta;
+    }
+
+    function filtrarAsignatura(asig) {
+      console.log("Filtrar por asignatura:", asig);
+    }
+    function filtrarTema(tema) {
+      console.log("Filtrar por tema:", tema);
+    }
   </script>
-
 </body>
 </html>
