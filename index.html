@@ -788,7 +788,8 @@ function renderTopicControls() {
   
   Array.from(topicsVisibles).sort((a,b) => a.localeCompare(b,'es',{sensitivity:'base'})).forEach(t => {
     const isSelected = selectedTopics.includes(t);
-    html += `<button class="btn-topic ${isSelected ? 'selected' : ''}" onclick="toggleTopicSelection('${t.replace(/'/g, "\\'")}')">${isSelected ? '✓ ' : ''}${t}</button>`;
+    const escapedTopic = t.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    html += `<button class="btn-topic ${isSelected ? 'selected' : ''}" onclick="toggleTopicSelection('${escapedTopic}')">${isSelected ? '✓ ' : ''}${t}</button>`;
   });
 
   container.innerHTML = html;
@@ -929,15 +930,22 @@ function parseYouTubeUrl(urlStr) {
   }
 }
 
-// Transmitir datos de la tarjeta al mando móvil en cuanto se actualiza
 function syncRemoteData() {
-  if (conn && conn.open && filtered.length > 0) {
-    const currentCard = filtered[index];
-    conn.send({
-      type: 'CARD_SYNC',
-      question: currentCard.q || '',
-      answer: currentCard.a || ''
-    });
+  if (conn && conn.open) {
+    if (filtered.length > 0 && filtered[index]) {
+      const currentCard = filtered[index];
+      conn.send({
+        type: 'CARD_SYNC',
+        question: currentCard.q || '',
+        answer: currentCard.a || ''
+      });
+    } else {
+      conn.send({
+        type: 'CARD_SYNC',
+        question: 'Sin preguntas disponibles',
+        answer: '-'
+      });
+    }
   }
 }
   
@@ -965,6 +973,11 @@ function updateView() {
     ctxF.textContent = ""; ctxB.textContent = ""; txtFB.textContent = "---"; txtB.textContent = "---";
     metaF.textContent = "VACÍO"; topF.textContent = "-"; topB.textContent = "-";
     counterEl.textContent = "0 / 0"; mediaBack.innerHTML = "";
+    document.getElementById('editQContext').value = '';
+    document.getElementById('editQ').value = '';
+    document.getElementById('editA').value = '';
+    document.getElementById('editMedia').value = '';
+    document.getElementById('editTargetIndex').textContent = 'ID: -';
     if (innerEl) innerEl.style.opacity = '1';
     syncRemoteData();
     return;
@@ -1024,6 +1037,7 @@ function updateView() {
 }
 
 function handleCardClick(cardElement) {
+  if (!filtered.length) return;
   cardElement.classList.toggle('flipped');
   const isFlipped = cardElement.classList.contains('flipped');
   const mediaBack = document.getElementById('mediaAnchorBack');
@@ -1055,13 +1069,11 @@ function handleCardClick(cardElement) {
         </div>`;
     }
 
-    if (filtered.length) {
-      const currentCard = filtered[index];
-      if (currentCard.subj === 'Inglés') {
-        const palabraLimpia = currentCard.a.trim();
-        if (palabraLimpia.split(/\s+/).length <= 3) {
-          setTimeout(() => speakBritish(palabraLimpia), 250);
-        }
+    const currentCard = filtered[index];
+    if (currentCard && currentCard.subj === 'Inglés') {
+      const palabraLimpia = currentCard.a.trim();
+      if (palabraLimpia.split(/\s+/).length <= 3) {
+        setTimeout(() => speakBritish(palabraLimpia), 250);
       }
     }
   } else {
@@ -1225,27 +1237,25 @@ if (remoteTargetId) {
   document.getElementById('appView').style.display = 'none';
   document.getElementById('remoteView').style.display = 'flex';
   peer = new Peer({
-  config: {
-    iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' },
-      {
-        urls: 'turn:openrelay.metered.ca:80',
-        username: 'openrelay',
-        credential: 'openrelay'
-      },
-      {
-        urls: 'turn:openrelay.metered.ca:443',
-        username: 'openrelay',
-        credential: 'openrelay'
-      }
-    ],
-    // Forzar política de candidatos ICE de transporte público
-    iceCandidatePoolSize: 10
-  },
-  // Forzar conexiones seguras con el servidor de señalización de PeerJS
-  secure: true
-});
+    config: {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        {
+          urls: 'turn:openrelay.metered.ca:80',
+          username: 'openrelay',
+          credential: 'openrelay'
+        },
+        {
+          urls: 'turn:openrelay.metered.ca:443',
+          username: 'openrelay',
+          credential: 'openrelay'
+        }
+      ],
+      iceCandidatePoolSize: 10
+    },
+    secure: true
+  });
   peer.on('open', () => { 
     conn = peer.connect(remoteTargetId);
     conn.on('data', (data) => {
@@ -1262,23 +1272,23 @@ if (remoteTargetId) {
   }
 } else {
   peer = new Peer({
-  config: {
-    iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' },
-      {
-        urls: 'turn:openrelay.metered.ca:80',
-        username: 'openrelay',
-        credential: 'openrelay'
-      },
-      {
-        urls: 'turn:openrelay.metered.ca:443',
-        username: 'openrelay',
-        credential: 'openrelay'
-      }
-    ]
-  }
-});
+    config: {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        {
+          urls: 'turn:openrelay.metered.ca:80',
+          username: 'openrelay',
+          credential: 'openrelay'
+        },
+        {
+          urls: 'turn:openrelay.metered.ca:443',
+          username: 'openrelay',
+          credential: 'openrelay'
+        }
+      ]
+    }
+  });
   peer.on('open', (id) => {
     const remoteUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}?remote=${id}`;
     const qrContainer = document.getElementById("qrcode");
@@ -1300,8 +1310,14 @@ if (remoteTargetId) {
   });
 }
 
-function openQRModal() { document.getElementById('qrModal').classList.open ? null : document.getElementById('qrModal').classList.add('open'); }
-function closeQRModal() { document.getElementById('qrModal').classList.remove('open'); }
+function openQRModal() { 
+  const modal = document.getElementById('qrModal');
+  if (modal) modal.classList.add('open'); 
+}
+function closeQRModal() { 
+  const modal = document.getElementById('qrModal');
+  if (modal) modal.classList.remove('open'); 
+}
 
 loadDeck();
 </script>
