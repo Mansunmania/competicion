@@ -1228,36 +1228,32 @@ setupMultiAutocomplete('editCourse', 'menuEdit', getAllAvailableCourses);
 setupMultiAutocomplete('addTopic', 'menuAddTopic', getAllAvailableTopics);
 setupMultiAutocomplete('editTopic', 'menuEditTopic', getAllAvailableTopics);
 
-/* LÓGICA DE CONTROL REMOTO CON PEERJS */
+/* LÓGICA DE CONTROL REMOTO CON PEERJS (OPTIMIZADA PARA CHROMIUM FUERA DE CASA) */
 let peer = null, conn = null;
 const urlParams = new URLSearchParams(window.location.search);
 const remoteTargetId = urlParams.get('remote');
 
+// Configuración ligera sin los servidores TURN de OpenRelay que colapsan en Chrome/Edge fuera de casa
+const peerConfig = {
+  config: {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun2.l.google.com:19302' },
+      { urls: 'stun:stun3.l.google.com:19302' },
+      { urls: 'stun:stun4.l.google.com:19302' }
+    ]
+  }
+};
+
 if (remoteTargetId) {
   document.getElementById('appView').style.display = 'none';
   document.getElementById('remoteView').style.display = 'flex';
-  peer = new Peer({
-    config: {
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        {
-          urls: 'turn:openrelay.metered.ca:80',
-          username: 'openrelay',
-          credential: 'openrelay'
-        },
-        {
-          urls: 'turn:openrelay.metered.ca:443',
-          username: 'openrelay',
-          credential: 'openrelay'
-        }
-      ],
-      iceCandidatePoolSize: 10
-    },
-    secure: true
-  });
+  
+  peer = new Peer(peerConfig);
+  
   peer.on('open', () => { 
-    conn = peer.connect(remoteTargetId);
+    conn = peer.connect(remoteTargetId, { reliable: true });
     conn.on('data', (data) => {
       if (data && data.type === 'CARD_SYNC') {
         document.getElementById('remoteQuestionText').textContent = data.question || 'Sin pregunta';
@@ -1267,28 +1263,12 @@ if (remoteTargetId) {
   });
 
   function sendRemoteCmd(cmd) {
-    if (conn) conn.send(cmd);
+    if (conn && conn.open) conn.send(cmd);
     if (navigator.vibrate) navigator.vibrate(40);
   }
 } else {
-  peer = new Peer({
-    config: {
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        {
-          urls: 'turn:openrelay.metered.ca:80',
-          username: 'openrelay',
-          credential: 'openrelay'
-        },
-        {
-          urls: 'turn:openrelay.metered.ca:443',
-          username: 'openrelay',
-          credential: 'openrelay'
-        }
-      ]
-    }
-  });
+  peer = new Peer(peerConfig);
+  
   peer.on('open', (id) => {
     const remoteUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}?remote=${id}`;
     const qrContainer = document.getElementById("qrcode");
