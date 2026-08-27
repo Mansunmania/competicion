@@ -1233,22 +1233,31 @@ let peer = null, conn = null;
 const urlParams = new URLSearchParams(window.location.search);
 const remoteTargetId = urlParams.get('remote');
 
-// Configuración de PeerJS optimizada y limpia para Chromium
-/* Configuración para saltar el firewall corporativo (fuerza relé TURN vía TCP/443) */
+/* Configuración híbrida de alta compatibilidad */
 const peerConfig = {
   debug: 3,
   config: {
-    iceTransportPolicy: 'relay', // OBLIGA a usar servidor TURN (ignora P2P directo bloqueado)
     iceServers: [
+      // 1. Servidores STUN públicos y rápidos
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun.cloudflare.com:3478' },
+      
+      // 2. Servidores TURN de relé por puerto HTTPS (443) y TCP
       {
-        urls: 'turn:global.relay.metered.ca:443?transport=tcp',
-        username: 'openrelayservice',
-        credential: 'openrelayservice'
+        urls: 'turn:openrelay.metered.ca:80',
+        username: 'openrelay',
+        credential: 'openrelay'
       },
       {
-        urls: 'turn:global.relay.metered.ca:80?transport=tcp',
-        username: 'openrelayservice',
-        credential: 'openrelayservice'
+        urls: 'turn:openrelay.metered.ca:443',
+        username: 'openrelay',
+        credential: 'openrelay'
+      },
+      {
+        urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+        username: 'openrelay',
+        credential: 'openrelay'
       }
     ]
   }
