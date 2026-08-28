@@ -115,17 +115,25 @@
     .flashcard.fullscreen .card-text-front { font-size: 42px; }
     .flashcard.fullscreen .card-text-back-answer { font-size: 40px; }
 
-    .card-media-anchor { position: absolute; bottom: 14px; left: 16px; z-index: 20; }
+    .card-media-anchor { position: absolute; bottom: 14px; left: 16px; z-index: 20; display: flex; gap: 8px; align-items: center; }
+
+    .card-img-preview { max-height: 140px; border-radius: 8px; border: 1px solid var(--line); cursor: pointer; transition: transform 0.2s; object-fit: contain; }
+    .card-img-preview:hover { transform: scale(1.04); }
 
     .success-actions { margin-top: 15px; width: 100%; display: flex; justify-content: center; z-index: 10; }
     .btn-celebrate { background: var(--ok); color: white; font-size: 16px; padding: 10px 24px; border-radius: 50px; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 10px rgba(22, 163, 74, 0.4); }
     .btn-celebrate:hover { background: #15803d; transform: scale(1.05); }
 
-    .gif-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.85); display: flex; justify-content: center; align-items: center; z-index: 2000; opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
-    .gif-modal.open { opacity: 1; pointer-events: auto; }
+    .gif-modal, .img-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.88); display: flex; justify-content: center; align-items: center; z-index: 2000; opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
+    .gif-modal.open, .img-modal.open { opacity: 1; pointer-events: auto; }
     .gif-content { background: #fff; padding: 12px; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); max-width: 90%; max-height: 80%; display: flex; flex-direction: column; align-items: center; animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
     .gif-content img { max-width: 100%; max-height: 420px; border-radius: 12px; object-fit: contain; background: #f8fafc; }
     .gif-caption { margin-top: 10px; font-weight: 700; font-size: 16px; color: var(--ink); text-transform: uppercase; }
+
+    .img-modal-content { max-width: 92vw; max-height: 92vh; position: relative; display: flex; flex-direction: column; align-items: center; }
+    .img-modal-content img { max-width: 100%; max-height: 85vh; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); object-fit: contain; }
+    .img-modal-close { position: absolute; top: -40px; right: 0; color: white; font-size: 24px; background: none; border: none; cursor: pointer; }
+
     @keyframes popIn { 0% { transform: scale(0.7); } 100% { transform: scale(1); } }
 
     .controls { display: flex; justify-content: center; align-items: center; gap: 14px; width: 100%; max-width: 750px; }
@@ -154,10 +162,12 @@
     .qr-box { background: white; padding: 24px; border-radius: 16px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; }
 
     /* MANDO MÓVIL */
-    .remote-layout { display: none; flex-direction: column; gap: 12px; width: 100%; max-width: 400px; height: 90vh; margin: 0 auto; justify-content: center; padding: 10px; }
+    .remote-layout { display: none; flex-direction: column; gap: 10px; width: 100%; max-width: 400px; height: 92vh; margin: 0 auto; justify-content: center; padding: 10px; }
     .remote-card-info { background: #0f172a; border: 1px solid #334155; padding: 14px; border-radius: 16px; text-align: left; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); }
-    .btn-remote { flex: 1; border: none; border-radius: 16px; font-size: 1.4rem; font-weight: bold; color: white; background: var(--pri); touch-action: manipulation; }
+    .btn-remote { flex: 1; border: none; border-radius: 16px; font-size: 1.3rem; font-weight: bold; color: white; background: var(--pri); touch-action: manipulation; }
     .btn-remote-flip { background: var(--ok); }
+    .btn-remote-img { background: var(--purple); max-height: 50px; font-size: 1.1rem; }
+    .img-upload-input { font-size: 11px; padding: 4px; }
   </style>
 </head>
 <body>
@@ -229,6 +239,7 @@
             <div class="card-context-front" id="qContextFront"></div>
             <div class="card-text-front" id="textFront">Cargando preguntas...</div>
           </div>
+          <div class="card-media-anchor" id="mediaAnchorFront"></div>
         </div>
         <div class="card-face card-back">
           <div class="card-meta meta-back" id="metaBack">RESPUESTA</div>
@@ -259,6 +270,14 @@
     <div class="gif-content" onclick="event.stopPropagation()">
       <img id="gifViewer" src="" alt="Celebración" />
       <div class="gif-caption" id="gifCaption">¡Puntos ganados!</div>
+    </div>
+  </div>
+
+  <!-- VISOR DE IMAGEN MAXIMIZADA -->
+  <div class="img-modal" id="imgModal" onclick="closeImgModal()">
+    <div class="img-modal-content" onclick="event.stopPropagation()">
+      <button class="img-modal-close" onclick="closeImgModal()">✖</button>
+      <img id="imgModalViewer" src="" alt="Imagen ampliada" />
     </div>
   </div>
 
@@ -320,9 +339,13 @@
       </div>
     </div>
     <div class="row">
-      <div style="grid-column: span 3">
-        <label>Enlace de Inspiración / Música / Vídeo</label>
-        <input type="text" id="editMedia" placeholder="https://www.youtube.com/watch?v=..." />
+      <div style="grid-column: span 2">
+        <label>Enlace / URL Imagen / Vídeo YT</label>
+        <input type="text" id="editMedia" placeholder="https://... o sube una imagen abajo" />
+      </div>
+      <div>
+        <label>Subir/Auto-comprimir Imagen</label>
+        <input type="file" id="editImgFile" accept="image/*" class="img-upload-input" onchange="handleImageUpload(this, 'editMedia')" />
       </div>
       <div style="display:flex; gap:6px;">
         <button class="btn-ok" id="updateBtn" style="flex:1">💾 Guardar Cambios</button>
@@ -386,9 +409,13 @@
       </div>
     </div>
     <div class="row">
-      <div style="grid-column: span 3">
-        <label>Enlace de Inspiración / Música / Vídeo</label>
-        <input type="text" id="addMedia" placeholder="https://www.youtube.com/watch?v=..." />
+      <div style="grid-column: span 2">
+        <label>Enlace / URL Imagen / Vídeo YT</label>
+        <input type="text" id="addMedia" placeholder="https://... o sube una imagen" />
+      </div>
+      <div>
+        <label>Subir/Auto-comprimir Imagen</label>
+        <input type="file" id="addImgFile" accept="image/*" class="img-upload-input" onchange="handleImageUpload(this, 'addMedia')" />
       </div>
       <button class="btn-pri" id="addBtn">➕ Crear Tarjeta</button>
     </div>
@@ -418,6 +445,7 @@
 
   <button class="btn-remote" onclick="sendRemoteCmd('PREV')">⬅️ Anterior</button>
   <button class="btn-remote btn-remote-flip" onclick="sendRemoteCmd('FLIP')">🔄 Girar / Respuesta</button>
+  <button class="btn-remote btn-remote-img" id="btnRemoteImgZoom" onclick="sendRemoteCmd('TOGGLE_ZOOM')" style="display:none;">🔍 Ampliar / Cerrar Imagen</button>
   <button class="btn-remote" onclick="sendRemoteCmd('NEXT')">Siguiente ➡️</button>
 </div>
 
@@ -788,8 +816,7 @@ function renderTopicControls() {
   
   Array.from(topicsVisibles).sort((a,b) => a.localeCompare(b,'es',{sensitivity:'base'})).forEach(t => {
     const isSelected = selectedTopics.includes(t);
-    const escapedTopic = t.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-    html += `<button class="btn-topic ${isSelected ? 'selected' : ''}" onclick="toggleTopicSelection('${escapedTopic}')">${isSelected ? '✓ ' : ''}${t}</button>`;
+    html += `<button class="btn-topic ${isSelected ? 'selected' : ''}" onclick="toggleTopicSelection('${t.replace(/'/g, "\\'")}')">${isSelected ? '✓ ' : ''}${t}</button>`;
   });
 
   container.innerHTML = html;
@@ -890,6 +917,71 @@ function openMediaLink(e, url) {
   window.open(url, '_blank'); 
 }
 
+/* COMPRESIÓN DE IMÁGENES AL SUBIR */
+function handleImageUpload(inputElement, targetInputId) {
+  const file = inputElement.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let width = img.width;
+      let height = img.height;
+      const maxDim = 1200;
+
+      if (width > maxDim || height > maxDim) {
+        if (width > height) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      
+      const compressedBase64 = canvas.toDataURL('image/jpeg', 0.75);
+      document.getElementById(targetInputId).value = compressedBase64;
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function isImageUrl(urlStr) {
+  if (!urlStr) return false;
+  if (urlStr.startsWith('data:image/')) return true;
+  return /\.(jpeg|jpg|gif|png|webp|svg)($|\?)/i.test(urlStr.trim());
+}
+
+function openImgModal(src) {
+  const viewer = document.getElementById('imgModalViewer');
+  viewer.src = src;
+  document.getElementById('imgModal').classList.add('open');
+}
+
+function closeImgModal() {
+  document.getElementById('imgModal').classList.remove('open');
+}
+
+function toggleImageZoom() {
+  const modal = document.getElementById('imgModal');
+  if (modal.classList.contains('open')) {
+    closeImgModal();
+  } else if (filtered.length) {
+    const mediaUrl = (filtered[index].media || '').trim();
+    if (isImageUrl(mediaUrl)) {
+      openImgModal(mediaUrl);
+    }
+  }
+}
+
 function parseYouTubeUrl(urlStr) {
   if (!urlStr) return null;
 
@@ -931,21 +1023,15 @@ function parseYouTubeUrl(urlStr) {
 }
 
 function syncRemoteData() {
-  if (conn && conn.open) {
-    if (filtered.length > 0 && filtered[index]) {
-      const currentCard = filtered[index];
-      conn.send({
-        type: 'CARD_SYNC',
-        question: currentCard.q || '',
-        answer: currentCard.a || ''
-      });
-    } else {
-      conn.send({
-        type: 'CARD_SYNC',
-        question: 'Sin preguntas disponibles',
-        answer: '-'
-      });
-    }
+  if (conn && conn.open && filtered.length > 0) {
+    const currentCard = filtered[index];
+    const mediaUrl = (currentCard.media || '').trim();
+    conn.send({
+      type: 'CARD_SYNC',
+      question: currentCard.q || '',
+      answer: currentCard.a || '',
+      hasImage: isImageUrl(mediaUrl)
+    });
   }
 }
   
@@ -966,18 +1052,14 @@ function updateView() {
   const metaF = document.getElementById('metaFront');
   const topF = document.getElementById('topicFront');
   const topB = document.getElementById('topicBack');
+  const mediaFront = document.getElementById('mediaAnchorFront');
   const mediaBack = document.getElementById('mediaAnchorBack');
 
   if (!filtered.length) {
     txtF.textContent = "No hay tarjetas con este filtro.";
     ctxF.textContent = ""; ctxB.textContent = ""; txtFB.textContent = "---"; txtB.textContent = "---";
     metaF.textContent = "VACÍO"; topF.textContent = "-"; topB.textContent = "-";
-    counterEl.textContent = "0 / 0"; mediaBack.innerHTML = "";
-    document.getElementById('editQContext').value = '';
-    document.getElementById('editQ').value = '';
-    document.getElementById('editA').value = '';
-    document.getElementById('editMedia').value = '';
-    document.getElementById('editTargetIndex').textContent = 'ID: -';
+    counterEl.textContent = "0 / 0"; mediaFront.innerHTML = ""; mediaBack.innerHTML = "";
     if (innerEl) innerEl.style.opacity = '1';
     syncRemoteData();
     return;
@@ -1001,6 +1083,10 @@ function updateView() {
     const topicLabel = cardTopics.length > 0 ? `📌 ${cardTopics.join(', ')}` : "🔍 Sin tema";
     topF.textContent = topicLabel; topB.textContent = topicLabel;
 
+    mediaFront.innerHTML = "";
+    mediaBack.innerHTML = "";
+    mediaBack.dataset.hasYt = "false";
+
     if (currentCard.media && currentCard.media.trim() !== "") {
       const mediaUrl = currentCard.media.trim();
       const ytData = parseYouTubeUrl(mediaUrl);
@@ -1009,14 +1095,13 @@ function updateView() {
         mediaBack.dataset.ytId = ytData.id;
         mediaBack.dataset.ytStart = ytData.startSeconds;
         mediaBack.dataset.hasYt = "true";
-        mediaBack.innerHTML = "";
+      } else if (isImageUrl(mediaUrl)) {
+        const imgBtn = `<img src="${mediaUrl}" class="card-img-preview" onclick="event.stopPropagation(); openImgModal('${mediaUrl.replace(/'/g, "\\'")}')" title="Clic para maximizar" />`;
+        mediaFront.innerHTML = imgBtn;
+        mediaBack.innerHTML = imgBtn;
       } else {
-        mediaBack.dataset.hasYt = "false";
         mediaBack.innerHTML = `<button class="btn-media" onclick="openMediaLink(event, '${mediaUrl.replace(/'/g, "\\'")}')">🔗 Abrir Enlace Web</button>`;
       }
-    } else {
-      mediaBack.dataset.hasYt = "false";
-      mediaBack.innerHTML = "";
     }
     
     document.getElementById('editQContext').value = currentCard.qContext || '';
@@ -1037,7 +1122,6 @@ function updateView() {
 }
 
 function handleCardClick(cardElement) {
-  if (!filtered.length) return;
   cardElement.classList.toggle('flipped');
   const isFlipped = cardElement.classList.contains('flipped');
   const mediaBack = document.getElementById('mediaAnchorBack');
@@ -1069,11 +1153,13 @@ function handleCardClick(cardElement) {
         </div>`;
     }
 
-    const currentCard = filtered[index];
-    if (currentCard && currentCard.subj === 'Inglés') {
-      const palabraLimpia = currentCard.a.trim();
-      if (palabraLimpia.split(/\s+/).length <= 3) {
-        setTimeout(() => speakBritish(palabraLimpia), 250);
+    if (filtered.length) {
+      const currentCard = filtered[index];
+      if (currentCard.subj === 'Inglés') {
+        const palabraLimpia = currentCard.a.trim();
+        if (palabraLimpia.split(/\s+/).length <= 3) {
+          setTimeout(() => speakBritish(palabraLimpia), 250);
+        }
       }
     }
   } else {
@@ -1192,6 +1278,7 @@ document.getElementById('addBtn').onclick = () => {
   document.getElementById('addQ').value = '';
   document.getElementById('addA').value = '';
   document.getElementById('addMedia').value = '';
+  document.getElementById('addImgFile').value = '';
   applyFilters();
 };
 
@@ -1228,74 +1315,69 @@ setupMultiAutocomplete('editCourse', 'menuEdit', getAllAvailableCourses);
 setupMultiAutocomplete('addTopic', 'menuAddTopic', getAllAvailableTopics);
 setupMultiAutocomplete('editTopic', 'menuEditTopic', getAllAvailableTopics);
 
-/* LÓGICA DE CONTROL REMOTO CON PEERJS (COMPATIBLE CON CHROMIUM) */
+/* LÓGICA DE CONTROL REMOTO CON PEERJS */
 let peer = null, conn = null;
 const urlParams = new URLSearchParams(window.location.search);
 const remoteTargetId = urlParams.get('remote');
 
-/* Configuración híbrida de alta compatibilidad */
-const peerConfig = {
-  debug: 3,
-  config: {
-    iceServers: [
-      // 1. Servidores STUN públicos y rápidos
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' },
-      { urls: 'stun:stun.cloudflare.com:3478' },
-      
-      // 2. Servidores TURN de relé por puerto HTTPS (443) y TCP
-      {
-        urls: 'turn:openrelay.metered.ca:80',
-        username: 'openrelay',
-        credential: 'openrelay'
-      },
-      {
-        urls: 'turn:openrelay.metered.ca:443',
-        username: 'openrelay',
-        credential: 'openrelay'
-      },
-      {
-        urls: 'turn:openrelay.metered.ca:443?transport=tcp',
-        username: 'openrelay',
-        credential: 'openrelay'
-      }
-    ]
-  }
-};
-
 if (remoteTargetId) {
   document.getElementById('appView').style.display = 'none';
   document.getElementById('remoteView').style.display = 'flex';
-  
-  peer = new Peer(peerConfig);
-  
+  peer = new Peer({
+    config: {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        {
+          urls: 'turn:openrelay.metered.ca:80',
+          username: 'openrelay',
+          credential: 'openrelay'
+        },
+        {
+          urls: 'turn:openrelay.metered.ca:443',
+          username: 'openrelay',
+          credential: 'openrelay'
+        }
+      ]
+    }
+  });
   peer.on('open', () => { 
-    conn = peer.connect(remoteTargetId, { reliable: true });
-
-    // Escuchamos datos del proyector en el móvil
+    conn = peer.connect(remoteTargetId);
     conn.on('data', (data) => {
       if (data && data.type === 'CARD_SYNC') {
         document.getElementById('remoteQuestionText').textContent = data.question || 'Sin pregunta';
         document.getElementById('remoteAnswerText').textContent = data.answer || 'Sin respuesta';
+        const imgBtn = document.getElementById('btnRemoteImgZoom');
+        if (imgBtn) imgBtn.style.display = data.hasImage ? 'block' : 'none';
       }
-    });
-
-    // Pedimos sincronización inmediata nada más abrir la conexión
-    conn.on('open', () => {
-      conn.send({ type: 'REQ_SYNC' });
     });
   });
 
   function sendRemoteCmd(cmd) {
-    if (conn && conn.open) conn.send(cmd);
+    if (conn) conn.send(cmd);
     if (navigator.vibrate) navigator.vibrate(40);
   }
 } else {
-  peer = new Peer(peerConfig);
-  
+  peer = new Peer({
+    config: {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        {
+          urls: 'turn:openrelay.metered.ca:80',
+          username: 'openrelay',
+          credential: 'openrelay'
+        },
+        {
+          urls: 'turn:openrelay.metered.ca:443',
+          username: 'openrelay',
+          credential: 'openrelay'
+        }
+      ]
+    }
+  });
   peer.on('open', (id) => {
-    // Aseguramos que la URL contenga el protocolo completo para el QR
-    const remoteUrl = window.location.origin + window.location.pathname + '?remote=' + id;
+    const remoteUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}?remote=${id}`;
     const qrContainer = document.getElementById("qrcode");
     qrContainer.innerHTML = "";
     new QRCode(qrContainer, { text: remoteUrl, width: 200, height: 200 });
@@ -1303,35 +1385,21 @@ if (remoteTargetId) {
 
   peer.on('connection', (c) => {
     conn = c;
-    
-    // Función centralizada para responder al móvil
-    const handleSync = () => syncRemoteData();
-
-    conn.on('open', handleSync);
-    
+    conn.on('open', () => {
+      syncRemoteData();
+    });
     conn.on('data', (cmd) => {
       const cardEl = document.getElementById('cardElement');
-      if (typeof cmd === 'object' && cmd.type === 'REQ_SYNC') {
-        syncRemoteData();
-      } else if (cmd === 'NEXT') {
-        navCard(null, 1);
-      } else if (cmd === 'PREV') {
-        navCard(null, -1);
-      } else if (cmd === 'FLIP') {
-        handleCardClick(cardEl);
-      }
+      if (cmd === 'NEXT') navCard(null, 1);
+      if (cmd === 'PREV') navCard(null, -1);
+      if (cmd === 'FLIP') handleCardClick(cardEl);
+      if (cmd === 'TOGGLE_ZOOM') toggleImageZoom();
     });
   });
 }
-  
-function openQRModal() { 
-  const modal = document.getElementById('qrModal');
-  if (modal) modal.classList.add('open'); 
-}
-function closeQRModal() { 
-  const modal = document.getElementById('qrModal');
-  if (modal) modal.classList.remove('open'); 
-}
+
+function openQRModal() { document.getElementById('qrModal').classList.open ? null : document.getElementById('qrModal').classList.add('open'); }
+function closeQRModal() { document.getElementById('qrModal').classList.remove('open'); }
 
 loadDeck();
 </script>
