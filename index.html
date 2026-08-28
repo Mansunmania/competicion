@@ -91,50 +91,34 @@
     .card-inner { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 0.4s, opacity 0.15s; }
     .flashcard.flipped .card-inner { transform: rotateY(180deg); }
     
-    /* MODIFICADO: Layout flex vertical ordenado */
-    .card-face { 
-      position: absolute; width: 100%; height: 100%; backface-visibility: hidden; 
-      border-radius: 20px; padding: 45px 30px 20px 30px; display: flex; flex-direction: column; 
-      justify-content: space-between; align-items: center; text-align: center; 
-      box-shadow: 0 12px 20px -3px rgba(0,0,0,0.08), 0 4px 8px -4px rgba(0,0,0,0.05); 
-      border: 2.5px solid; overflow-y: auto; 
-    }
-    .card-front { background: #ffffff; color: var(--ink); border-color: var(--line); justify-content: center; }
+    .card-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 20px; padding: 30px 45px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; box-shadow: 0 12px 20px -3px rgba(0,0,0,0.08), 0 4px 8px -4px rgba(0,0,0,0.05); border: 2.5px solid; overflow-y: auto; }
+    .card-front { background: #ffffff; color: var(--ink); border-color: var(--line); }
     .card-back { background: #1e293b; color: #ffffff; border-color: #334155; transform: rotateY(180deg); }
     
-    .card-meta { position: absolute; top: 14px; left: 16px; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; padding: 3px 10px; border-radius: 6px; z-index: 10; }
-    .card-topic-meta { position: absolute; top: 14px; right: 16px; font-size: 12px; font-weight: 800; text-transform: uppercase; padding: 3px 10px; border-radius: 6px; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; z-index: 10; }
+    .card-meta { position: absolute; top: 14px; left: 16px; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; padding: 3px 10px; border-radius: 6px; }
+    .card-topic-meta { position: absolute; top: 14px; right: 16px; font-size: 12px; font-weight: 800; text-transform: uppercase; padding: 3px 10px; border-radius: 6px; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .meta-front { background: #f1f5f9; color: var(--muted); }
     .meta-back { background: #334155; color: #94a3b8; }
     .topic-front { background: #f3e8ff; color: #6b21a8; }
     .topic-back { background: #581c87; color: #e9d5ff; }
     
-    /* MODIFICADO: Ajustes de flexibilidad para evitar desbordamiento */
-    .card-text-container { display: flex; flex-direction: column; gap: 6px; align-items: center; width: 100%; max-width: 95%; margin: auto 0; flex-shrink: 1; }
+    .card-text-container { display: flex; flex-direction: column; gap: 12px; align-items: center; width: 100%; max-width: 95%; }
     
     .card-context-front { font-size: 26px; font-weight: 500; color: var(--muted); font-style: italic; line-height: 1.3; }
     .card-text-front { font-family: var(--font-playwrite); font-size: 34px; font-weight: 400; line-height: 1.5; word-wrap: break-word; width: 100%; color: #0f172a; }
 
-    .card-context-back { font-size: 14px; font-weight: 500; color: #94a3b8; font-style: italic; line-height: 1.2; margin-bottom: 2px; }
-    .card-text-back-prompt { font-family: var(--font-playwrite); font-size: 18px; font-weight: 400; line-height: 1.3; color: #e2e8f0; }
-    .card-text-back-answer { border-top: 1px dashed #475569; margin-top: 6px; padding-top: 8px; color: #38bdf8; font-size: 28px; font-weight: 700; width: 100%; }
+    .card-context-back { font-size: 15px; font-weight: 500; color: #94a3b8; font-style: italic; line-height: 1.2; margin-bottom: 2px; }
+    .card-text-back-prompt { font-family: var(--font-playwrite); font-size: 20px; font-weight: 400; line-height: 1.3; color: #e2e8f0; }
+    .card-text-back-answer { border-top: 1px dashed #475569; margin-top: 8px; padding-top: 14px; color: #38bdf8; font-size: 32px; font-weight: 700; width: 100%; }
 
     .flashcard.fullscreen .card-context-front { font-size: 32px; }
     .flashcard.fullscreen .card-text-front { font-size: 42px; }
-    .flashcard.fullscreen .card-text-back-answer { font-size: 36px; }
+    .flashcard.fullscreen .card-text-back-answer { font-size: 40px; }
 
-    /* MODIFICADO: Contenedor estático al final del flujo del reverso */
-    .card-media-anchor { width: 100%; display: flex; justify-content: center; align-items: center; z-index: 20; margin-top: 6px; flex-shrink: 0; }
-    
-    /* MODIFICADO: Altura ajustada dinámicamente */
-    #ytVideoContainer {
-      width: 100%; max-width: 260px; height: 130px; margin: 4px 0; border-radius: 12px; 
-      overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.3); position: relative; 
-      transition: all 0.3s ease; background: #000; flex-shrink: 0;
-    }
+    .card-media-anchor { position: absolute; bottom: 14px; left: 16px; z-index: 20; }
 
-    .success-actions { width: 100%; display: flex; justify-content: center; z-index: 10; margin-top: 6px; flex-shrink: 0; }
-    .btn-celebrate { background: var(--ok); color: white; font-size: 14px; padding: 6px 18px; border-radius: 50px; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 10px rgba(22, 163, 74, 0.4); }
+    .success-actions { margin-top: 15px; width: 100%; display: flex; justify-content: center; z-index: 10; }
+    .btn-celebrate { background: var(--ok); color: white; font-size: 16px; padding: 10px 24px; border-radius: 50px; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 10px rgba(22, 163, 74, 0.4); }
     .btn-celebrate:hover { background: #15803d; transform: scale(1.05); }
 
     .gif-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.85); display: flex; justify-content: center; align-items: center; z-index: 2000; opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
@@ -245,7 +229,6 @@
             <div class="card-context-front" id="qContextFront"></div>
             <div class="card-text-front" id="textFront">Cargando preguntas...</div>
           </div>
-          <div class="card-media-anchor" id="mediaAnchorFront"></div>
         </div>
         <div class="card-face card-back">
           <div class="card-meta meta-back" id="metaBack">RESPUESTA</div>
@@ -276,14 +259,6 @@
     <div class="gif-content" onclick="event.stopPropagation()">
       <img id="gifViewer" src="" alt="Celebración" />
       <div class="gif-caption" id="gifCaption">¡Puntos ganados!</div>
-    </div>
-  </div>
-
-  <!-- VISOR DE IMAGEN MAXIMIZADA -->
-  <div class="img-modal" id="imgModal" onclick="closeImgModal()">
-    <div class="img-modal-content" onclick="event.stopPropagation()">
-      <button class="img-modal-close" onclick="closeImgModal()">✖</button>
-      <img id="imgModalViewer" src="" alt="Imagen ampliada" />
     </div>
   </div>
 
@@ -345,13 +320,9 @@
       </div>
     </div>
     <div class="row">
-      <div style="grid-column: span 2">
-        <label>Enlace / URL Imagen / Vídeo YT</label>
-        <input type="text" id="editMedia" placeholder="https://... o sube una imagen abajo" />
-      </div>
-      <div>
-        <label>Subir/Auto-comprimir Imagen</label>
-        <input type="file" id="editImgFile" accept="image/*" class="img-upload-input" onchange="handleImageUpload(this, 'editMedia')" />
+      <div style="grid-column: span 3">
+        <label>Enlace de Inspiración / Música / Vídeo</label>
+        <input type="text" id="editMedia" placeholder="https://www.youtube.com/watch?v=..." />
       </div>
       <div style="display:flex; gap:6px;">
         <button class="btn-ok" id="updateBtn" style="flex:1">💾 Guardar Cambios</button>
@@ -415,13 +386,9 @@
       </div>
     </div>
     <div class="row">
-      <div style="grid-column: span 2">
-        <label>Enlace / URL Imagen / Vídeo YT</label>
-        <input type="text" id="addMedia" placeholder="https://... o sube una imagen" />
-      </div>
-      <div>
-        <label>Subir/Auto-comprimir Imagen</label>
-        <input type="file" id="addImgFile" accept="image/*" class="img-upload-input" onchange="handleImageUpload(this, 'addMedia')" />
+      <div style="grid-column: span 3">
+        <label>Enlace de Inspiración / Música / Vídeo</label>
+        <input type="text" id="addMedia" placeholder="https://www.youtube.com/watch?v=..." />
       </div>
       <button class="btn-pri" id="addBtn">➕ Crear Tarjeta</button>
     </div>
@@ -452,8 +419,6 @@
   <button class="btn-remote" onclick="sendRemoteCmd('PREV')">⬅️ Anterior</button>
   <button class="btn-remote btn-remote-flip" onclick="sendRemoteCmd('FLIP')">🔄 Girar / Respuesta</button>
   <button class="btn-remote" onclick="sendRemoteCmd('NEXT')">Siguiente ➡️</button>
-  <button class="btn-remote btn-remote-img" id="btnRemoteImgZoom" onclick="sendRemoteCmd('TOGGLE_ZOOM')" style="display:none;">🔍 Ampliar / Cerrar Imagen</button>
-  
 </div>
 
 <!-- MODAL QR -->
@@ -924,71 +889,6 @@ function openMediaLink(e, url) {
   window.open(url, '_blank'); 
 }
 
-/* COMPRESIÓN DE IMÁGENES AL SUBIR */
-function handleImageUpload(inputElement, targetInputId) {
-  const file = inputElement.files[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      let width = img.width;
-      let height = img.height;
-      const maxDim = 1200;
-
-      if (width > maxDim || height > maxDim) {
-        if (width > height) {
-          height = Math.round((height * maxDim) / width);
-          width = maxDim;
-        } else {
-          width = Math.round((width * maxDim) / height);
-          height = maxDim;
-        }
-      }
-
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, width, height);
-      
-      const compressedBase64 = canvas.toDataURL('image/jpeg', 0.75);
-      document.getElementById(targetInputId).value = compressedBase64;
-    };
-    img.src = e.target.result;
-  };
-  reader.readAsDataURL(file);
-}
-
-function isImageUrl(urlStr) {
-  if (!urlStr) return false;
-  if (urlStr.startsWith('data:image/')) return true;
-  return /\.(jpeg|jpg|gif|png|webp|svg)($|\?)/i.test(urlStr.trim());
-}
-
-function openImgModal(src) {
-  const viewer = document.getElementById('imgModalViewer');
-  viewer.src = src;
-  document.getElementById('imgModal').classList.add('open');
-}
-
-function closeImgModal() {
-  document.getElementById('imgModal').classList.remove('open');
-}
-
-function toggleImageZoom() {
-  const modal = document.getElementById('imgModal');
-  if (modal.classList.contains('open')) {
-    closeImgModal();
-  } else if (filtered.length) {
-    const mediaUrl = (filtered[index].media || '').trim();
-    if (isImageUrl(mediaUrl)) {
-      openImgModal(mediaUrl);
-    }
-  }
-}
-
 function parseYouTubeUrl(urlStr) {
   if (!urlStr) return null;
 
@@ -1029,15 +929,14 @@ function parseYouTubeUrl(urlStr) {
   }
 }
 
+// Transmitir datos de la tarjeta al mando móvil en cuanto se actualiza
 function syncRemoteData() {
   if (conn && conn.open && filtered.length > 0) {
     const currentCard = filtered[index];
-    const mediaUrl = (currentCard.media || '').trim();
     conn.send({
       type: 'CARD_SYNC',
       question: currentCard.q || '',
-      answer: currentCard.a || '',
-      hasImage: isImageUrl(mediaUrl)
+      answer: currentCard.a || ''
     });
   }
 }
@@ -1059,14 +958,13 @@ function updateView() {
   const metaF = document.getElementById('metaFront');
   const topF = document.getElementById('topicFront');
   const topB = document.getElementById('topicBack');
-  const mediaFront = document.getElementById('mediaAnchorFront');
   const mediaBack = document.getElementById('mediaAnchorBack');
 
   if (!filtered.length) {
     txtF.textContent = "No hay tarjetas con este filtro.";
     ctxF.textContent = ""; ctxB.textContent = ""; txtFB.textContent = "---"; txtB.textContent = "---";
     metaF.textContent = "VACÍO"; topF.textContent = "-"; topB.textContent = "-";
-    counterEl.textContent = "0 / 0"; mediaFront.innerHTML = ""; mediaBack.innerHTML = "";
+    counterEl.textContent = "0 / 0"; mediaBack.innerHTML = "";
     if (innerEl) innerEl.style.opacity = '1';
     syncRemoteData();
     return;
@@ -1090,10 +988,6 @@ function updateView() {
     const topicLabel = cardTopics.length > 0 ? `📌 ${cardTopics.join(', ')}` : "🔍 Sin tema";
     topF.textContent = topicLabel; topB.textContent = topicLabel;
 
-    mediaFront.innerHTML = "";
-    mediaBack.innerHTML = "";
-    mediaBack.dataset.hasYt = "false";
-
     if (currentCard.media && currentCard.media.trim() !== "") {
       const mediaUrl = currentCard.media.trim();
       const ytData = parseYouTubeUrl(mediaUrl);
@@ -1102,13 +996,14 @@ function updateView() {
         mediaBack.dataset.ytId = ytData.id;
         mediaBack.dataset.ytStart = ytData.startSeconds;
         mediaBack.dataset.hasYt = "true";
-      } else if (isImageUrl(mediaUrl)) {
-        const imgBtn = `<img src="${mediaUrl}" class="card-img-preview" onclick="event.stopPropagation(); openImgModal('${mediaUrl.replace(/'/g, "\\'")}')" title="Clic para maximizar" />`;
-        mediaFront.innerHTML = imgBtn;
-        mediaBack.innerHTML = imgBtn;
+        mediaBack.innerHTML = "";
       } else {
+        mediaBack.dataset.hasYt = "false";
         mediaBack.innerHTML = `<button class="btn-media" onclick="openMediaLink(event, '${mediaUrl.replace(/'/g, "\\'")}')">🔗 Abrir Enlace Web</button>`;
       }
+    } else {
+      mediaBack.dataset.hasYt = "false";
+      mediaBack.innerHTML = "";
     }
     
     document.getElementById('editQContext').value = currentCard.qContext || '';
@@ -1285,7 +1180,6 @@ document.getElementById('addBtn').onclick = () => {
   document.getElementById('addQ').value = '';
   document.getElementById('addA').value = '';
   document.getElementById('addMedia').value = '';
-  document.getElementById('addImgFile').value = '';
   applyFilters();
 };
 
@@ -1331,31 +1225,29 @@ if (remoteTargetId) {
   document.getElementById('appView').style.display = 'none';
   document.getElementById('remoteView').style.display = 'flex';
   peer = new Peer({
-    config: {
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        {
-          urls: 'turn:openrelay.metered.ca:80',
-          username: 'openrelay',
-          credential: 'openrelay'
-        },
-        {
-          urls: 'turn:openrelay.metered.ca:443',
-          username: 'openrelay',
-          credential: 'openrelay'
-        }
-      ]
-    }
-  });
+  config: {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      {
+        urls: 'turn:openrelay.metered.ca:80',
+        username: 'openrelay',
+        credential: 'openrelay'
+      },
+      {
+        urls: 'turn:openrelay.metered.ca:443',
+        username: 'openrelay',
+        credential: 'openrelay'
+      }
+    ]
+  }
+});
   peer.on('open', () => { 
     conn = peer.connect(remoteTargetId);
     conn.on('data', (data) => {
       if (data && data.type === 'CARD_SYNC') {
         document.getElementById('remoteQuestionText').textContent = data.question || 'Sin pregunta';
         document.getElementById('remoteAnswerText').textContent = data.answer || 'Sin respuesta';
-        const imgBtn = document.getElementById('btnRemoteImgZoom');
-        if (imgBtn) imgBtn.style.display = data.hasImage ? 'block' : 'none';
       }
     });
   });
@@ -1366,23 +1258,23 @@ if (remoteTargetId) {
   }
 } else {
   peer = new Peer({
-    config: {
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        {
-          urls: 'turn:openrelay.metered.ca:80',
-          username: 'openrelay',
-          credential: 'openrelay'
-        },
-        {
-          urls: 'turn:openrelay.metered.ca:443',
-          username: 'openrelay',
-          credential: 'openrelay'
-        }
-      ]
-    }
-  });
+  config: {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      {
+        urls: 'turn:openrelay.metered.ca:80',
+        username: 'openrelay',
+        credential: 'openrelay'
+      },
+      {
+        urls: 'turn:openrelay.metered.ca:443',
+        username: 'openrelay',
+        credential: 'openrelay'
+      }
+    ]
+  }
+});
   peer.on('open', (id) => {
     const remoteUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}?remote=${id}`;
     const qrContainer = document.getElementById("qrcode");
@@ -1400,7 +1292,6 @@ if (remoteTargetId) {
       if (cmd === 'NEXT') navCard(null, 1);
       if (cmd === 'PREV') navCard(null, -1);
       if (cmd === 'FLIP') handleCardClick(cardEl);
-      if (cmd === 'TOGGLE_ZOOM') toggleImageZoom();
     });
   });
 }
