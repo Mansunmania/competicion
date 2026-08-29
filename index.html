@@ -93,14 +93,7 @@
     
     .card-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 20px; padding: 30px 45px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; box-shadow: 0 12px 20px -3px rgba(0,0,0,0.08), 0 4px 8px -4px rgba(0,0,0,0.05); border: 2.5px solid; overflow-y: auto; }
     .card-front { background: #ffffff; color: var(--ink); border-color: var(--line); }
-    
-    /* MODIFICADO: Espejado horizontal en la cara trasera para conseguir giro simétrico de imagen en Eje Y */
-    .card-back { 
-      background: #1e293b; 
-      color: #ffffff; 
-      border-color: #334155; 
-      transform: scaleX(-1) rotateY(180deg); 
-    }
+    .card-back { background: #1e293b; color: #ffffff; border-color: #334155; transform: rotateY(180deg); }
     
     .card-meta { position: absolute; top: 14px; left: 16px; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; padding: 3px 10px; border-radius: 6px; }
     .card-topic-meta { position: absolute; top: 14px; right: 16px; font-size: 12px; font-weight: 800; text-transform: uppercase; padding: 3px 10px; border-radius: 6px; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -126,6 +119,24 @@
 
     .card-img-preview { max-height: 140px; border-radius: 8px; border: 1px solid var(--line); cursor: pointer; transition: transform 0.2s; object-fit: contain; }
     .card-img-preview:hover { transform: scale(1.04); }
+
+    /* ESTILOS DE VÍDEO CON SOPORTE PARA MAXIMIZADO Y MINIATURA */
+    .yt-container {
+      width: 100%; max-width: 320px; height: 180px; margin-top: 10px; border-radius: 12px; 
+      overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.3); position: relative; 
+      transition: all 0.3s ease; background: #000;
+    }
+    .yt-container.maximized {
+      position: fixed !important; top: 50% !important; left: 50% !important; 
+      transform: translate(-50%, -50%) !important; width: 90vw !important; 
+      height: 85vh !important; max-width: none !important; z-index: 2500 !important; 
+      box-shadow: 0 0 0 100vw rgba(15, 23, 42, 0.9) !important;
+    }
+    .yt-container.minimized {
+      position: fixed !important; bottom: 20px !important; left: 20px !important; 
+      top: auto !important; transform: none !important; width: 160px !important; 
+      height: 90px !important; max-width: none !important; z-index: 999 !important;
+    }
 
     .success-actions { margin-top: 15px; width: 100%; display: flex; justify-content: center; z-index: 10; }
     .btn-celebrate { background: var(--ok); color: white; font-size: 16px; padding: 10px 24px; border-radius: 50px; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 10px rgba(22, 163, 74, 0.4); }
@@ -174,6 +185,7 @@
     .btn-remote { flex: 1; border: none; border-radius: 16px; font-size: 1.3rem; font-weight: bold; color: white; background: var(--pri); touch-action: manipulation; }
     .btn-remote-flip { background: var(--ok); }
     .btn-remote-img { background: var(--purple); max-height: 50px; font-size: 1.1rem; }
+    .btn-remote-yt { background: var(--yt); max-height: 50px; font-size: 1.1rem; }
     .img-upload-input { font-size: 11px; padding: 4px; }
   </style>
 </head>
@@ -454,7 +466,8 @@
   <button class="btn-remote btn-remote-flip" onclick="sendRemoteCmd('FLIP')">🔄 Girar / Respuesta</button>
   <button class="btn-remote" onclick="sendRemoteCmd('NEXT')">Siguiente ➡️</button>
   <button class="btn-remote btn-remote-img" id="btnRemoteImgZoom" onclick="sendRemoteCmd('TOGGLE_ZOOM')" style="display:none;">🔍 Ampliar / Cerrar Imagen</button>
-  <button class="btn-remote btn-remote-img" id="btnRemoteYtMin" onclick="sendRemoteCmd('TOGGLE_MIN_VIDEO')" style="display:none; background: var(--yt);">🎬 Minimizar / Ampliar Vídeo</button>
+  <button class="btn-remote btn-remote-yt" id="btnRemoteYtMax" onclick="sendRemoteCmd('TOGGLE_MAX_VIDEO')" style="display:none;">🖥️ Pantalla Completa Vídeo</button>
+  <button class="btn-remote btn-remote-yt" id="btnRemoteYtMin" onclick="sendRemoteCmd('TOGGLE_MIN_VIDEO')" style="display:none; background: #c026d3;">👁️ Minimizar / Miniatura Vídeo</button>
 </div>
 
 <!-- MODAL QR -->
@@ -1146,9 +1159,10 @@ function handleCardClick(cardElement) {
       const embedUrl = `https://www.youtube-nocookie.com/embed/${id}?start=${start}&autoplay=1&rel=0`;
 
       mediaBack.innerHTML = `
-        <div id="ytVideoContainer" style="width: 100%; max-width: 320px; height: 180px; margin-top: 10px; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.3); position: relative; transition: all 0.3s ease; background: #000;" onclick="event.stopPropagation()">
+        <div id="ytVideoContainer" class="yt-container" onclick="event.stopPropagation()">
           <div style="position: absolute; top: 6px; right: 6px; z-index: 50; display: flex; gap: 6px;">
-            <button id="btnMinVideo" onclick="toggleMinVideo(event)" style="background: rgba(15,23,42,0.85); color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 2px 8px; font-size: 11px; cursor: pointer;" title="Minimizar / Agrandar">👁️ Miniatura</button>
+            <button id="btnMaxVideo" onclick="toggleMaxVideo(event)" style="background: rgba(37,99,235,0.85); color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 2px 8px; font-size: 11px; cursor: pointer;" title="Pantalla Completa">🖥️ Fullscreen</button>
+            <button id="btnMinVideo" onclick="toggleMinVideo(event)" style="background: rgba(15,23,42,0.85); color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 2px 8px; font-size: 11px; cursor: pointer;" title="Minimizar / Restaurar">👁️ Miniatura</button>
             <button onclick="closeVideo(event)" style="background: rgba(220,38,38,0.85); color: #fff; border: none; border-radius: 6px; padding: 2px 8px; font-size: 11px; cursor: pointer;" title="Cerrar vídeo">❌</button>
           </div>
           <iframe 
@@ -1181,33 +1195,48 @@ function handleCardClick(cardElement) {
   }
 }
 
-function toggleMinVideo(e) {
+function ensureVideoLoaded() {
+  const cardEl = document.getElementById('cardElement');
+  if (!cardEl.classList.contains('flipped')) {
+    handleCardClick(cardEl);
+  }
+}
+
+function toggleMaxVideo(e) {
   if (e) e.stopPropagation();
+  ensureVideoLoaded();
   const container = document.getElementById('ytVideoContainer');
-  const btn = document.getElementById('btnMinVideo');
+  const btnMax = document.getElementById('btnMaxVideo');
   if (!container) return;
 
-  const isMin = container.dataset.minimized === "true";
+  const isMax = container.classList.contains('maximized');
+  container.classList.remove('minimized');
+
+  if (!isMax) {
+    container.classList.add('maximized');
+    if (btnMax) btnMax.textContent = '❌ Restaurar';
+  } else {
+    container.classList.remove('maximized');
+    if (btnMax) btnMax.textContent = '🖥️ Fullscreen';
+  }
+}
+
+function toggleMinVideo(e) {
+  if (e) e.stopPropagation();
+  ensureVideoLoaded();
+  const container = document.getElementById('ytVideoContainer');
+  const btnMin = document.getElementById('btnMinVideo');
+  if (!container) return;
+
+  const isMin = container.classList.contains('minimized');
+  container.classList.remove('maximized');
 
   if (!isMin) {
-    container.style.position = 'fixed';
-    container.style.bottom = '20px';
-    container.style.left = '20px';
-    container.style.width = '160px';
-    container.style.height = '90px';
-    container.style.zIndex = '999';
-    container.dataset.minimized = "true";
-    if (btn) btn.textContent = '🎬 Ampliar';
+    container.classList.add('minimized');
+    if (btnMin) btnMin.textContent = '🎬 Restaurar';
   } else {
-    container.style.position = 'relative';
-    container.style.bottom = 'auto';
-    container.style.left = 'auto';
-    container.style.width = '100%';
-    container.style.maxWidth = '320px';
-    container.style.height = '180px';
-    container.style.zIndex = 'auto';
-    container.dataset.minimized = "false";
-    if (btn) btn.textContent = '👁️ Miniatura';
+    container.classList.remove('minimized');
+    if (btnMin) btnMin.textContent = '👁️ Miniatura';
   }
 }
 
@@ -1232,38 +1261,12 @@ document.getElementById('celebrateBtn').onclick = (e) => {
 
 function closeGifModal() { document.getElementById('gifModal').classList.remove('open'); }
 
-/* MODIFICADO: Garantiza la carga asíncrona de voces en navegador antes de reproducir */
-let cachedVoices = [];
-
-function loadVoices() {
-  cachedVoices = window.speechSynthesis.getVoices();
-}
-
-if (typeof speechSynthesis !== 'undefined') {
-  loadVoices();
-  if (speechSynthesis.onvoiceschanged !== undefined) {
-    speechSynthesis.onvoiceschanged = loadVoices;
-  }
-}
-
 function speakBritish(text) {
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
-  
-  if (!cachedVoices.length) {
-    loadVoices();
-  }
-  
-  const ukVoice = cachedVoices.find(v => 
-    v.lang === 'en-GB' || 
-    v.lang === 'en_GB' || 
-    v.lang.toLowerCase().includes('en-gb') ||
-    (v.lang.startsWith('en') && v.name.includes('United Kingdom'))
-  );
-  
+  const ukVoice = window.speechSynthesis.getVoices().find(v => v.lang === 'en-GB' || v.lang === 'en_GB');
   if (ukVoice) utterance.voice = ukVoice;
   utterance.lang = 'en-GB';
-  utterance.rate = 0.9; 
   window.speechSynthesis.speak(utterance);
 }
 
@@ -1386,8 +1389,10 @@ if (remoteTargetId) {
         const imgBtn = document.getElementById('btnRemoteImgZoom');
         if (imgBtn) imgBtn.style.display = data.hasImage ? 'block' : 'none';
 
-        const ytBtn = document.getElementById('btnRemoteYtMin');
-        if (ytBtn) ytBtn.style.display = data.hasYt ? 'block' : 'none';
+        const ytMaxBtn = document.getElementById('btnRemoteYtMax');
+        const ytMinBtn = document.getElementById('btnRemoteYtMin');
+        if (ytMaxBtn) ytMaxBtn.style.display = data.hasYt ? 'block' : 'none';
+        if (ytMinBtn) ytMinBtn.style.display = data.hasYt ? 'block' : 'none';
       }
     });
   });
@@ -1422,6 +1427,7 @@ if (remoteTargetId) {
       if (cmd === 'PREV') navCard(null, -1);
       if (cmd === 'FLIP') handleCardClick(cardEl);
       if (cmd === 'TOGGLE_ZOOM') toggleImageZoom();
+      if (cmd === 'TOGGLE_MAX_VIDEO') toggleMaxVideo();
       if (cmd === 'TOGGLE_MIN_VIDEO') toggleMinVideo();
     });
   });
@@ -1429,7 +1435,7 @@ if (remoteTargetId) {
 
 function openQRModal() { 
   if (!document.getElementById('qrModal').classList.contains('open')) {
-    document.getElementById('qrModal').classList.add('open');
+    document.getElementById('qrModal'].classList.add('open');
   }
 }
 function closeQRModal() { document.getElementById('qrModal').classList.remove('open'); }
