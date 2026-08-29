@@ -448,6 +448,8 @@
   <button class="btn-remote" onclick="sendRemoteCmd('NEXT')">Siguiente ➡️</button>
   <button class="btn-remote btn-remote-img" id="btnRemoteImgZoom" onclick="sendRemoteCmd('TOGGLE_ZOOM')" style="display:none;">🔍 Ampliar / Cerrar Imagen</button>
   
+  <!-- NUEVO BOTÓN PARA MAXIMIZAR / MINIMIZAR VÍDEO YT DESDE EL MANDO -->
+  <button class="btn-remote btn-remote-img" id="btnRemoteYtMin" onclick="sendRemoteCmd('TOGGLE_MIN_VIDEO')" style="display:none; background: var(--yt);">🎬 Minimizar / Ampliar Vídeo</button>
 </div>
 
 <!-- MODAL QR -->
@@ -1027,11 +1029,14 @@ function syncRemoteData() {
   if (conn && conn.open && filtered.length > 0) {
     const currentCard = filtered[index];
     const mediaUrl = (currentCard.media || '').trim();
+    const ytData = parseYouTubeUrl(mediaUrl); // Detecta si es una URL de YouTube
+    
     conn.send({
       type: 'CARD_SYNC',
       question: currentCard.q || '',
       answer: currentCard.a || '',
-      hasImage: isImageUrl(mediaUrl)
+      hasImage: isImageUrl(mediaUrl),
+      hasYt: !!ytData // Envía confirmación de si hay vídeo
     });
   }
 }
@@ -1345,14 +1350,18 @@ if (remoteTargetId) {
   peer.on('open', () => { 
     conn = peer.connect(remoteTargetId);
     conn.on('data', (data) => {
-      if (data && data.type === 'CARD_SYNC') {
-        document.getElementById('remoteQuestionText').textContent = data.question || 'Sin pregunta';
-        document.getElementById('remoteAnswerText').textContent = data.answer || 'Sin respuesta';
-        const imgBtn = document.getElementById('btnRemoteImgZoom');
-        if (imgBtn) imgBtn.style.display = data.hasImage ? 'block' : 'none';
-      }
-    });
-  });
+  if (data && data.type === 'CARD_SYNC') {
+    document.getElementById('remoteQuestionText').textContent = data.question || 'Sin pregunta';
+    document.getElementById('remoteAnswerText').textContent = data.answer || 'Sin respuesta';
+    
+    const imgBtn = document.getElementById('btnRemoteImgZoom');
+    if (imgBtn) imgBtn.style.display = data.hasImage ? 'block' : 'none';
+
+    // Muestra u oculta el botón del vídeo en el teléfono
+    const ytBtn = document.getElementById('btnRemoteYtMin');
+    if (ytBtn) ytBtn.style.display = data.hasYt ? 'block' : 'none';
+  }
+});
 
   function sendRemoteCmd(cmd) {
     if (conn) conn.send(cmd);
@@ -1384,20 +1393,20 @@ if (remoteTargetId) {
     new QRCode(qrContainer, { text: remoteUrl, width: 200, height: 200 });
   });
 
-  peer.on('connection', (c) => {
-    conn = c;
-    conn.on('open', () => {
-      syncRemoteData();
-    });
-    conn.on('data', (cmd) => {
-      const cardEl = document.getElementById('cardElement');
-      if (cmd === 'NEXT') navCard(null, 1);
-      if (cmd === 'PREV') navCard(null, -1);
-      if (cmd === 'FLIP') handleCardClick(cardEl);
-      if (cmd === 'TOGGLE_ZOOM') toggleImageZoom();
-    });
+ peer.on('connection', (c) => {
+  conn = c;
+  conn.on('open', () => {
+    syncRemoteData();
   });
-}
+  conn.on('data', (cmd) => {
+    const cardEl = document.getElementById('cardElement');
+    if (cmd === 'NEXT') navCard(null, 1);
+    if (cmd === 'PREV') navCard(null, -1);
+    if (cmd === 'FLIP') handleCardClick(cardEl);
+    if (cmd === 'TOGGLE_ZOOM') toggleImageZoom();
+    if (cmd === 'TOGGLE_MIN_VIDEO') toggleMinVideo(); // Ejecuta la alternancia entre pantalla completa/miniatura
+  });
+});
 
 function openQRModal() { document.getElementById('qrModal').classList.open ? null : document.getElementById('qrModal').classList.add('open'); }
 function closeQRModal() { document.getElementById('qrModal').classList.remove('open'); }
