@@ -185,6 +185,19 @@
       width: 100%;
       height: 100%;
     }
+    /* Pantalla completa simulada por CSS para comandos remotos */
+#youtube-floating-container.css-fullscreen {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none !important;
+  max-height: none !important;
+  z-index: 99999 !important;
+  border-radius: 0 !important;
+  background: #000 !important;
+}
   </style>
 </head>
 <body>
@@ -1064,27 +1077,26 @@ function handleRemoteCommand(data) {
 }
 
 function maximizeOrRestoreVideo() {
-  // Selecciona el contenedor del vídeo de YouTube o el iframe
-  const videoContainer = document.getElementById('youtube-floating-container') || document.querySelector('iframe');
-  
-  if (!videoContainer) return;
+  const container = document.getElementById('youtube-floating-container');
+  if (!container) return;
 
-  // Si no está en pantalla completa, lo maximizamos
-  if (!document.fullscreenElement) {
-    if (videoContainer.requestFullscreen) {
-      videoContainer.requestFullscreen();
-    } else if (videoContainer.webkitRequestFullscreen) { /* Safari / iOS */
-      videoContainer.webkitRequestFullscreen();
-    } else if (videoContainer.msRequestFullscreen) { /* IE/Edge */
-      videoContainer.msRequestFullscreen();
+  const isFullCSS = container.classList.contains('css-fullscreen');
+
+  if (!isFullCSS) {
+    // Intentar Fullscreen nativo
+    if (container.requestFullscreen) {
+      container.requestFullscreen().catch(() => {
+        // Si el navegador lo bloquea por remoto, aplicamos la pantalla completa por CSS
+        container.classList.add('css-fullscreen');
+      });
+    } else {
+      container.classList.add('css-fullscreen');
     }
   } else {
-    // Si ya está maximizado, salimos del modo pantalla completa
-    if (document.exitFullscreen) {
-      document.exitFullscreen();
-    } else if (document.webkitExitFullscreen) {
-      document.webkitExitFullscreen();
+    if (document.exitFullscreen && document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
     }
+    container.classList.remove('css-fullscreen');
   }
 }
   
@@ -1200,7 +1212,7 @@ function handleCardClick(cardElement) {
             src="${embedUrl}" 
             title="YouTube video" 
             frameborder="0" 
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" 
             allowfullscreen>
           </iframe>
         </div>`;
