@@ -133,9 +133,10 @@
       box-shadow: 0 0 0 100vw rgba(15, 23, 42, 0.9) !important;
     }
     .yt-container.minimized {
-      position: fixed !important; bottom: 20px !important; left: 20px !important; 
-      top: auto !important; transform: none !important; width: 160px !important; 
-      height: 90px !important; max-width: none !important; z-index: 999 !important;
+      position: fixed !important; top: 50% !important; left: 50% !important; 
+      transform: translate(-50%, -50%) !important; width: 90vw !important; 
+      height: 85vh !important; max-width: none !important; z-index: 2500 !important; 
+      box-shadow: 0 0 0 100vw rgba(15, 23, 42, 0.9) !important;
     }
 
     .success-actions { margin-top: 15px; width: 100%; display: flex; justify-content: center; z-index: 10; }
@@ -1434,11 +1435,23 @@ if (remoteTargetId) {
 }
 
 function openQRModal() { 
-  if (!document.getElementById('qrModal').classList.contains('open')) {
-    document.getElementById('qrModal'].classList.add('open');
+  const modal = document.getElementById('qrModal');
+  if (modal) {
+    modal.classList.add('open');
+    // Asegurar que si Peer ya tiene ID pero el contenedor está vacío, se re-dibuje
+    if (peer && peer.id && document.getElementById("qrcode").children.length === 0) {
+      const remoteUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}?remote=${peer.id}`;
+      new QRCode(document.getElementById("qrcode"), { text: remoteUrl, width: 200, height: 200 });
+    }
   }
 }
-function closeQRModal() { document.getElementById('qrModal').classList.remove('open'); }
+
+function closeQRModal() { 
+  const modal = document.getElementById('qrModal');
+  if (modal) {
+    modal.classList.remove('open');
+  }
+}
 
 loadDeck();
 </script>
