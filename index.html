@@ -188,6 +188,9 @@
     .btn-remote-img { background: var(--purple); max-height: 50px; font-size: 1.1rem; }
     .btn-remote-yt { background: var(--yt); max-height: 50px; font-size: 1.1rem; }
     .img-upload-input { font-size: 11px; padding: 4px; }
+    .remote-lvl-row { display: flex; gap: 6px; width: 100%; }
+    .btn-remote-lvl { flex: 1; padding: 10px 4px; font-size: 0.85rem; font-weight: bold; border-radius: 10px; border: none; background: #334155; color: white; cursor: pointer; }
+    .btn-remote-lvl.active { background: var(--pri); }
   </style>
 </head>
 <body>
@@ -453,6 +456,11 @@
 
 <!-- VISTA MANDO REMOTO MÓVIL -->
 <div id="remoteView" class="remote-layout">
+  <div class="remote-lvl-row">
+  <button class="btn-remote-lvl" onclick="sendRemoteCmd('SET_LVL_Fácil')">Fácil</button>
+  <button class="btn-remote-lvl" onclick="sendRemoteCmd('SET_LVL_Medio')">Medio</button>
+  <button class="btn-remote-lvl" onclick="sendRemoteCmd('SET_LVL_Difícil')">Difícil</button>
+</div>
   <div class="remote-card-info">
     <div style="font-size: 11px; text-transform: uppercase; color: #94a3b8; font-weight: 700; margin-bottom: 2px;">Pregunta Activa</div>
     <div id="remoteQuestionText" style="font-size: 14px; color: #f8fafc; font-weight: 500; margin-bottom: 10px; line-height: 1.3;">-</div>
@@ -1419,14 +1427,19 @@ if (remoteTargetId) {
     conn.on('open', () => {
       syncRemoteData();
     });
-    conn.on('data', (cmd) => {
-      const cardEl = document.getElementById('cardElement');
-      if (cmd === 'NEXT') navCard(null, 1);
-      if (cmd === 'PREV') navCard(null, -1);
-      if (cmd === 'FLIP') handleCardClick(cardEl);
-      if (cmd === 'TOGGLE_ZOOM') toggleImageZoom();
-      if (cmd === 'TOGGLE_MAX_VIDEO') toggleMaxVideo();
-    });
+   conn.on('data', (cmd) => {
+  const cardEl = document.getElementById('cardElement');
+  if (cmd === 'NEXT') navCard(null, 1);
+  if (cmd === 'PREV') navCard(null, -1);
+  if (cmd === 'FLIP') handleCardClick(cardEl);
+  if (cmd === 'TOGGLE_ZOOM') toggleImageZoom();
+  if (cmd === 'TOGGLE_MAX_VIDEO') toggleMaxVideo();
+  
+  // COMANDOS DE DIFICULTAD DESDE EL MANDO
+  if (cmd === 'SET_LVL_Fácil') setLvl('Fácil');
+  if (cmd === 'SET_LVL_Medio') setLvl('Medio');
+  if (cmd === 'SET_LVL_Difícil') setLvl('Difícil');
+});
   });
 }
 
