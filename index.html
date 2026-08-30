@@ -468,7 +468,6 @@
   <button class="btn-remote" onclick="sendRemoteCmd('NEXT')">Siguiente ➡️</button>
   <button class="btn-remote btn-remote-img" id="btnRemoteImgZoom" onclick="sendRemoteCmd('TOGGLE_ZOOM')" style="display:none;">🔍 Ampliar / Cerrar Imagen</button>
   <button class="btn-remote btn-remote-yt" id="btnRemoteYtMax" onclick="sendRemoteCmd('TOGGLE_MAX_VIDEO')" style="display:none;">🖥️ Pantalla Completa Vídeo</button>
-  <button class="btn-remote btn-remote-yt" id="btnRemoteYtMin" onclick="sendRemoteCmd('TOGGLE_MIN_VIDEO')" style="display:none; background: #c026d3;">👁️ Minimizar / Miniatura Vídeo</button>
 </div>
 
 <!-- MODAL QR -->
@@ -1391,9 +1390,7 @@ if (remoteTargetId) {
         if (imgBtn) imgBtn.style.display = data.hasImage ? 'block' : 'none';
 
         const ytMaxBtn = document.getElementById('btnRemoteYtMax');
-        const ytMinBtn = document.getElementById('btnRemoteYtMin');
         if (ytMaxBtn) ytMaxBtn.style.display = data.hasYt ? 'block' : 'none';
-        if (ytMinBtn) ytMinBtn.style.display = data.hasYt ? 'block' : 'none';
       }
     });
   });
@@ -1429,7 +1426,6 @@ if (remoteTargetId) {
       if (cmd === 'FLIP') handleCardClick(cardEl);
       if (cmd === 'TOGGLE_ZOOM') toggleImageZoom();
       if (cmd === 'TOGGLE_MAX_VIDEO') toggleMaxVideo();
-      if (cmd === 'TOGGLE_MIN_VIDEO') toggleMinVideo();
     });
   });
 }
