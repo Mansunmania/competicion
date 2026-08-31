@@ -205,7 +205,11 @@ async function initDataCascade() {
   // 1. Intentar cargar desde Google Drive
   if (APPS_SCRIPT_URL && APPS_SCRIPT_URL.startsWith("https://script.google.com")) {
     try {
-      const res = await fetch(`${APPS_SCRIPT_URL}?file=${DEFAULT_FILENAME}`);
+      // Busca esta línea dentro de initDataCascade():
+const res = await fetch(`${APPS_SCRIPT_URL}?file=${DEFAULT_FILENAME}`, {
+  method: 'GET',
+  redirect: 'follow'
+});
       const result = await res.json();
       if (result.success && result.data && result.data.groups) {
         db = result.data;
