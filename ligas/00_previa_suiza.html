@@ -73,7 +73,7 @@
     <p>Emparejamientos equilibrados y clasificación por categorías</p>
   </div>
   <div style="display:flex; align-items:center; gap:10px;">
-    <span class="status-tag" id="autosaveStatus">💾 Guardado</span>
+    <span class="status-tag" id="autosaveStatus">⏳ Cargando...</span>
     <button class="btn secondary" onclick="initDataCascade()">🔄 Cargar de Drive</button>
     <button class="btn secondary" id="exportAll">📥 Exportar (JSON)</button>
     <button class="btn secondary" onclick="document.getElementById('importFile').click()">📤 Importar</button>
@@ -164,33 +164,62 @@
 </div>
 
 <script>
-// Configuración de rutas remotas
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/TU_SCRIPT_ID/exec"; // Pega tu URL de Apps Script aquí
+// Configuración de rutas remotas y variables globales
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzUIijdWpsEBlYr2VYRrIsozuyXgS4Q32fkzuYxG-szocv4pb5-KLiaVDgH4tErXTUzbA/exec";
 const LOCAL_STORAGE_KEY = 'previa_suiza_db_v1';
 const GITHUB_FALLBACK_URL = '../datos/00_previa_suiza.json';
+const DEFAULT_FILENAME = '00_previa_suiza.json';
 
-// Carga principal con cascada de prioridades
+let historyStack = [];
+let currentA = 0, currentB = 0;
+let db = {
+  activeGroup: "Clase 1",
+  groups: {
+    "Clase 1": { students: [], matches: [], tieBreakers: {}, currentMatchId: null, maxMatches: 4, updatedAt: Date.now() }
+  }
+};
+
+function uid() {
+  return Math.random().toString(36).substr(2, 9);
+}
+
+function getNowFormatted() {
+  const d = new Date();
+  return `${d.toLocaleDateString()} ${d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+}
+
+function getActiveData() {
+  if (!db.groups || Object.keys(db.groups).length === 0) {
+    db.groups = { "Clase 1": { students: [], matches: [], tieBreakers: {}, currentMatchId: null, maxMatches: 4, updatedAt: Date.now() } };
+    db.activeGroup = "Clase 1";
+  }
+  if (!db.activeGroup || !db.groups[db.activeGroup]) {
+    db.activeGroup = Object.keys(db.groups)[0];
+  }
+  return db.groups[db.activeGroup];
+}
+
 async function initDataCascade() {
   setSyncStatus('⏳ Cargando...');
 
-  // 1. Intentar cargar desde Google Drive (Si hay conexión y existe la API)
-  if (APPS_SCRIPT_URL && !APPS_SCRIPT_URL.includes("https://script.google.com/macros/s/AKfycbzUIijdWpsEBlYr2VYRrIsozuyXgS4Q32fkzuYxG-szocv4pb5-KLiaVDgH4tErXTUzbA/exec")) {
+  // 1. Intentar cargar desde Google Drive
+  if (APPS_SCRIPT_URL && APPS_SCRIPT_URL.startsWith("https://script.google.com")) {
     try {
-      const res = await fetch(`${APPS_SCRIPT_URL}?file=00_previa_suiza.json`);
+      const res = await fetch(`${APPS_SCRIPT_URL}?file=${DEFAULT_FILENAME}`);
       const result = await res.json();
       if (result.success && result.data && result.data.groups) {
         db = result.data;
-        saveLocal(); // Actualizamos la copia local para refrescar caché
+        saveLocal();
         setSyncStatus('☁️ Sincronizado (Drive)');
         finishLoad();
         return;
       }
     } catch (e) {
-      console.warn("No se pudo conectar con Drive, pasando a LocalStorage:", e);
+      console.warn("No se pudo conectar con Drive, buscando alternativos:", e);
     }
   }
 
-  // 2. Intentar cargar desde LocalStorage (Navegador local)
+  // 2. Intentar cargar desde LocalStorage
   const rawLocal = localStorage.getItem(LOCAL_STORAGE_KEY);
   if (rawLocal) {
     try {
@@ -204,7 +233,7 @@ async function initDataCascade() {
     } catch (e) {}
   }
 
-  // 3. Intentar cargar desde el JSON estático en GitHub
+  // 3. Intentar cargar desde GitHub
   try {
     const res = await fetch(GITHUB_FALLBACK_URL);
     if (res.ok) {
@@ -218,12 +247,11 @@ async function initDataCascade() {
       }
     }
   } catch (e) {
-    console.warn("No se pudo cargar el archivo por defecto de GitHub:", e);
+    console.warn("No se pudo cargar de GitHub:", e);
   }
 
-  // 4. Si todo falla, inicializar estado base por defecto
+  // 4. Si todo falla, modo local básico
   setSyncStatus('⚠️ Modo local básico');
-  getActiveData();
   finishLoad();
 }
 
@@ -235,6 +263,12 @@ function finishLoad() {
 
 function saveLocal() {
   localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(db));
+}
+
+function save() {
+  const state = getActiveData();
+  state.updatedAt = Date.now();
+  saveLocal();
 }
 
 function setSyncStatus(text) {
@@ -258,7 +292,6 @@ function updateGroupSelector() {
   const select = document.getElementById('groupSelect');
   select.innerHTML = '';
   
-  // Ordenar las llaves de los grupos por la fecha de última modificación (MÁS RECIENTES PRIMERO)
   const sortedNames = Object.keys(db.groups).sort((a, b) => {
     return (db.groups[b].updatedAt || 0) - (db.groups[a].updatedAt || 0);
   });
@@ -276,7 +309,7 @@ function generateSchedule(students, maxMatches) {
   if (students.length < 2) return [];
   
   let matches = [];
-  let pairs = new Map(); // Cuenta cuántas veces se han enfrentado
+  let pairs = new Map();
   let homeCount = {}, awayCount = {}, totalMatches = {};
   
   students.forEach(s => { 
@@ -285,35 +318,27 @@ function generateSchedule(students, maxMatches) {
     totalMatches[s] = 0; 
   });
 
-  // El total de participaciones necesarias
   const targetMatchesPerStudent = maxMatches;
-  
   let attempts = 0;
+  
   while (attempts < 5000) {
     attempts++;
-    
-    // Alumnos que aún no han alcanzado el número deseado de partidos
     let pool = students.filter(s => totalMatches[s] < targetMatchesPerStudent);
     if (pool.length < 2) break;
 
-    // Ordenar por quienes llevan menos partidos jugados
     pool.sort((a, b) => totalMatches[a] - totalMatches[b]);
-
     let a = pool[0];
     
-    // Intentar buscar rival con el que NUNCA haya jugado
     let candidateB = pool.slice(1).filter(b => {
       let key1 = `${a}||${b}`, key2 = `${b}||${a}`;
       return !pairs.has(key1) && !pairs.has(key2);
     });
 
-    // Si no hay ningún rival inédito disponible en el pool, relajar la restricción y permitir repetir
     if (candidateB.length === 0) {
       candidateB = pool.slice(1);
     }
 
     if (candidateB.length > 0) {
-      // Priorizar candidatos que hayan jugado menos veces con 'a'
       candidateB.sort((b1, b2) => {
         let times1 = (pairs.get(`${a}||${b1}`) || 0) + (pairs.get(`${b1}||${a}`) || 0);
         let times2 = (pairs.get(`${a}||${b2}`) || 0) + (pairs.get(`${b2}||${a}`) || 0);
@@ -321,7 +346,6 @@ function generateSchedule(students, maxMatches) {
       });
 
       let b = candidateB[0];
-      
       let home = a, away = b;
       if (homeCount[a] > awayCount[a] || awayCount[b] > homeCount[b]) {
         home = b; away = a;
@@ -534,7 +558,7 @@ function changeGoal(team, amt) {
 
 function render() {
   const state = getActiveData();
-  document.getElementById('studentsInput').value = state.students.join('\n');
+  document.getElementById('studentsInput').value = (state.students || []).join('\n');
   if (state.maxMatches) document.getElementById('matchesPerStudentSelect').value = state.maxMatches;
   renderStandings();
   renderMatches();
@@ -548,7 +572,6 @@ document.getElementById('addGroupBtn').onclick = () => {
   if (!name) {
     name = `Clase - ${getNowFormatted()}`;
   } else if (!name.includes('-')) {
-    // Si se introduce un nombre sin fecha, le añadimos automáticamente la fecha actual
     name = `${name} (${getNowFormatted().split(' ')[0]})`;
   }
 
@@ -640,7 +663,8 @@ document.getElementById('importFile').addEventListener('change', async (e) => {
     pushHistory();
     if (data.groups) {
       db = data;
-      save(); 
+      saveLocal(); 
+      setSyncStatus('📂 Archivo local');
       updateGroupSelector(); 
       render();
       alert('Todas las competiciones han sido importadas con éxito.');
@@ -651,7 +675,8 @@ document.getElementById('importFile').addEventListener('change', async (e) => {
   e.target.value = '';
 });
 
-load();
+// Inicialización
+initDataCascade();
 </script>
 </body>
 </html>
