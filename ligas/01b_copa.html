@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Copa Six Seven - Torneo del KO ATP</title>
+  <style>
+    :root {
+      --bg: #0b1329; --card: #1c2541; --ink: #f8fafc; --muted: #6b7280;
+      --line: #3b4252; --pri: #3a86ff; --ok: #06d6a0; --bad: #ef476f; --gold: #ffd166;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--ink); padding-bottom: 50px; }
+    
+    header { text-align: center; padding: 20px; background: linear-gradient(135deg, #1c2541, #0b1329); border-bottom: 3px solid var(--pri); }
+    header h1 { margin: 0; font-size: 28px; color: var(--gold); letter-spacing: 2px; text-shadow: 0 0 10px rgba(255,209,102,0.3); }
+    header p { margin: 5px 0 0; color: #8ba3c7; font-size: 14px; }
+
+    .wrap { padding: 16px; max-width: 1500px; margin: 0 auto; }
+    .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 15px; margin-bottom: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+    
+    .setup-bar { display: flex; flex-wrap: wrap; gap: 15px; align-items: center; justify-content: space-between; }
+    label { display: block; font-size: 11px; font-weight: bold; color: #8ba3c7; text-transform: uppercase; margin-bottom: 4px; }
+    select, button { font: inherit; border-radius: 6px; }
+    select { padding: 8px 12px; background: var(--bg); color: #fff; border: 1px solid var(--line); min-width: 200px; }
+    
+    button { border: 0; padding: 10px 16px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+    .btn-pri { background: var(--pri); color: #fff; } .btn-pri:hover { opacity: 0.9; }
+    .btn-sec { background: #475569; color: #fff; }
+    .btn-bad { background: #991b1b; color: #fca5a5; }
+    .btn-undo { background: #d97706; color: #fff; font-size: 12px; padding: 6px 12px; margin-top: 10px; display: inline-flex; align-items: center; gap: 4px; }
+    .btn-undo:hover { opacity: 0.9; }
+    .btn-undo:disabled { background: #4b5563; color: #9ca3af; cursor: not-allowed; opacity: 0.5; }
+
+    /* CAJITA PARTIDO ACTIVO */
+    .match-controller { text-align: center; max-width: 600px; margin: 0 auto 20px auto; background: linear-gradient(135deg, #24305e, #1c2541); border: 2px solid var(--pri); }
+    .btn-player { background: #0b1329; color: #fff; border: 1px solid var(--line); padding: 12px; width: 45%; font-size: 14px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
+    .btn-player:hover { border-color: var(--ok); background: rgba(6,214,160,0.1); }
+
+    /* DISEÑO DEL CUADRO DE TENIS ATP HACIA EL CENTRO */
+    .bracket-container { display: grid; grid-template-columns: 1.2fr 1fr 1fr 1fr 1fr 1fr 1.2fr; gap: 10px; align-items: center; margin-top: 20px; min-width: 1200px; overflow-x: auto; }
+    .round-col { display: flex; flex-direction: column; justify-content: space-around; height: 680px; }
+    
+    .bracket-match { background: #0b1329; border: 1px solid var(--line); border-radius: 6px; padding: 4px 0; margin: 5px 0; box-shadow: 0 2px 5px rgba(0,0,0,0.2); cursor: pointer; transition: border 0.2s; }
+    .bracket-match:hover { border-color: var(--pri); }
+    .bracket-match.active-selection { border: 2px solid var(--gold); background: rgba(255,209,102,0.05); }
+    
+    .p-slot { padding: 4px 8px; font-size: 12px; display: flex; justify-content: space-between; align-items: center; height: 24px; border-bottom: 1px solid #1c2541; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .p-slot:last-child { border-bottom: 0; }
+    .p-slot.winner { color: var(--ok); font-weight: bold; }
+    .p-slot.bye { color: var(--muted); font-style: italic; opacity: 0.5; }
+    
+    .round-title { text-align: center; font-size: 11px; font-weight: bold; color: var(--gold); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; background: #0f172a; padding: 4px; border-radius: 4px; }
+    .center-cup { text-align: center; background: rgba(255,209,102,0.1); border: 2px dashed var(--gold); padding: 15px; border-radius: 12px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🏆 COPA SIX SEVEN 🏆</h1>
+  <p>Siembra ATP Oficial: El Nº1 y Nº4 van por la Izquierda; el Nº2 y Nº3 van por la Derecha</p>
+</header>
+
+<div class="wrap">
+  
+  <div class="panel setup-bar">
+    <div>
+      <label>1. Cargar archivo de la Liga (.json)</label>
+      <input id="jsonFile" type="file" accept="application/json" style="font-size:12px;" />
+    </div>
+    <div>
+      <label>2. Seleccionar Clase / Aula</label>
+      <select id="classSelector"><option value="">-- Sube el JSON primero --</option></select>
+    </div>
+    <div>
+      <button class="btn-pri" id="btnBuildCopa">⚔️ Sorteo ATP Real</button>
+    </div>
+    <div style="display:flex; gap:6px; align-items:flex-end;">
+      <div>
+        <label>Recuperar Copa anterior</label>
+        <button class="btn-sec" id="btnImportCopa" onclick="document.getElementById('jsonCopaFile').click()">📥 Cargar Copa</button>
+        <input id="jsonCopaFile" type="file" accept="application/json" style="display:none;" />
+      </div>
+      <button class="btn-sec" id="btnExport" style="height:38px;">💾 Guardar Copa</button>
+      <button class="btn-bad" id="btnReset" style="height:38px;">Reset</button>
+    </div>
+  </div>
+
+  <div class="panel match-controller" id="controllerBox">
+    <div style="font-size:11px; color:var(--gold); font-weight:bold; margin-bottom:8px; text-transform:uppercase;">Control de Partido del KO</div>
+    <div id="activeMatchContent" style="color:var(--muted); font-size:13px; padding:10px;">Selecciona cualquier enfrentamiento del cuadro inferior para jugarlo en la pizarra.</div>
+    <div>
+      <button id="btnUndoMatch" class="btn-undo" disabled>↩️ Deshacer Último Partido</button>
+    </div>
+  </div>
+
+  <div class="panel" style="overflow-x: auto; background: #111827;">
+    <div class="bracket-container" id="bracketLayout">
+    </div>
+  </div>
+
+</div>
+
+<script>
+const STORAGE_KEY = 'classroom_copa_sixseven_v5';
+let rawLigaData = null; 
+
+// Pila de historial para la función deshacer
+let copaHistory = [];
+
+let copa = {
+  classId: '', className: '', size: 32,
+  slots: {}, activeCell: null
+};
+
+document.getElementById('jsonFile').addEventListener('change', async (e) => {
+  const file = e.target.files[0]; if(!file) return;
+  try {
+    rawLigaData = JSON.parse(await file.text());
+    const classesList = rawLigaData.classes || rawLigaData.clases || [];
+    const select = document.getElementById('classSelector'); 
+    select.innerHTML = '<option value="">-- Elige un aula --</option>';
+    classesList.forEach(c => {
+      let opt = document.createElement('option'); opt.value = c.id; opt.textContent = c.name || c.nombre || c.id;
+      select.appendChild(opt);
+    });
+    alert("¡Liga cargada con éxito!");
+  } catch(err) { alert("Archivo JSON no válido."); }
+});
+
+// NUEVO: Escuchador para recuperar archivos guardados de copas (.json)
+document.getElementById('jsonCopaFile').addEventListener('change', async (e) => {
+  const file = e.target.files[0]; if(!file) return;
+  try {
+    const importedData = JSON.parse(await file.text());
+    
+    // Validamos de manera básica que el archivo tenga la estructura de una copa
+    if(importedData && importedData.slots && importedData.className) {
+      copa = importedData;
+      
+      // Si el archivo JSON guardado incluía su propia pila de historial la restauramos, si no, la limpiamos
+      copaHistory = importedData.historyPool || [];
+      
+      copa.activeCell = null; // Limpiar selecciones activas para evitar bugs visuales
+      
+      updateUndoButtonState();
+      save(); 
+      render();
+      
+      document.getElementById('activeMatchContent').innerHTML = `<span style="color:var(--ok); font-weight:bold;">📥 Torneo de la copa "${copa.className}" cargado con éxito.</span>`;
+      alert(`Copa de "${copa.className}" restaurada correctamente.`);
+    } else {
+      alert("El archivo no parece ser un archivo de Copa válido.");
+    }
+  } catch(err) { 
+    alert("Error al leer el archivo de la Copa."); 
+  }
+  e.target.value = ''; // Resetear el input file
+});
+
+document.getElementById('btnBuildCopa').onclick = () => {
+  const classId = document.getElementById('classSelector').value;
+  if(!rawLigaData || !classId) { alert("Selecciona una clase primero."); return; }
+  
+  const classesList = rawLigaData.classes || rawLigaData.clases || [];
+  const targetClass = classesList.find(c => c.id == classId);
+  const className = targetClass ? (targetClass.name || targetClass.nombre || 'Clase') : 'Clase';
+  
+  let studentsPool = extractOrderedStudents(classId);
+  if(studentsPool.length < 4) { alert("Alumnos insuficientes."); return; }
+  
+  let size = studentsPool.length <= 16 ? 16 : 32;
+  
+  copaHistory = [];
+  updateUndoButtonState();
+
+  copa = { classId, className, size, slots: {}, activeCell: null };
+  initSlotsStructure(size);
+  buildOfficialATPTournament(studentsPool, size);
+  
+  save(); render();
+};
+
+function extractOrderedStudents(classId) {
+  let sortedGlobalList = [];
+  const boardsList = rawLigaData.boards || rawLigaData.clasificaciones || [];
+  
+  [0, 1, 2].forEach(lvl => {
+    const board = boardsList.find(b => (b.classId == classId || b.claseId == classId) && b.level === lvl);
+    if(board) {
+      let map = {};
+      const students = board.students || board.alumnos || [];
+      students.forEach(s => map[s] = { name: s, pts: 0, tie: parseFloat(board.tieBreakers?.[s]) || 0 });
+      
+      let winPts = rawLigaData.globalPoints === "2,1,0" ? 2 : 3;
+      let drawPts = rawLigaData.globalPoints === "2,1,0" ? 0 : 1;
+      
+      const matches = board.matches || [];
+      matches.filter(m => m.result).forEach(m => {
+        if(!map[m.a] || !map[m.b]) return;
+        if(m.result === 'A') map[m.a].pts += winPts;
+        else if(m.result === 'B') map[m.b].pts += winPts;
+        else if(m.result === 'D') { map[m.a].pts += drawPts; map[m.b].pts += drawPts; }
+      });
+      
+      let sortedBoard = Object.values(map).sort((x,y) => (y.pts !== x.pts) ? (y.pts - x.pts) : (y.tie - x.tie));
+      sortedBoard.forEach(s => sortedGlobalList.push(s.name));
+    }
+  });
+  return sortedGlobalList;
+}
+
+function initSlotsStructure(size) {
+  const cols = size === 32 ? [0,1,2,3,4,5,6] : [1,2,3,4,5];
+  cols.forEach(c => { copa.slots[c] = []; });
+  
+  if(size === 32) {
+    for(let i=0; i<8; i++) { copa.slots[0].push({p1:'', p2:'', w:null}); copa.slots[6].push({p1:'', p2:'', w:null}); }
+  }
+  for(let i=0; i<4; i++) { copa.slots[1].push({p1:'', p2:'', w:null}); copa.slots[5].push({p1:'', p2:'', w:null}); }
+  for(let i=0; i<2; i++) { copa.slots[2].push({p1:'', p2:'', w:null}); copa.slots[4].push({p1:'', p2:'', w:null}); }
+  copa.slots[3] = [ {p1:'', p2:'', w:null}, {p1:'', p2:'', w:null}, {p1:'', p2:'', w:null} ];
+}
+
+function buildOfficialATPTournament(players, size) {
+  let fullList = [];
+  for(let i = 0; i < size; i++) {
+    fullList.push(players[i] || 'BYE');
+  }
+
+  if(size === 32) {
+    const leftIndices =  [0, 31, 16, 15, 8, 23, 24, 7, 12, 19, 28, 3, 4, 27, 20, 11];
+    const rightIndices = [2, 29, 18, 13, 10, 21, 26, 5, 14, 17, 30, 1, 6, 25, 22, 9];
+
+    for(let i=0; i<8; i++) {
+      copa.slots[0][i] = { p1: fullList[leftIndices[i*2]], p2: fullList[leftIndices[i*2+1]], w: null };
+      copa.slots[6][i] = { p1: fullList[rightIndices[i*2]], p2: fullList[rightIndices[i*2+1]], w: null };
+    }
+    resolveByesForColumn(0, 1);
+    resolveByesForColumn(6, 5);
+  } else {
+    const leftIndices =  [0, 15, 8, 7, 4, 11, 12, 3];
+    const rightIndices = [2, 13, 10, 5, 6, 9, 14, 1];
+
+    for(let i=0; i<4; i++) {
+      copa.slots[1][i] = { p1: fullList[leftIndices[i*2]], p2: fullList[leftIndices[i*2+1]], w: null };
+      copa.slots[5][i] = { p1: fullList[rightIndices[i*2]], p2: fullList[rightIndices[i*2+1]], w: null };
+    }
+    resolveByesForColumn(1, 2);
+    resolveByesForColumn(5, 4);
+  }
+}
+
+function resolveByesForColumn(originCol, destCol) {
+  copa.slots[originCol].forEach((match, row) => {
+    if(match.p1 === 'BYE' || match.p2 === 'BYE') {
+      if(match.p1 === 'BYE' && match.p2 === 'BYE') {
+        match.w = 'p1';
+        advancePlayer(destCol, Math.floor(row / 2), row % 2 === 0 ? 'p1' : 'p2', 'BYE');
+      } else {
+        let realPlayer = match.p1 === 'BYE' ? match.p2 : match.p1;
+        match.w = match.p1 === 'BYE' ? 'p2' : 'p1';
+        advancePlayer(destCol, Math.floor(row / 2), row % 2 === 0 ? 'p1' : 'p2', realPlayer);
+      }
+    }
+  });
+}
+
+function advancePlayer(col, row, targetSlot, name) {
+  if(!copa.slots[col] || !copa.slots[col][row]) return;
+  copa.slots[col][row][targetSlot] = name;
+}
+
+function selectMatch(col, row) {
+  const m = copa.slots[col][row];
+  if(!m || m.p1 === 'BYE' || m.p2 === 'BYE' || (!m.p1 && !m.p2)) return;
+  copa.activeCell = { col, row };
+  renderMatchController();
+  render();
+}
+
+function submitWinner(winnerKey) {
+  if(!copa.activeCell) return;
+  
+  pushToHistory();
+
+  const { col, row } = copa.activeCell;
+  const match = copa.slots[col][row];
+  
+  match.w = winnerKey;
+  const winnerName = match[winnerKey];
+  
+  if(copa.size === 32) {
+    if(col === 0) advancePlayer(1, Math.floor(row / 2), row % 2 === 0 ? 'p1' : 'p2', winnerName);
+    if(col === 6) advancePlayer(5, Math.floor(row / 2), row % 2 === 0 ? 'p1' : 'p2', winnerName);
+    if(col === 1) advancePlayer(2, Math.floor(row / 2), row % 2 === 0 ? 'p1' : 'p2', winnerName);
+    if(col === 5) advancePlayer(4, Math.floor(row / 2), row % 2 === 0 ? 'p1' : 'p2', winnerName);
+  } else {
+    if(col === 1) advancePlayer(2, Math.floor(row / 2), row % 2 === 0 ? 'p1' : 'p2', winnerName);
+    if(col === 5) advancePlayer(4, Math.floor(row / 2), row % 2 === 0 ? 'p1' : 'p2', winnerName);
+  }
+  
+  if(col === 2) advancePlayer(3, row, 'p1', winnerName);
+  if(col === 4) advancePlayer(3, row, 'p2', winnerName);
+  
+  if(col === 3 && row === 0) advancePlayer(3, 2, 'p1', winnerName);
+  if(col === 3 && row === 1) advancePlayer(3, 2, 'p2', winnerName);
+
+  copa.activeCell = null;
+  save(); render();
+  document.getElementById('activeMatchContent').innerHTML = `<span style="color:var(--ok); font-weight:bold;">¡Avanza ${winnerName}!</span>`;
+}
+
+function pushToHistory() {
+  copaHistory.push(JSON.stringify(copa));
+  updateUndoButtonState();
+}
+
+document.getElementById('btnUndoMatch').onclick = () => {
+  if(copaHistory.length === 0) return;
+  
+  const previousState = copaHistory.pop();
+  copa = JSON.parse(previousState);
+  copa.activeCell = null;
+  
+  updateUndoButtonState();
+  save(); 
+  render();
+  
+  document.getElementById('activeMatchContent').innerHTML = `<span style="color:var(--gold); font-weight:bold;">↩️ Último partido deshecho con éxito.</span>`;
+};
+
+function updateUndoButtonState() {
+  const btn = document.getElementById('btnUndoMatch');
+  if(copaHistory.length > 0) {
+    btn.disabled = false;
+    btn.textContent = `↩️ Deshacer Último Partido (${copaHistory.length})`;
+  } else {
+    btn.disabled = true;
+    btn.textContent = `↩️ Deshacer Último Partido`;
+  }
+}
+
+function renderMatchController() {
+  const box = document.getElementById('activeMatchContent');
+  if(!copa.activeCell) return;
+  const m = copa.slots[copa.activeCell.col][copa.activeCell.row];
+  
+  box.innerHTML = `
+    <div style="font-size:11px; color:var(--gold); font-weight:bold; margin-bottom:8px; text-transform:uppercase;">Partido Activo</div>
+    <div style="display:flex; justify-content:center; gap:15px; align-items:center;">
+      <button class="btn-player" onclick="submitWinner('p1')">${m.p1 || '???'}</button>
+      <div style="font-weight:bold; font-size:12px; color:var(--muted);">VS</div>
+      <button class="btn-player" onclick="submitWinner('p2')">${m.p2 || '???'}</button>
+    </div>
+  `;
+}
+
+function render() {
+  const layout = document.getElementById('bracketLayout'); layout.innerHTML = '';
+  if(!copa.className) return;
+
+  const colsToRender = copa.size === 32 ? [0,1,2,3,4,5,6] : [1,2,3,4,5];
+  const colTitles = { 0:"R32 Izq", 1:"Octavos I", 2:"Cuartos I", 3:"📍 FINAL CENTRO", 4:"Cuartos D", 5:"Octavos D", 6:"R32 Der" };
+
+  colsToRender.forEach(c => {
+    const colDiv = document.createElement('div'); colDiv.className = 'round-col';
+    const title = document.createElement('div'); title.className = 'round-title';
+    title.textContent = colTitles[c];
+    colDiv.appendChild(title);
+
+    if(c === 3) {
+      colDiv.appendChild(createMatchDOM(3, 0, "Semifinal Izquierda (Vence Rama Izq)"));
+      
+      const cup = document.createElement('div'); cup.className = 'center-cup';
+      const fMatch = copa.slots[3][2];
+      if(fMatch && fMatch.w) {
+        cup.innerHTML = `<span style="font-size:24px;">🏆</span><br><b style="color:var(--gold); font-size:13px;">${fMatch[fMatch.w]}</b><br><span style="font-size:10px; color:var(--ok); font-weight:bold;">¡CAMPEÓN!</span>`;
+      } else {
+        cup.innerHTML = `<span style="font-size:20px;">🏆</span><br><span style="font-size:10px; color:var(--muted)">Copa Six Seven</span>`;
+      }
+      colDiv.appendChild(cup);
+      
+      colDiv.appendChild(createMatchDOM(3, 1, "Semifinal Derecha (Vence Rama Der)"));
+      colDiv.appendChild(createMatchDOM(3, 2, "👑 GRAN FINAL"));
+    } else {
+      copa.slots[c].forEach((m, r) => { colDiv.appendChild(createMatchDOM(c, r)); });
+    }
+    layout.appendChild(colDiv);
+  });
+}
+
+function createMatchDOM(c, r, labelCustom = "") {
+  const m = copa.slots[c][r];
+  const div = document.createElement('div'); div.className = 'bracket-match';
+  if(copa.activeCell && copa.activeCell.col === c && copa.activeCell.row === r) div.className += ' active-selection';
+  
+  const label = labelCustom ? `<div style="font-size:9px; color:var(--muted); text-align:center; margin-bottom:2px;">${labelCustom}</div>` : '';
+  
+  let p1Class = m.w === 'p1' ? 'winner' : (m.p1 === 'BYE' ? 'bye' : '');
+  let p2Class = m.w === 'p2' ? 'winner' : (m.p2 === 'BYE' ? 'bye' : '');
+  
+  div.innerHTML = `
+    ${label}
+    <div class="p-slot ${p1Class}"><span>${m.p1 || '---'}</span> ${m.w === 'p1' ? '⚡':''}</div>
+    <div class="p-slot ${p2Class}"><span>${m.p2 || '---'}</span> ${m.w === 'p2' ? '⚡':''}</div>
+  `;
+  
+  if(m.p1 !== 'BYE' && m.p2 !== 'BYE' && (m.p1 || m.p2)) {
+    div.onclick = () => selectMatch(c, r);
+  }
+  return div;
+}
+
+function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(copa)); }
+function load() { const raw = localStorage.getItem(STORAGE_KEY); if(raw) { copa = JSON.parse(raw); render(); } }
+
+document.getElementById('btnExport').onclick = () => {
+  // Guardamos también el historial actual en el archivo JSON exportado para recuperarlo si hiciera falta
+  const exportObject = { ...copa, historyPool: copaHistory };
+  const blob = new Blob([JSON.stringify(exportObject, null, 2)], {type: 'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `copa_${copa.className}.json`; a.click();
+};
+
+document.getElementById('btnReset').onclick = () => {
+  if(confirm("¿Reiniciar la Copa por completo?")) {
+    copa = { classId:'', className:'', size:32, slots:{}, activeCell:null }; 
+    copaHistory = [];
+    updateUndoButtonState();
+    save();
+    document.getElementById('bracketLayout').innerHTML = '';
+    document.getElementById('activeMatchContent').innerHTML = 'Copa reiniciada.';
+  }
+};
+
+load();
+</script>
+</body>
+</html>
