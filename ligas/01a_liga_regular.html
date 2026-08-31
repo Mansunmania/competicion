@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LeagueBoard Classroom - Gestión de Ligas</title>
+  <style>
+    :root {
+      --bg: #f4f7fb; --card: #ffffff; --ink: #1f2937; --muted: #6b7280;
+      --line: #dbe3ee; --pri: #2563eb; --pri2: #1d4ed8; --ok: #16a34a;
+      --warn: #d97706; --bad: #dc2626; --gold: #f59e0b; --silver: #94a3b8; --bronze: #b45309;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--ink); }
+    header { padding: 16px 20px; background: linear-gradient(135deg, var(--pri), var(--pri2)); color: #fff; }
+    header h1 { margin: 0; font-size: 22px; } header p { margin: 4px 0 0; opacity: 0.9; font-size: 14px; }
+    .wrap { padding: 16px; max-width: 1400px; margin: 0 auto; }
+    .toolbar, .panel { background: var(--card); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 3px 10px rgba(0,0,0,.04); }
+    .toolbar { padding: 12px; margin-bottom: 14px; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; align-items: end; }
+    .panel { padding: 14px; }
+    label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+    input, select, textarea, button { font: inherit; }
+    input, select, textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+    button { border: 0; border-radius: 10px; padding: 10px 14px; font-weight: 700; cursor: pointer; }
+    .btn { background: var(--pri); color: #fff; }
+    .btn.secondary { background: #e5eefc; color: #1746a2; }
+    .btn.warn { background: #fff7ed; color: #9a3412; border: 1px solid #fed7aa; }
+    .btn.bad { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+    .btn.ok { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+    
+    .btn.undo { background: var(--warn); color: #fff; margin-top: 8px; width: 100%; text-align: center; }
+    .btn.undo:disabled { background: #e5e7eb; color: #9ca3af; cursor: not-allowed; border: 1px solid #d1d5db; opacity: 0.6; }
+
+    .grid { display: grid; grid-template-columns: 360px 1fr; gap: 14px; }
+    .boards { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; }
+    .board h3 { margin: 0 0 6px; font-size: 18px; }
+    .small { font-size: 12px; color: var(--muted); }
+    .list { display: flex; flex-direction: column; gap: 8px; max-height: 60vh; overflow: auto; }
+    .item { display: flex; gap: 8px; align-items: center; justify-content: space-between; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; background: #fafcff; }
+    .item .name { font-weight: 600; }
+    .pill { font-size: 12px; padding: 4px 8px; border-radius: 99px; background: #eef2ff; color: #3730a3; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 8px 4px; border-bottom: 1px solid var(--line); text-align: center; font-size: 13px; }
+    th:nth-child(2), td:nth-child(2) { text-align: left; } /* Alumno alineado a la izquierda */
+    th { font-size: 11px; color: var(--muted); text-transform: uppercase; }
+    .rank { font-weight: 800; width: 25px; text-align: center; }
+    .gold { color: var(--gold); } .silver { color: var(--silver); } .bronze { color: var(--bronze); }
+    
+    /* INTERFAZ DE MARCADOR CON BOTONES COMPACTOS +/- */
+    .match-goals { display: flex; flex-direction: column; gap: 10px; padding: 4px; margin-top: 10px; }
+    .goal-row { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; background: #fff; padding: 10px 14px; border: 1px solid var(--line); border-radius: 12px; }
+    .goal-row span { font-weight: 600; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; font-size: 14px; }
+    .counter-box { display: inline-flex; align-items: center; gap: 8px; }
+    .btn-counter { background: #f1f5f9; border: 1px solid var(--line); border-radius: 8px; width: 34px; height: 34px; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
+    .btn-counter:hover { background: #e2e8f0; }
+    .counter-value { font-size: 18px; font-weight: 800; min-width: 20px; text-align: center; color: var(--pri); }
+
+    .muted-box { background: #f8fafc; border: 1px dashed var(--line); padding: 10px; border-radius: 10px; }
+    .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .tab { padding: 6px 10px; border-radius: 8px; background: #eef2ff; color: #1e3a8a; font-size: 12px; font-weight: 700; border: 1px solid #c7d2fe; cursor: pointer; }
+    .tab.active { background: #1d4ed8; color: #fff; border-color: #1d4ed8; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .section-title { font-size: 11px; font-weight: 800; margin: 12px 0 6px; color: #334155; text-transform: uppercase; }
+    .mini { padding: 4px 8px; font-size: 11px; }
+    .tie-ctrl { display: inline-flex; gap: 2px; align-items: center; justify-content: center; }
+    .btn-tie { padding: 1px 5px; font-size: 11px; border-radius: 4px; background: #f1f5f9; border: 1px solid var(--line); cursor: pointer; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>LeagueBoard Classroom</h1>
+  <p>Control de ligas escolares por divisiones. Marcador con botones +/- y estadísticas completas.</p>
+</header>
+
+<div class="wrap">
+  <div class="toolbar">
+    <div>
+      <label>Nombre de Clase Base</label>
+      <input id="classNameInput" placeholder="Ej. 5º" />
+    </div>
+    <div>
+      <label>Nº de Aulas</label>
+      <input id="classCount" type="number" min="1" max="10" value="4" />
+    </div>
+    <button class="btn" id="createClassesBtn">Generar Aulas</button>
+    <button class="btn" style="background:#8b5cf6" id="triggerPromotions">Ascensos/Descensos de Temporada</button>
+    <button class="btn secondary" id="exportData">Exportar Copia</button>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <div>
+        <label>Curso Activo</label>
+        <select id="classSelector"></select>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <input id="editClassName" placeholder="Nombre clase" />
+        <button class="btn secondary mini" id="saveClassNameBtn">Renombrar</button>
+      </div>
+      
+      <div class="section-title">Divisiones</div>
+      <div id="boardTabs" class="tabs"></div>
+
+      <div class="section-title">Ajustes División</div>
+      <input id="renameBoard" style="margin-bottom:6px" />
+      <div class="row">
+        <div><label>Plazas</label><input id="participantCount" type="number" /></div>
+        <div style="display:flex;align-items:flex-end;"><button class="btn secondary mini" style="width:100%" id="saveBoardConfig">Guardar</button></div>
+      </div>
+      
+      <div class="section-title">Alumnos (uno por línea)</div>
+      <textarea id="studentsInput" rows="6"></textarea>
+      
+      <div class="row" style="margin-top:6px">
+        <button class="btn ok mini" id="saveStudents">Guardar Lista</button>
+        <button class="btn warn mini" id="generateMatches">Generar Liga</button>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <button class="btn secondary mini" id="newRandomMatch">Sig. Partido</button>
+        <button class="btn bad mini" id="resetBoard">Reset</button>
+      </div>
+      <div style="margin-top:12px; border-top:1px dashed var(--line); padding-top:8px;">
+        <label>Importar Copia Guardada (.json)</label>
+        <input id="importFile" type="file" accept="application/json" style="font-size:11px" />
+      </div>
+    </div>
+
+    <div class="boards">
+      <div class="panel board" style="overflow-x: auto;">
+        <h3 id="activeBoardTitle">Clasificación</h3>
+        <div class="small" id="classSubTitle">-</div>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th style="text-align: left;">Alumno</th>
+              <th>PTS</th>
+              <th>Desempate</th>
+              <th>V</th>
+              <th>E</th>
+              <th>D</th>
+              <th>GF</th>
+              <th>GC</th>
+            </tr>
+          </thead>
+          <tbody id="standingsBody"></tbody>
+        </table>
+      </div>
+      
+      <div class="panel board">
+        <h3>Partido en Curso</h3>
+        <div id="matchBox" class="muted-box">Selecciona división...</div>
+      </div>
+      
+      <div class="panel board">
+        <h3>Calendario / Jornadas</h3>
+        <div id="pendingMatches" class="list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY='leagueboard_classroom_data_v4_goals';
+let memoryStore='';
+let app={ classes: [], boards: [], activeClassId: null, activeBoardId: null };
+const CATEGORY_NAMES = ["Shrek & Fiona", "Donkey", "Bart & Lisa Simpson"];
+
+let leagueHistory = [];
+
+// Variables volátiles para controlar los goles con botones sin registrar aún
+let currentGoalsA = 0;
+let currentGoalsB = 0;
+
+function uid(){return Math.random().toString(36).slice(2,10)}
+function save(){const data=JSON.stringify(app);try{localStorage.setItem(STORAGE_KEY,data)}catch(e){memoryStore=data}}
+function load(){
+  try{
+    const raw=localStorage.getItem(STORAGE_KEY);
+    if(raw) app=JSON.parse(raw);
+    else if(memoryStore) app=JSON.parse(memoryStore);
+  }catch(e){}
+}
+
+function pushToHistory() {
+  leagueHistory.push(JSON.stringify(app));
+  updateUndoButton();
+}
+
+function updateUndoButton() {
+  const btn = document.getElementById('btnUndoAction');
+  if (!btn) return;
+  if (leagueHistory.length > 0) {
+    btn.disabled = false;
+    btn.textContent = `↩️ Deshacer Último Resultado (${leagueHistory.length})`;
+  } else {
+    btn.disabled = true;
+    btn.textContent = `↩️ Deshacer Último Resultado`;
+  }
+}
+
+function currentClassBoards() {
+  return app.boards.filter(b => b.classId === app.activeClassId).sort((a,b) => a.level - b.level);
+}
+function currentBoard(){
+  return app.boards.find(b=>b.id===app.activeBoardId) || currentClassBoards()[0] || null;
+}
+
+function createClassStructure(className) {
+  const classId = uid();
+  app.classes.push({ id: classId, name: className });
+  for(let i=0; i<3; i++) {
+    app.boards.push({
+      id: uid(), classId: classId, level: i, 
+      name: `${CATEGORY_NAMES[i]} (${className})`,
+      students: [], matches: [], currentMatchId: null,
+      desiredParticipants: 4, tieBreakers: {}
+    });
+  }
+  return classId;
+}
+
+function ensureDefault(){
+  if(app.classes.length===0){
+    const idA = createClassStructure('5ºA');
+    createClassStructure('5ºB');
+    app.activeClassId = idA;
+    app.activeBoardId = currentClassBoards()[0]?.id || null;
+    save();
+  }
+}
+
+function renderClassSelector() {
+  const select = document.getElementById('classSelector'); select.innerHTML = '';
+  app.classes.forEach(c => {
+    const opt = document.createElement('option'); opt.value = c.id; opt.textContent = `Curso: ${c.name}`;
+    if(c.id === app.activeClassId) opt.selected = true;
+    select.appendChild(opt);
+  });
+  select.onchange = (e) => {
+    app.activeClassId = e.target.value; app.activeBoardId = currentClassBoards()[0]?.id || null;
+    save(); render();
+  };
+  const currentClass = app.classes.find(c => c.id === app.activeClassId);
+  if(currentClass && document.activeElement !== document.getElementById('editClassName')){
+    document.getElementById('editClassName').value = currentClass.name;
+  }
+}
+
+document.getElementById('saveClassNameBtn').onclick = () => {
+  const currentClass = app.classes.find(c => c.id === app.activeClassId);
+  const newName = document.getElementById('editClassName').value.trim();
+  if(!currentClass || !newName) return;
+  const oldName = currentClass.name; currentClass.name = newName;
+  app.boards.forEach(b => {
+    if(b.classId === currentClass.id) {
+      b.name = b.name.includes(`(${oldName})`) ? b.name.replace(`(${oldName})`, `(${newName})`) : `${b.name.split(' (')[0]} (${newName})`;
+    }
+  });
+  save(); render();
+};
+
+function renderTabs(){
+  const wrap=document.getElementById('boardTabs'); wrap.innerHTML='';
+  currentClassBoards().forEach(b=>{
+    const btn=document.createElement('button');
+    btn.className='tab'+(b.id===app.activeBoardId?' active':'');
+    btn.textContent = b.name.split(' (')[0]; 
+    btn.onclick=()=>{app.activeBoardId=b.id; save(); render()};
+    wrap.appendChild(btn)
+  })
+}
+
+function recalc(board){
+  const map={}; if(!board.tieBreakers) board.tieBreakers = {};
+  board.students.forEach(s=>map[s]={name:s,pts:0,v:0,e:0,d:0,gf:0,gc:0,p:0, extra: parseFloat(board.tieBreakers[s]) || 0});
+  
+  board.matches.forEach(m=>{
+    if(m.result) {
+      const A=map[m.a], B=map[m.b]; if(!A||!B) return;
+      A.p++; B.p++;
+      
+      const parts = m.result.split('-');
+      const gA = parseInt(parts[0], 10);
+      const gB = parseInt(parts[1], 10);
+      
+      A.gf += gA; A.gc += gB;
+      B.gf += gB; B.gc += gA;
+      
+      // Los puntos acumulados son la suma directa de goles (preguntas)
+      A.pts += gA;
+      B.pts += gB;
+
+      // Cálculo de Victorias, Empates y Derrotas estadísticos
+      if(gA > gB) { A.v++; B.d++; }
+      else if(gB > gA) { B.v++; A.d++; }
+      else { A.e++; B.e++; }
+    }
+  });
+  
+  return Object.values(map).sort((x, y) => {
+    if (y.pts !== x.pts) return y.pts - x.pts;
+    if (y.extra !== x.extra) return y.extra - x.extra; 
+    const difX = x.gf - x.gc;
+    const difY = y.gf - y.gc;
+    if (difY !== difX) return difY - difX;
+    return x.name.localeCompare(y.name);
+  });
+}
+
+function modifyTiebreaker(studentName, amount) {
+  const board = currentBoard(); if(!board) return;
+  pushToHistory(); 
+  if(!board.tieBreakers) board.tieBreakers = {};
+  let currentVal = parseFloat(board.tieBreakers[studentName]) || 0;
+  board.tieBreakers[studentName] = Math.round((currentVal + amount) * 10) / 10;
+  save(); render();
+}
+
+function renderStandings(){
+  const board=currentBoard(); const currentClass = app.classes.find(c => c.id === app.activeClassId);
+  document.getElementById('activeBoardTitle').textContent=board?board.name:'Clasificación';
+  document.getElementById('classSubTitle').textContent=`Aula: ${currentClass?currentClass.name:''}`;
+  
+  const tbody=document.getElementById('standingsBody'); tbody.innerHTML=''; if(!board) return;
+  const ranked = recalc(board); const totalStudents = board.students.length;
+  
+  ranked.forEach((r,i)=>{
+    const tr=document.createElement('tr'); const medal=i===0?'gold':i===1?'silver':i===2?'bronze':'';
+    if(board.level > 0 && i < 2) tr.style.background = "#f0fdf4"; 
+    if(board.level < 2 && i >= totalStudents - 2) tr.style.background = "#fef2f2"; 
+
+    const safeName = r.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    const extraText = r.extra > 0 ? `+${r.extra}` : r.extra;
+
+    tr.innerHTML=`
+      <td class="rank ${medal}">${i+1}</td>
+      <td style="text-align: left;"><strong>${r.name}</strong></td>
+      <td><span style="font-size:14px; font-weight:bold; color:var(--pri)">${r.pts}</span></td>
+      <td>
+        <div class="tie-ctrl">
+          <button class="btn-tie" onclick="modifyTiebreaker('${safeName}', -0.1)">-</button>
+          <span style="font-weight:600; min-width:24px; text-align:center;">${extraText}</span>
+          <button class="btn-tie" onclick="modifyTiebreaker('${safeName}', 0.1)">+</button>
+        </div>
+      </td>
+      <td style="color:var(--ok); font-weight:500;">${r.v}</td>
+      <td style="color:var(--warn); font-weight:500;">${r.e}</td>
+      <td style="color:var(--bad); font-weight:500;">${r.d}</td>
+      <td>${r.gf}</td>
+      <td>${r.gc}</td>`;
+    tbody.appendChild(tr)
+  })
+}
+
+function generateRoundRobinJourneys(names) {
+  let list = [...names]; if (list.length % 2 !== 0) list.push("DESCANSA");
+  const numPlayers = list.length; const numRounds = numPlayers - 1; const matchesPerRound = numPlayers / 2;
+  let rounds = [];
+  for (let round = 0; round < numRounds; round++) {
+    let roundMatches = [];
+    for (let match = 0; match < matchesPerRound; match++) {
+      const home = list[match]; const away = list[numPlayers - 1 - match];
+      if (home !== "DESCANSA" && away !== "DESCANSA") {
+        roundMatches.push({ id: uid(), round: round + 1, a: home, b: away, result: null });
+      }
+    }
+    list.splice(1, 0, list.pop()); if(roundMatches.length > 0) rounds.push(roundMatches);
+  }
+  let finalMatches = [];
+  rounds.forEach((roundArr, index) => { roundArr.forEach(m => { m.round = index + 1; finalMatches.push(m); }); });
+  return finalMatches;
+}
+
+function renderPending(){
+  const board=currentBoard(); const box=document.getElementById('pendingMatches'); box.innerHTML=''; if(!board) return;
+  if(!board.matches.length){ box.innerHTML='<div class="muted-box">Pulsa "Generar Liga" para crear el calendario.</div>'; return; }
+
+  let currentRoundNum = -1;
+  board.matches.forEach((m) => {
+    if(m.round !== currentRoundNum) {
+      currentRoundNum = m.round; const roundTitle = document.createElement('div');
+      roundTitle.className = 'section-title'; roundTitle.style = 'margin-top:10px; background:#e2e8f0; padding:2px 6px; border-radius:4px;';
+      roundTitle.textContent = `JORNADA ${m.round}`; box.appendChild(roundTitle);
+    }
+    const div=document.createElement('div'); div.className='item'; if(m.result) div.style.opacity = "0.5";
+    let resLabel = `<button class="pill">Jugar</button>`;
+    if(m.result) {
+      resLabel = `<span class="small" style="font-weight:bold; color:var(--ok)">Resultado: ${m.result}</span>`;
+    }
+    div.innerHTML=`<div><div class="name">${m.a} vs ${m.b}</div></div><div>${resLabel}</div>`;
+    if(!m.result) { 
+      div.onclick=()=>{
+        board.currentMatchId=m.id; 
+        currentGoalsA = 0; // Resetear contadores al abrir partido nuevo
+        currentGoalsB = 0;
+        save(); 
+        renderMatch()
+      }; 
+    }
+    box.appendChild(div);
+  });
+}
+
+function updateGoalUI() {
+  const elA = document.getElementById('valA');
+  const elB = document.getElementById('valB');
+  if(elA) elA.textContent = currentGoalsA;
+  if(elB) elB.textContent = currentGoalsB;
+}
+
+function changeGoal(team, amount) {
+  if(team === 'A') {
+    currentGoalsA = Math.max(0, Math.min(3, currentGoalsA + amount));
+  } else {
+    currentGoalsB = Math.max(0, Math.min(3, currentGoalsB + amount));
+  }
+  updateGoalUI();
+}
+
+function renderMatch(){
+  const board=currentBoard(); const box=document.getElementById('matchBox'); if(!board){box.textContent='-';return}
+  let match=board.matches.find(m=>m.id===board.currentMatchId&&!m.result) || board.matches.find(m=>!m.result);
+  
+  if(!match){ 
+    box.innerHTML=`
+      <div class='muted-box'>🏆 Jornadas completas. Lista para cambios de temporada.</div>
+      <button id="btnUndoAction" class="btn undo" disabled>↩️ Deshacer Último Resultado</button>
+    `; 
+    updateUndoButton();
+    return; 
+  }
+  
+  if (board.currentMatchId !== match.id) {
+    board.currentMatchId = match.id;
+    currentGoalsA = 0;
+    currentGoalsB = 0;
+  }
+  
+  box.innerHTML=`
+    <div style="font-size:12px; font-weight:bold; color:var(--pri); margin-bottom:6px; text-align:center;">JORNADA ${match.round}</div>
+    <div class="match-goals">
+      <div class="goal-row">
+        <span>${match.a}</span>
+        <div class="counter-box">
+          <button class="btn-counter" onclick="changeGoal('A', -1)">-</button>
+          <span class="counter-value" id="valA">${currentGoalsA}</span>
+          <button class="btn-counter" onclick="changeGoal('A', 1)">+</button>
+        </div>
+      </div>
+      <div class="goal-row">
+        <span>${match.b}</span>
+        <div class="counter-box">
+          <button class="btn-counter" onclick="changeGoal('B', -1)">-</button>
+          <span class="counter-value" id="valB">${currentGoalsB}</span>
+          <button class="btn-counter" onclick="changeGoal('B', 1)">+</button>
+        </div>
+      </div>
+      <button class="btn ok" id="btnSaveGoals" style="width:100%; margin-top:4px;">⚽ Registrar Marcador</button>
+    </div>
+    <button id="btnUndoAction" class="btn undo" disabled>↩️ Deshacer Último Resultado</button>
+  `;
+  
+  document.getElementById('btnSaveGoals').onclick=()=>{
+    applyResult(`${currentGoalsA}-${currentGoalsB}`);
+  };
+  
+  document.getElementById('btnUndoAction').onclick=()=>{
+    if(leagueHistory.length === 0) return;
+    app = JSON.parse(leagueHistory.pop());
+    save(); render();
+  };
+  
+  updateUndoButton();
+}
+
+function applyResult(resultString){
+  const board=currentBoard(); const m=board.matches.find(x=>x.id===board.currentMatchId); if(!m) return;
+  pushToHistory(); 
+  m.result=resultString; board.currentMatchId=null; 
+  currentGoalsA = 0; currentGoalsB = 0; // Resetear volátiles
+  save(); render();
+}
+
+document.getElementById('triggerPromotions').onclick=()=>{
+  const classBoards = currentClassBoards();
+  for(let b of classBoards) {
+    if (b.matches.length > 0 && b.matches.some(m => !m.result)) {
+      alert(`Faltan partidos por jugar en la división: ${b.name.split(' (')[0]}`); return;
+    }
+  }
+  if(!confirm(`¿Consolidar cambios de temporada en esta clase?`)) return;
+  
+  pushToHistory(); 
+
+  const standing1 = recalc(classBoards[0]).map(r => r.name); 
+  const standing2 = recalc(classBoards[1]).map(r => r.name); 
+  const standing3 = recalc(classBoards[2]).map(r => r.name); 
+
+  const bajanDePrimera = standing1.length >= 2 ? [standing1[standing1.length - 1], standing1[standing1.length - 2]] : [];
+  const subenDeSegunda  = standing2.length >= 2 ? [standing2[0], standing2[1]] : [];
+  const bajanDeSegunda  = standing2.length >= 4 ? [standing2[standing2.length - 1], standing2[standing2.length - 2]] : [];
+  const subenDeTercera  = standing3.length >= 2 ? [standing3[0], standing3[1]] : [];
+
+  if(bajanDePrimera.length && subenDeSegunda.length) classBoards[0].students = classBoards[0].students.filter(s => !bajanDePrimera.includes(s)).concat(subenDeSegunda);
+  let alumnosSegunda = [...classBoards[1].students].filter(s => !subenDeSegunda.includes(s) && !bajanDeSegunda.includes(s));
+  classBoards[1].students = alumnosSegunda.concat(bajanDePrimera, subenDeTercera);
+  if(bajanDeSegunda.length && subenDeTercera.length) classBoards[2].students = classBoards[2].students.filter(s => !subenDeTercera.includes(s)).concat(bajanDeSegunda);
+
+  classBoards.forEach(b => {
+    b.matches = []; b.currentMatchId = null; b.tieBreakers = {}; 
+    if(b.students.length >= 2){ b.matches = generateRoundRobinJourneys(b.students); b.currentMatchId = b.matches[0]?.id || null; }
+  });
+  app.activeBoardId = classBoards[0].id; save(); render();
+};
+
+function renderForm(){
+  const board=currentBoard(); if(!board) return;
+  document.getElementById('studentsInput').value=board.students.join('\n');
+  document.getElementById('renameBoard').value=board.name;
+  document.getElementById('participantCount').value=board.desiredParticipants||4;
+}
+
+function render(){ renderClassSelector(); renderTabs(); renderForm(); renderStandings(); renderPending(); renderMatch(); }
+
+document.getElementById('createClassesBtn').onclick=()=>{
+  const count=Math.max(1,parseInt(document.getElementById('classCount').value,10)||1);
+  const prefix=(document.getElementById('classNameInput').value||'5º').trim();
+  app.classes=[]; app.boards=[]; let firstId = null;
+  for(let i=1; i<=count; i++) {
+    const cId = createClassStructure(`${prefix}º${String.fromCharCode(65+(i-1))}`); if(i===1) firstId = cId;
+  }
+  app.activeClassId = firstId; app.activeBoardId = currentClassBoards()[0]?.id || null;
+  save(); render();
+};
+
+document.getElementById('saveBoardConfig').onclick=()=>{
+  const board=currentBoard(); if(!board) return;
+  board.name=document.getElementById('renameBoard').value.trim();
+  board.desiredParticipants=parseInt(document.getElementById('participantCount').value,10)||4;
+  save(); render();
+};
+
+document.getElementById('saveStudents').onclick=()=>{
+  const board=currentBoard(); if(!board) return;
+  board.students=[...new Set(document.getElementById('studentsInput').value.split(/\n+/).map(s=>s.trim()).filter(Boolean))];
+  save(); render();
+};
+
+document.getElementById('generateMatches').onclick=()=>{
+  const board=currentBoard(); if(!board) return;
+  if(board.students.length<2){alert('Añade alumnos.');return}
+  pushToHistory(); 
+  board.tieBreakers = {}; board.matches=generateRoundRobinJourneys(board.students);
+  board.currentMatchId=board.matches[0]?.id||null;
+  save(); render();
+};
+
+document.getElementById('newRandomMatch').onclick=()=>{
+  const board=currentBoard(); if(!board) return;
+  const p=board.matches.filter(m=>!m.result); if(p.length){ board.currentMatchId=p[0].id; save(); renderMatch(); }
+};
+
+document.getElementById('resetBoard').onclick=()=>{
+  const board=currentBoard(); if(board && confirm('¿Resetear?')){ pushToHistory(); board.students=[]; board.matches=[]; board.currentMatchId=null; board.tieBreakers={}; save(); render(); }
+};
+
+document.getElementById('exportData').onclick=()=>{
+  const blob=new Blob([JSON.stringify(app,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='aula_datos_liga_goles_v2.json'; a.click();
+};
+
+document.getElementById('importFile').addEventListener('change', async (e)=>{
+  const file=e.target.files[0]; if(!file) return; const text=await file.text();
+  try{
+    const data=JSON.parse(text);
+    if(data && Array.isArray(data.classes) && Array.isArray(data.boards)){
+      app=data; 
+      leagueHistory = []; 
+      app.activeClassId=app.classes[0]?.id||null; app.activeBoardId=currentClassBoards()[0]?.id||null;
+      save(); render(); alert('Datos recuperados.');
+    }
+  }catch(err){ alert('Archivo no compatible.'); }
+  e.target.value='';
+});
+
+load(); ensureDefault(); render();
+</script>
+</body>
+</html>
