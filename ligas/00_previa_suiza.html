@@ -1,1 +1,479 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fase de Liga Clasificatoria (Formato Suizo)</title>
+  <style>
+    :root {
+      --bg: #f4f7fb; --card: #ffffff; --ink: #1f2937; --muted: #6b7280;
+      --line: #dbe3ee; --pri: #2563eb; --pri2: #1d4ed8; --ok: #16a34a;
+      --warn: #d97706; --bad: #dc2626; --gold: #f59e0b; --silver: #94a3b8; --bronze: #b45309;
+      
+      /* Colores suaves para las divisiones */
+      --zone-div1: #f0fdf4; /* Verde suave */
+      --zone-div2: #ffffff; /* Blanco */
+      --zone-div3: #fefce8; /* Amarillo suave */
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--ink); }
+    header { padding: 12px 20px; background: linear-gradient(135deg, var(--pri), var(--pri2)); color: #fff; display: flex; justify-content: space-between; align-items: center; }
+    header h1 { margin: 0; font-size: 20px; } header p { margin: 2px 0 0; opacity: 0.9; font-size: 13px; }
+    
+    .wrap { padding: 14px; max-width: 1600px; margin: 0 auto; }
+    .grid-top { display: grid; grid-template-columns: 340px 1fr; gap: 14px; margin-bottom: 14px; }
+    
+    .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px; box-shadow: 0 2px 6px rgba(0,0,0,.04); }
+    label { display: block; font-size: 11px; font-weight: 700; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; }
+    input, select, textarea, button { font: inherit; }
+    textarea, select { width: 100%; padding: 8px; border: 1px solid var(--line); border-radius: 8px; resize: vertical; background: #fff; }
+    
+    button { border: 0; border-radius: 8px; padding: 8px 12px; font-weight: 700; cursor: pointer; font-size: 13px; }
+    .btn { background: var(--pri); color: #fff; } .btn:hover { background: var(--pri2); }
+    .btn.ok { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+    .btn.warn { background: #fff7ed; color: #9a3412; border: 1px solid #fed7aa; }
+    .btn.bad { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+    .btn.secondary { background: #e2e8f0; color: var(--ink); }
+    .btn.undo { background: var(--warn); color: #fff; margin-top: 6px; width: 100%; text-align: center; }
+    .btn.undo:disabled { background: #e5e7eb; color: #9ca3af; cursor: not-allowed; border: 1px solid #d1d5db; opacity: 0.6; }
 
+    .match-box { display: flex; flex-direction: column; gap: 8px; background: #f8fafc; border: 1px dashed var(--line); padding: 10px; border-radius: 10px; }
+    .goal-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; background: #fff; padding: 6px 12px; border: 1px solid var(--line); border-radius: 8px; }
+    .counter-box { display: inline-flex; align-items: center; gap: 6px; }
+    .btn-counter { background: #f1f5f9; border: 1px solid var(--line); border-radius: 6px; width: 30px; height: 30px; font-weight: bold; cursor: pointer; }
+    .counter-value { font-size: 16px; font-weight: 800; min-width: 18px; text-align: center; color: var(--pri); }
+
+    .dual-container { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .columns-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 5px 4px; border-bottom: 1px solid var(--line); text-align: center; font-size: 12px; }
+    th { font-size: 10px; color: var(--muted); text-transform: uppercase; background: #f8fafc; }
+    th:nth-child(2), td:nth-child(2) { text-align: left; font-weight: 600; }
+    .rank { font-weight: 800; width: 22px; }
+    .gold { color: var(--gold); } .silver { color: var(--silver); } .bronze { color: var(--bronze); }
+    
+    .match-list { display: flex; flex-direction: column; gap: 4px; max-height: 520px; overflow-y: auto; }
+    .match-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fafcff; font-size: 12px; cursor: pointer; }
+    .match-item:hover { background: #eef2ff; }
+    .match-item.done { opacity: 0.55; background: #f8fafc; }
+    .pill { font-size: 10px; padding: 2px 6px; border-radius: 4px; background: #eef2ff; color: #3730a3; font-weight: bold; }
+
+    .tie-ctrl { display: inline-flex; gap: 2px; align-items: center; }
+    .btn-tie { padding: 0 4px; font-size: 10px; border-radius: 3px; background: #f1f5f9; border: 1px solid var(--line); cursor: pointer; }
+    
+    .legend { display: flex; gap: 12px; font-size: 11px; font-weight: bold; }
+    .legend-item { display: flex; align-items: center; gap: 4px; }
+    .legend-box { width: 12px; height: 12px; border-radius: 3px; border: 1px solid var(--line); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>🏆 Clasificatorio de Liga escolar (Formato Champions)</h1>
+    <p>Partidos aleatorios equilibrados para distribución ecuánime por niveles</p>
+  </div>
+  <div>
+    <button class="btn secondary" id="exportData">📥 Exportar</button>
+    <button class="btn secondary" onclick="document.getElementById('importFile').click()">📤 Importar</button>
+    <input id="importFile" type="file" accept="application/json" style="display:none" />
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="grid-top">
+    <div class="panel">
+      <label>Alumnos de la clase (1 por línea)</label>
+      <textarea id="studentsInput" rows="4" placeholder="Pega aquí la lista de alumnos..."></textarea>
+      
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-top:6px; align-items:end;">
+        <div>
+          <label>Nº Partidos/Alumno</label>
+          <select id="matchesPerStudentSelect">
+            <option value="4" selected>4 partidos (Recomendado)</option>
+            <option value="6">6 partidos</option>
+            <option value="8">8 partidos</option>
+          </select>
+        </div>
+        <button class="btn ok" id="saveStudents">💾 Guardar Lista</button>
+      </div>
+
+      <button class="btn warn" id="generateMatches" style="width:100%; margin-top:6px;">🎲 Sorteo de Enfrentamientos</button>
+      <button class="btn bad" id="resetAll" style="width:100%; margin-top:6px;">🗑️ Reset Completo</button>
+    </div>
+
+    <div class="panel">
+      <label>Partido Seleccionado / Marcador en Directo</label>
+      <div id="matchBox" class="match-box">
+        <div style="text-align:center; color:var(--muted); font-size:13px;">Haz clic en un partido de la lista para jugarlo.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dual-container">
+    <div class="panel">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <label style="margin:0;">📊 Clasificación General Única</label>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-box" style="background:var(--zone-div1)"></div> 1ª Div</div>
+          <div class="legend-item"><div class="legend-box" style="background:var(--zone-div2)"></div> 2ª Div</div>
+          <div class="legend-item"><div class="legend-box" style="background:var(--zone-div3)"></div> 3ª Div</div>
+        </div>
+        <span id="standingsCount" style="font-size:11px; color:var(--muted); font-weight:bold;">0 Alumnos</span>
+      </div>
+      <div class="columns-2">
+        <table>
+          <thead>
+            <tr><th>#</th><th>Alumno</th><th>PTS</th><th>Des.</th><th>V-E-D</th><th>GF</th></tr>
+          </thead>
+          <tbody id="standingsBody1"></tbody>
+        </table>
+        <table>
+          <thead>
+            <tr><th>#</th><th>Alumno</th><th>PTS</th><th>Des.</th><th>V-E-D</th><th>GF</th></tr>
+          </thead>
+          <tbody id="standingsBody2"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <label style="margin:0;">📅 Calendario de Enfrentamientos Sorteados</label>
+        <span id="matchProgress" style="font-size:11px; color:var(--muted); font-weight:bold;">0 / 0 Partidos</span>
+      </div>
+      <div class="columns-2">
+        <div id="matchList1" class="match-list"></div>
+        <div id="matchList2" class="match-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'champions_qualifier_league_v3';
+let state = { students: [], matches: [], tieBreakers: {}, currentMatchId: null, maxMatches: 4 };
+let historyStack = [];
+
+let currentA = 0;
+let currentB = 0;
+
+function uid() { return Math.random().toString(36).slice(2, 9); }
+function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+function load() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (raw) { try { state = JSON.parse(raw); } catch(e){} }
+}
+
+function pushHistory() {
+  historyStack.push(JSON.stringify(state));
+  updateUndoButton();
+}
+
+function updateUndoButton() {
+  const btn = document.getElementById('btnUndo');
+  if (!btn) return;
+  if (historyStack.length > 0) {
+    btn.disabled = false;
+    btn.textContent = `↩️ Deshacer Último Resultado (${historyStack.length})`;
+  } else {
+    btn.disabled = true;
+    btn.textContent = `↩️ Deshacer Último Resultado`;
+  }
+}
+
+function generateSchedule(students, maxMatches) {
+  if (students.length < 2) return [];
+  
+  let matches = [];
+  let pairs = new Set();
+  let homeCount = {}, awayCount = {}, totalMatches = {};
+  
+  students.forEach(s => { homeCount[s] = 0; awayCount[s] = 0; totalMatches[s] = 0; });
+
+  const targetTotal = Math.floor((students.length * maxMatches) / 2);
+
+  let attempts = 0;
+  while (matches.length < targetTotal && attempts < 3000) {
+    attempts++;
+    let pool = students.filter(s => totalMatches[s] < maxMatches);
+    if (pool.length < 2) break;
+
+    pool.sort((a,b) => totalMatches[a] - totalMatches[b]);
+
+    let a = pool[0];
+    let candidateB = pool.slice(1).filter(b => {
+      let key1 = `${a}||${b}`, key2 = `${b}||${a}`;
+      return !pairs.has(key1) && !pairs.has(key2);
+    });
+
+    if (candidateB.length > 0) {
+      let b = candidateB[Math.floor(Math.random() * candidateB.length)];
+      
+      let home = a, away = b;
+      if (homeCount[a] > awayCount[a] || awayCount[b] > homeCount[b]) {
+        home = b; away = a;
+      }
+
+      pairs.add(`${home}||${away}`);
+      homeCount[home]++; awayCount[away]++;
+      totalMatches[home]++; totalMatches[away]++;
+
+      matches.push({ id: uid(), a: home, b: away, result: null });
+    }
+  }
+
+  return matches;
+}
+
+function recalc() {
+  let map = {};
+  if (!state.tieBreakers) state.tieBreakers = {};
+  state.students.forEach(s => {
+    map[s] = { name: s, pts: 0, v: 0, e: 0, d: 0, gf: 0, gc: 0, p: 0, extra: parseFloat(state.tieBreakers[s]) || 0 };
+  });
+
+  state.matches.forEach(m => {
+    if (m.result) {
+      let A = map[m.a], B = map[m.b];
+      if (!A || !B) return;
+      A.p++; B.p++;
+      let parts = m.result.split('-').map(Number);
+      let gA = parts[0], gB = parts[1];
+
+      A.gf += gA; A.gc += gB;
+      B.gf += gB; B.gc += gA;
+
+      A.pts += gA;
+      B.pts += gB;
+
+      if (gA > gB) { A.v++; B.d++; }
+      else if (gB > gA) { B.v++; A.d++; }
+      else { A.e++; B.e++; }
+    }
+  });
+
+  return Object.values(map).sort((x, y) => {
+    if (y.pts !== x.pts) return y.pts - x.pts;
+    if (y.extra !== x.extra) return y.extra - x.extra;
+    let difX = x.gf - x.gc, difY = y.gf - y.gc;
+    if (difY !== difX) return difY - difX;
+    return x.name.localeCompare(y.name);
+  });
+}
+
+function renderStandings() {
+  const ranked = recalc();
+  const total = ranked.length;
+  document.getElementById('standingsCount').textContent = `${total} Alumnos`;
+
+  // Lógica de división proporcional priorizando categorías altas
+  const base = Math.floor(total / 3);
+  const remainder = total % 3;
+  
+  const div1Count = base + (remainder >= 1 ? 1 : 0);
+  const div2Count = base + (remainder === 2 ? 1 : 0);
+
+  const tbody1 = document.getElementById('standingsBody1');
+  const tbody2 = document.getElementById('standingsBody2');
+  tbody1.innerHTML = ''; tbody2.innerHTML = '';
+
+  const half = Math.ceil(total / 2);
+
+  ranked.forEach((r, i) => {
+    const tr = document.createElement('tr');
+    const medal = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+    const safeName = r.name.replace(/'/g, "\\'");
+    const extraText = r.extra > 0 ? `+${r.extra}` : r.extra;
+
+    // Asignación de color según rango dinámico
+    if (i < div1Count) {
+      tr.style.backgroundColor = 'var(--zone-div1)'; // 1ª División: Verde suave
+    } else if (i < div1Count + div2Count) {
+      tr.style.backgroundColor = 'var(--zone-div2)'; // 2ª División: Blanco
+    } else {
+      tr.style.backgroundColor = 'var(--zone-div3)'; // 3ª División: Amarillo suave
+    }
+
+    tr.innerHTML = `
+      <td class="rank ${medal}">${i + 1}</td>
+      <td>${r.name}</td>
+      <td><strong style="color:var(--pri)">${r.pts}</strong></td>
+      <td>
+        <div class="tie-ctrl">
+          <button class="btn-tie" onclick="modifyTiebreaker('${safeName}', -0.1)">-</button>
+          <span>${extraText}</span>
+          <button class="btn-tie" onclick="modifyTiebreaker('${safeName}', 0.1)">+</button>
+        </div>
+      </td>
+      <td style="font-size:11px; color:var(--muted);">${r.v}-${r.e}-${r.d}</td>
+      <td>${r.gf}</td>
+    `;
+
+    if (i < half) tbody1.appendChild(tr);
+    else tbody2.appendChild(tr);
+  });
+}
+
+function modifyTiebreaker(student, amt) {
+  pushHistory();
+  if (!state.tieBreakers) state.tieBreakers = {};
+  let cur = parseFloat(state.tieBreakers[student]) || 0;
+  state.tieBreakers[student] = Math.round((cur + amt) * 10) / 10;
+  save(); renderStandings();
+}
+
+function renderMatches() {
+  const list1 = document.getElementById('matchList1');
+  const list2 = document.getElementById('matchList2');
+  list1.innerHTML = ''; list2.innerHTML = '';
+
+  const doneCount = state.matches.filter(m => m.result).length;
+  document.getElementById('matchProgress').textContent = `${doneCount} / ${state.matches.length} Jugados`;
+
+  const half = Math.ceil(state.matches.length / 2);
+
+  state.matches.forEach((m, i) => {
+    const div = document.createElement('div');
+    div.className = `match-item ${m.result ? 'done' : ''}`;
+    
+    let res = m.result ? `<strong style="color:var(--ok)">${m.result}</strong>` : `<span class="pill">Jugar</span>`;
+    div.innerHTML = `<span><strong>${m.a}</strong> vs <strong>${m.b}</strong></span> ${res}`;
+    
+    div.onclick = () => {
+      state.currentMatchId = m.id;
+      currentA = 0; currentB = 0;
+      save(); renderMatchEditor();
+    };
+
+    if (i < half) list1.appendChild(div);
+    else list2.appendChild(div);
+  });
+}
+
+function renderMatchEditor() {
+  const box = document.getElementById('matchBox');
+  const match = state.matches.find(m => m.id === state.currentMatchId) || state.matches.find(m => !m.result);
+
+  if (!match) {
+    box.innerHTML = `
+      <div style="text-align:center; color:var(--ok); font-weight:bold; font-size:13px;">🏆 ¡Fase de Clasificación Completa!</div>
+      <button id="btnUndo" class="btn undo" disabled>↩️ Deshacer Último Resultado</button>
+    `;
+    setupUndoHandler();
+    return;
+  }
+
+  state.currentMatchId = match.id;
+
+  box.innerHTML = `
+    <div style="font-size:11px; font-weight:bold; color:var(--muted); text-align:center; text-transform:uppercase;">Partido Seleccionado</div>
+    <div class="goal-row">
+      <span><strong>${match.a}</strong></span>
+      <div class="counter-box">
+        <button class="btn-counter" onclick="changeGoal('A', -1)">-</button>
+        <span class="counter-value" id="valA">${currentA}</span>
+        <button class="btn-counter" onclick="changeGoal('A', 1)">+</button>
+      </div>
+    </div>
+    <div class="goal-row">
+      <span><strong>${match.b}</strong></span>
+      <div class="counter-box">
+        <button class="btn-counter" onclick="changeGoal('B', -1)">-</button>
+        <span class="counter-value" id="valB">${currentB}</span>
+        <button class="btn-counter" onclick="changeGoal('B', 1)">+</button>
+      </div>
+    </div>
+    <button class="btn ok" id="saveGoalBtn" style="width:100%;">⚽ Guardar Marcador</button>
+    <button id="btnUndo" class="btn undo" disabled>↩️ Deshacer Último Resultado</button>
+  `;
+
+  document.getElementById('saveGoalBtn').onclick = () => {
+    pushHistory();
+    match.result = `${currentA}-${currentB}`;
+    state.currentMatchId = null;
+    currentA = 0; currentB = 0;
+    save(); render();
+  };
+
+  setupUndoHandler();
+}
+
+function setupUndoHandler() {
+  const btn = document.getElementById('btnUndo');
+  if (btn) {
+    btn.onclick = () => {
+      if (historyStack.length === 0) return;
+      state = JSON.parse(historyStack.pop());
+      save(); render();
+    };
+  }
+  updateUndoButton();
+}
+
+function changeGoal(team, amt) {
+  if (team === 'A') currentA = Math.max(0, currentA + amt);
+  else currentB = Math.max(0, currentB + amt);
+  document.getElementById('valA').textContent = currentA;
+  document.getElementById('valB').textContent = currentB;
+}
+
+function render() {
+  document.getElementById('studentsInput').value = state.students.join('\n');
+  if (state.maxMatches) document.getElementById('matchesPerStudentSelect').value = state.maxMatches;
+  renderStandings();
+  renderMatches();
+  renderMatchEditor();
+}
+
+document.getElementById('saveStudents').onclick = () => {
+  state.students = [...new Set(document.getElementById('studentsInput').value.split(/\n+/).map(s => s.trim()).filter(Boolean))];
+  state.maxMatches = parseInt(document.getElementById('matchesPerStudentSelect').value, 10) || 4;
+  save(); render();
+  alert('Lista de alumnos guardada.');
+};
+
+document.getElementById('generateMatches').onclick = () => {
+  if (state.students.length < 2) { alert('Añade al menos 2 alumnos.'); return; }
+  const maxMatches = parseInt(document.getElementById('matchesPerStudentSelect').value, 10) || 4;
+  if (confirm(`¿Generar sorteo de ${maxMatches} partidos por alumno? Esto reiniciará el calendario actual.`)) {
+    historyStack = [];
+    state.maxMatches = maxMatches;
+    state.matches = generateSchedule(state.students, maxMatches);
+    state.tieBreakers = {};
+    state.currentMatchId = state.matches[0]?.id || null;
+    save(); render();
+  }
+};
+
+document.getElementById('resetAll').onclick = () => {
+  if (confirm('¿Borrar absolutamente todos los datos?')) {
+    historyStack = [];
+    state = { students: [], matches: [], tieBreakers: {}, currentMatchId: null, maxMatches: 4 };
+    save(); render();
+  }
+};
+
+document.getElementById('exportData').onclick = () => {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'clasificatorio_liga_champions.json'; a.click();
+};
+
+document.getElementById('importFile').addEventListener('change', async (e) => {
+  const file = e.target.files[0]; if (!file) return;
+  try {
+    const data = JSON.parse(await file.text());
+    if (data && Array.isArray(data.students)) {
+      historyStack = [];
+      state = data; save(); render();
+      alert('Datos cargados correctamente.');
+    }
+  } catch(err) { alert('Archivo no válido.'); }
+  e.target.value = '';
+});
+
+load(); render();
+</script>
+</body>
+</html>
