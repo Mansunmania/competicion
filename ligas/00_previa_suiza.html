@@ -74,6 +74,7 @@
   </div>
   <div style="display:flex; align-items:center; gap:10px;">
     <span class="status-tag" id="autosaveStatus">💾 Guardado</span>
+    <button class="btn secondary" onclick="initDataCascade()">🔄 Cargar de Drive</button>
     <button class="btn secondary" id="exportAll">📥 Exportar (JSON)</button>
     <button class="btn secondary" onclick="document.getElementById('importFile').click()">📤 Importar</button>
     <input id="importFile" type="file" accept="application/json" style="display:none" />
@@ -163,57 +164,82 @@
 </div>
 
 <script>
-const STORAGE_KEY = 'previa_suiza_db_v1';
-const DEFAULT_FILENAME = '00_previa_suiza.json';
+// Configuración de rutas remotas
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/TU_SCRIPT_ID/exec"; // Pega tu URL de Apps Script aquí
+const LOCAL_STORAGE_KEY = 'previa_suiza_db_v1';
+const GITHUB_FALLBACK_URL = '../datos/00_previa_suiza.json';
 
-let db = { activeGroup: '', groups: {} };
-let historyStack = [];
-let currentA = 0, currentB = 0;
+// Carga principal con cascada de prioridades
+async function initDataCascade() {
+  setSyncStatus('⏳ Cargando...');
 
-function uid() { return Math.random().toString(36).slice(2, 9); }
-function getNowFormatted() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-}
-
-function getActiveData() {
-  const keys = Object.keys(db.groups);
-  if (keys.length === 0) {
-    const defaultName = `5ºA - ${getNowFormatted()}`;
-    db.activeGroup = defaultName;
-    db.groups[defaultName] = { 
-      students: [], matches: [], tieBreakers: {}, currentMatchId: null, maxMatches: 4, updatedAt: Date.now() 
-    };
-  } else if (!db.groups[db.activeGroup]) {
-    // Si la activa no existe, cogemos la más recientemente actualizada
-    const sorted = keys.sort((a,b) => (db.groups[b].updatedAt || 0) - (db.groups[a].updatedAt || 0));
-    db.activeGroup = sorted[0];
-  }
-  return db.groups[db.activeGroup];
-}
-
-function save() {
-  const active = getActiveData();
-  active.updatedAt = Date.now(); // Actualizamos la marca de tiempo de la clase activa
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
-  const tag = document.getElementById('autosaveStatus');
-  if (tag) {
-    tag.textContent = '✔️ Guardado';
-    setTimeout(() => { tag.textContent = '💾 Guardado'; }, 1200);
-  }
-}
-
-function load() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (raw) {
+  // 1. Intentar cargar desde Google Drive (Si hay conexión y existe la API)
+  if (APPS_SCRIPT_URL && !APPS_SCRIPT_URL.includes("https://script.google.com/macros/s/AKfycbzUIijdWpsEBlYr2VYRrIsozuyXgS4Q32fkzuYxG-szocv4pb5-KLiaVDgH4tErXTUzbA/exec")) {
     try {
-      const parsed = JSON.parse(raw);
-      if (parsed.groups && Object.keys(parsed.groups).length > 0) db = parsed;
-    } catch(e){}
+      const res = await fetch(`${APPS_SCRIPT_URL}?file=00_previa_suiza.json`);
+      const result = await res.json();
+      if (result.success && result.data && result.data.groups) {
+        db = result.data;
+        saveLocal(); // Actualizamos la copia local para refrescar caché
+        setSyncStatus('☁️ Sincronizado (Drive)');
+        finishLoad();
+        return;
+      }
+    } catch (e) {
+      console.warn("No se pudo conectar con Drive, pasando a LocalStorage:", e);
+    }
   }
+
+  // 2. Intentar cargar desde LocalStorage (Navegador local)
+  const rawLocal = localStorage.getItem(LOCAL_STORAGE_KEY);
+  if (rawLocal) {
+    try {
+      const parsed = JSON.parse(rawLocal);
+      if (parsed.groups && Object.keys(parsed.groups).length > 0) {
+        db = parsed;
+        setSyncStatus('💾 Cargado (Local)');
+        finishLoad();
+        return;
+      }
+    } catch (e) {}
+  }
+
+  // 3. Intentar cargar desde el JSON estático en GitHub
+  try {
+    const res = await fetch(GITHUB_FALLBACK_URL);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.groups) {
+        db = data;
+        saveLocal();
+        setSyncStatus('🐙 Cargado (GitHub)');
+        finishLoad();
+        return;
+      }
+    }
+  } catch (e) {
+    console.warn("No se pudo cargar el archivo por defecto de GitHub:", e);
+  }
+
+  // 4. Si todo falla, inicializar estado base por defecto
+  setSyncStatus('⚠️ Modo local básico');
+  getActiveData();
+  finishLoad();
+}
+
+function finishLoad() {
   getActiveData();
   updateGroupSelector();
   render();
+}
+
+function saveLocal() {
+  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(db));
+}
+
+function setSyncStatus(text) {
+  const el = document.getElementById('autosaveStatus');
+  if (el) el.textContent = text;
 }
 
 function pushHistory() {
