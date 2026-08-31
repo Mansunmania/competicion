@@ -248,29 +248,69 @@ function updateGroupSelector() {
 
 function generateSchedule(students, maxMatches) {
   if (students.length < 2) return [];
-  let matches = [], pairs = new Set(), homeCount = {}, awayCount = {}, totalMatches = {};
-  students.forEach(s => { homeCount[s] = 0; awayCount[s] = 0; totalMatches[s] = 0; });
-  const targetTotal = Math.floor((students.length * maxMatches) / 2);
+  
+  let matches = [];
+  let pairs = new Map(); // Cuenta cuántas veces se han enfrentado
+  let homeCount = {}, awayCount = {}, totalMatches = {};
+  
+  students.forEach(s => { 
+    homeCount[s] = 0; 
+    awayCount[s] = 0; 
+    totalMatches[s] = 0; 
+  });
 
+  // El total de participaciones necesarias
+  const targetMatchesPerStudent = maxMatches;
+  
   let attempts = 0;
-  while (matches.length < targetTotal && attempts < 3000) {
+  while (attempts < 5000) {
     attempts++;
-    let pool = students.filter(s => totalMatches[s] < maxMatches);
+    
+    // Alumnos que aún no han alcanzado el número deseado de partidos
+    let pool = students.filter(s => totalMatches[s] < targetMatchesPerStudent);
     if (pool.length < 2) break;
-    pool.sort((a,b) => totalMatches[a] - totalMatches[b]);
+
+    // Ordenar por quienes llevan menos partidos jugados
+    pool.sort((a, b) => totalMatches[a] - totalMatches[b]);
+
     let a = pool[0];
-    let candidateB = pool.slice(1).filter(b => !pairs.has(`${a}||${b}`) && !pairs.has(`${b}||${a}`));
+    
+    // Intentar buscar rival con el que NUNCA haya jugado
+    let candidateB = pool.slice(1).filter(b => {
+      let key1 = `${a}||${b}`, key2 = `${b}||${a}`;
+      return !pairs.has(key1) && !pairs.has(key2);
+    });
+
+    // Si no hay ningún rival inédito disponible en el pool, relajar la restricción y permitir repetir
+    if (candidateB.length === 0) {
+      candidateB = pool.slice(1);
+    }
 
     if (candidateB.length > 0) {
-      let b = candidateB[Math.floor(Math.random() * candidateB.length)];
+      // Priorizar candidatos que hayan jugado menos veces con 'a'
+      candidateB.sort((b1, b2) => {
+        let times1 = (pairs.get(`${a}||${b1}`) || 0) + (pairs.get(`${b1}||${a}`) || 0);
+        let times2 = (pairs.get(`${a}||${b2}`) || 0) + (pairs.get(`${b2}||${a}`) || 0);
+        return times1 - times2;
+      });
+
+      let b = candidateB[0];
+      
       let home = a, away = b;
-      if (homeCount[a] > awayCount[a] || awayCount[b] > homeCount[b]) { home = b; away = a; }
-      pairs.add(`${home}||${away}`);
+      if (homeCount[a] > awayCount[a] || awayCount[b] > homeCount[b]) {
+        home = b; away = a;
+      }
+
+      let pairKey = `${home}||${away}`;
+      pairs.set(pairKey, (pairs.get(pairKey) || 0) + 1);
+      
       homeCount[home]++; awayCount[away]++;
       totalMatches[home]++; totalMatches[away]++;
+
       matches.push({ id: uid(), a: home, b: away, result: null });
     }
   }
+
   return matches;
 }
 
