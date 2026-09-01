@@ -69,34 +69,16 @@
     .item:hover { border-color: var(--pri); }
     .pill { font-size: 10px; padding: 3px 6px; border-radius: 99px; background: #1e3a8a; color: #93c5fd; }
 
-    /* ESTILOS PODIO FINAL Y VIDEO */
-    .winner-card {
-      background: linear-gradient(135deg, #1e1b4b, #312e81);
-      border: 2px solid var(--gold);
-      border-radius: 12px;
-      padding: 16px;
-      text-align: center;
-      margin-bottom: 12px;
-    }
+    .class-checkboxes { display: flex; flex-direction: column; gap: 4px; max-height: 100px; overflow-y: auto; background: #0f172a; padding: 6px; border-radius: 6px; border: 1px solid var(--line); margin-top: 4px; }
+    .class-checkboxes label { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #fff; cursor: pointer; }
+    .class-checkboxes input { width: auto; }
+
+    .winner-card { background: linear-gradient(135deg, #1e1b4b, #312e81); border: 2px solid var(--gold); border-radius: 12px; padding: 16px; text-align: center; margin-bottom: 12px; }
     .winner-title { font-size: 20px; font-weight: 900; color: var(--gold); margin-bottom: 4px; text-transform: uppercase; }
     .runner-title { font-size: 16px; font-weight: 700; color: var(--silver); margin-top: 8px; }
-    .video-container {
-      position: relative;
-      width: 100%;
-      max-width: 320px;
-      margin: 12px auto 0;
-      aspect-ratio: 9/16;
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
-    }
-    .video-container iframe {
-      width: 100%;
-      height: 100%;
-      border: 0;
-    }
+    .video-container { position: relative; width: 100%; max-width: 320px; margin: 12px auto 0; aspect-ratio: 9/16; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+    .video-container iframe { width: 100%; height: 100%; border: 0; }
 
-    /* CANVAS CONFETI */
     #confettiCanvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 999; display: none; }
   </style>
 </head>
@@ -120,14 +102,13 @@
     </div>
   </div>
 
-  <!-- PANEL DE CONFIGURACIÓN E IMPORTACIÓN -->
   <div class="grid-setup">
     <div class="panel">
-      <div class="section-title">1. Origen Ligas (Auto)</div>
-      <div class="muted-box" id="ligaStatusBox" style="text-align:left; font-size:11px;">
-        Cargando 01a_liga.json...
+      <div class="section-title">1. Seleccionar Clases Participantes</div>
+      <div id="classSelectorBox" class="class-checkboxes">
+        <span style="font-size:11px; color:var(--muted);">Cargando clases...</span>
       </div>
-      <button class="btn secondary" style="width:100%; margin-top:8px; font-size:11px;" id="reloadLigaBtn">🔄 Recargar Liga Local/Drive</button>
+      <button class="btn secondary" style="width:100%; margin-top:8px; font-size:11px;" id="reloadLigaBtn">🔄 Recargar Datos Liga</button>
     </div>
 
     <div class="panel">
@@ -140,18 +121,17 @@
 
     <div class="panel">
       <div class="section-title">3. Lista Final de Clasificados</div>
-      <textarea id="qualifiedStudentsInput" rows="4" placeholder="Pulse 'Calcular Clasificados' o escriba aquí..."></textarea>
+      <textarea id="qualifiedStudentsInput" rows="4" placeholder="Seleccione clases y pulse 'Calcular Clasificados'..."></textarea>
       <div style="display:flex; gap:6px; margin-top:6px;">
-        <button class="btn gold" style="flex:1; font-size:11px;" id="btnCompute">⚡ Calcular</button>
+        <button class="btn gold" style="flex:1; font-size:11px;" id="btnCompute">⚡ Calcular Clasificados</button>
         <button class="btn ok" style="flex:1; font-size:11px;" id="btnStartTournament">🏆 Iniciar Champions</button>
       </div>
     </div>
   </div>
 
-  <!-- ZONA PRINCIPAL DEL TORNEO -->
   <div class="main-grid">
     <div class="panel">
-      <div class="section-title">Clasificación Champions</div>
+      <div class="section-title">Clasificación Fase de Liga</div>
       <table>
         <thead>
           <tr>
@@ -171,12 +151,12 @@
 
     <div style="display:flex; flex-direction:column; gap:14px;">
       <div class="panel">
-        <div class="section-title">Partido en Curso</div>
-        <div id="matchBox" class="muted-box">No hay partido seleccionado.</div>
+        <div class="section-title">Partido en Curso / Playoffs</div>
+        <div id="matchBox" class="muted-box">No hay partido activo.</div>
       </div>
 
       <div class="panel">
-        <div class="section-title">Calendario de Partidos</div>
+        <div class="section-title">Calendario del Torneo</div>
         <div id="matchesList" class="list"></div>
       </div>
     </div>
@@ -186,13 +166,14 @@
 
 <script>
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzUIijdWpsEBlYr2VYRrIsozuyXgS4Q32fkzuYxG-szocv4pb5-KLiaVDgH4tErXTUzbA/exec';
-const CHAMPIONS_STORAGE_KEY = 'leagueboard_champions_data_v1';
+const CHAMPIONS_STORAGE_KEY = 'leagueboard_02_champions_data_v1';
 const LIGA_FILENAME = '01a_liga.json';
 
 let championsData = {
   students: [],
   matches: [],
-  currentMatchId: null
+  currentMatchId: null,
+  playoffsGenerated: false
 };
 
 let rawLigaData = null;
@@ -207,10 +188,7 @@ let currentGoalsB = 0;
 function uid(){ return Math.random().toString(36).slice(2,10); }
 
 window.addEventListener('beforeunload', (e) => {
-  if (isUnsaved) {
-    e.preventDefault();
-    e.returnValue = '';
-  }
+  if (isUnsaved) { e.preventDefault(); e.returnValue = ''; }
 });
 
 function markUnsaved() { isUnsaved = true; }
@@ -233,7 +211,6 @@ function updateUndoButton() {
   }
 }
 
-// --- SINTETIZADOR DE SONIDO (WEB AUDIO API) ---
 function playMatchSound(isVictory) {
   try {
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -289,10 +266,9 @@ function playMatchSound(isVictory) {
       osc.connect(gain); gain.connect(ctx.destination);
       osc.start(); osc.stop(ctx.currentTime + 0.8);
     }
-  } catch (e) { console.warn("Audio no disponible", e); }
+  } catch (e) {}
 }
 
-// --- CONFETI NATIVO ---
 let confettiAnimId = null;
 function triggerConfetti() {
   const canvas = document.getElementById('confettiCanvas');
@@ -352,7 +328,6 @@ function saveChampions() {
   localStorage.setItem(CHAMPIONS_STORAGE_KEY, JSON.stringify(championsData));
 }
 
-// CARGA INICIAL DE DATOS
 async function initApp() {
   const saved = localStorage.getItem(CHAMPIONS_STORAGE_KEY);
   if (saved) {
@@ -367,22 +342,37 @@ async function initApp() {
 }
 
 async function fetchLigaData() {
-  const box = document.getElementById('ligaStatusBox');
-  box.textContent = 'Buscando datos de Liga...';
+  const container = document.getElementById('classSelectorBox');
+  container.innerHTML = 'Cargando clases...';
   try {
     const res = await fetch(`${APPS_SCRIPT_URL}?file=${LIGA_FILENAME}`, { method: 'GET', redirect: 'follow' });
     const result = await res.json();
     if (result.success && result.data) {
       rawLigaData = result.data;
-      box.innerHTML = `✅ <strong>Liga conectada</strong> (${rawLigaData.classes.length} clases encontradas).`;
+      renderClassSelector();
       return;
     }
   } catch(e) {}
   
-  box.innerHTML = `⚠️ No se conectó con Drive. Asumiendo datos locales de liga si existen.`;
+  container.innerHTML = `<span style="color:var(--warn); font-size:11px;">Error al cargar liga desde Drive.</span>`;
 }
 
-// LECTURA DE ARCHIVOS DE COPA
+function renderClassSelector() {
+  const container = document.getElementById('classSelectorBox');
+  container.innerHTML = '';
+
+  if (!rawLigaData || !rawLigaData.classes) {
+    container.innerHTML = '<span style="font-size:11px;">No hay clases disponibles.</span>';
+    return;
+  }
+
+  rawLigaData.classes.forEach(cls => {
+    const lbl = document.createElement('label');
+    lbl.innerHTML = `<input type="checkbox" value="${cls.id}" checked> ${cls.name || cls.id}`;
+    container.appendChild(lbl);
+  });
+}
+
 document.getElementById('cupAFile').addEventListener('change', async (e) => {
   const file = e.target.files[0]; if(!file) return;
   try { rawCupAData = JSON.parse(await file.text()); alert('Copa Clase A cargada.'); } catch(err){ alert('JSON no válido.'); }
@@ -393,22 +383,27 @@ document.getElementById('cupBFile').addEventListener('change', async (e) => {
   try { rawCupBData = JSON.parse(await file.text()); alert('Copa Clase B cargada.'); } catch(err){ alert('JSON no válido.'); }
 });
 
-// ALGORITMO DE ASIGNACIÓN AUTOMÁTICA DE PLAZAS
 document.getElementById('btnCompute').onclick = () => {
   if (!rawLigaData || !rawLigaData.classes) {
-    alert('No hay datos de liga disponibles para calcular.');
+    alert('No hay datos de liga cargados.');
+    return;
+  }
+
+  const selectedClassIds = Array.from(document.querySelectorAll('#classSelectorBox input:checked')).map(cb => cb.value);
+
+  if (selectedClassIds.length === 0) {
+    alert('Seleccione al menos una clase.');
     return;
   }
 
   let finalQualified = [];
 
-  rawLigaData.classes.forEach((cls, idx) => {
+  rawLigaData.classes.filter(cls => selectedClassIds.includes(cls.id)).forEach((cls, idx) => {
     const board = rawLigaData.boards.find(b => b.classId === cls.id && b.level === 0);
     if (!board) return;
 
     const ranked = recalcBoard(board);
     const top3 = ranked.slice(0, 3).map(r => r.name);
-    
     finalQualified.push(...top3);
 
     const cupData = (idx === 0) ? rawCupAData : rawCupBData;
@@ -463,41 +458,24 @@ function resolveCupSlot(cupData, top3Liga) {
   if (!top3Liga.includes(winner)) return winner;
   if (!top3Liga.includes(runnerUp)) return runnerUp;
 
-  const semiMatches = matches.filter(m => m.round === 'SEMIS' || m.round === 'SF');
-  let semiLoserVsWinner = null;
-  let otherSemiLoser = null;
-
-  semiMatches.forEach(m => {
-    if (m.result) {
-      const p = m.result.split('-');
-      const w = parseInt(p[0],10) > parseInt(p[1],10) ? m.a : m.b;
-      const l = parseInt(p[0],10) > parseInt(p[1],10) ? m.b : m.a;
-      if (w === winner) semiLoserVsWinner = l;
-      else otherSemiLoser = l;
-    }
-  });
-
-  if (semiLoserVsWinner && !top3Liga.includes(semiLoserVsWinner)) return semiLoserVsWinner;
-  if (otherSemiLoser && !top3Liga.includes(otherSemiLoser)) return otherSemiLoser;
-
   return null;
 }
 
-// INICIAR TORNEO DE CHAMPIONS
 document.getElementById('btnStartTournament').onclick = () => {
   const rawText = document.getElementById('qualifiedStudentsInput').value;
   const list = rawText.split('\n').map(s => s.trim()).filter(Boolean);
 
-  if (list.length < 2) {
-    alert('Se necesitan al menos 2 participantes para la Champions.');
+  if (list.length < 4) {
+    alert('Se necesitan al menos 4 participantes para el formato Champions con Semifinales.');
     return;
   }
 
-  if (confirm('¿Deseas iniciar una nueva Champions League con los jugadores listados?')) {
+  if (confirm('¿Deseas iniciar la Champions League con estos participantes?')) {
     pushToHistory();
     championsData.students = list;
     championsData.matches = generateRoundRobin(list);
     championsData.currentMatchId = championsData.matches[0]?.id || null;
+    championsData.playoffsGenerated = false;
     markUnsaved();
     saveChampions();
     renderAll();
@@ -513,7 +491,7 @@ function generateRoundRobin(names) {
     for (let match = 0; match < matchesPerRound; match++) {
       const home = list[match]; const away = list[numPlayers - 1 - match];
       if (home !== "DESCANSA" && away !== "DESCANSA") {
-        roundMatches.push({ id: uid(), round: round + 1, a: home, b: away, result: null });
+        roundMatches.push({ id: uid(), round: round + 1, type: 'league', a: home, b: away, result: null });
       }
     }
     list.splice(1, 0, list.pop()); if(roundMatches.length > 0) rounds.push(roundMatches);
@@ -523,18 +501,56 @@ function generateRoundRobin(names) {
   return finalMatches;
 }
 
-// RENDERIZADO GENERAL
 function renderAll() {
+  checkAndGeneratePlayoffs();
   renderStandings();
   renderPendingMatches();
   renderCurrentMatch();
+}
+
+function checkAndGeneratePlayoffs() {
+  const leagueMatches = championsData.matches.filter(m => m.type === 'league');
+  const leagueFinished = leagueMatches.length > 0 && leagueMatches.every(m => m.result !== null);
+
+  if (leagueFinished && !championsData.playoffsGenerated) {
+    const ranked = recalcChampions();
+    if (ranked.length >= 4) {
+      const semi1 = { id: uid(), round: 'SEMIS', type: 'playoff', name: 'Semifinal 1 (1º vs 4º)', a: ranked[0].name, b: ranked[3].name, result: null };
+      const semi2 = { id: uid(), round: 'SEMIS', type: 'playoff', name: 'Semifinal 2 (2º vs 3º)', a: ranked[1].name, b: ranked[2].name, result: null };
+      championsData.matches.push(semi1, semi2);
+      championsData.playoffsGenerated = true;
+      saveChampions();
+    }
+  }
+
+  const semiMatches = championsData.matches.filter(m => m.round === 'SEMIS');
+  const semisFinished = semiMatches.length === 2 && semiMatches.every(m => m.result !== null);
+  const finalExists = championsData.matches.some(m => m.round === 'FINAL');
+
+  if (semisFinished && !finalExists) {
+    const getWinner = (m) => {
+      const p = m.result.split('-');
+      return parseInt(p[0], 10) > parseInt(p[1], 10) ? m.a : m.b;
+    };
+    const finalMatch = {
+      id: uid(),
+      round: 'FINAL',
+      type: 'playoff',
+      name: '🏆 GRAN FINAL',
+      a: getWinner(semiMatches[0]),
+      b: getWinner(semiMatches[1]),
+      result: null
+    };
+    championsData.matches.push(finalMatch);
+    saveChampions();
+  }
 }
 
 function recalcChampions() {
   const map = {};
   championsData.students.forEach(s => map[s] = { name: s, pts: 0, v: 0, e: 0, d: 0, gf: 0, gc: 0 });
 
-  championsData.matches.forEach(m => {
+  championsData.matches.filter(m => m.type === 'league').forEach(m => {
     if (m.result) {
       const A = map[m.a], B = map[m.b]; if(!A || !B) return;
       const parts = m.result.split('-');
@@ -560,11 +576,11 @@ function renderStandings() {
 
   ranked.forEach((r, i) => {
     const tr = document.createElement('tr');
+    if (i < 4) tr.style.background = 'rgba(59, 130, 246, 0.1)';
     if (i === 0) tr.style.color = 'var(--gold)';
-    else if (i === 1) tr.style.color = 'var(--silver)';
     tr.innerHTML = `
       <td style="font-weight:bold;">${i+1}</td>
-      <td style="text-align:left;"><strong>${r.name}</strong></td>
+      <td style="text-align:left;"><strong>${r.name}</strong> ${i < 4 ? '⭐' : ''}</td>
       <td><span style="font-size:14px; font-weight:bold; color:var(--gold)">${r.pts}</span></td>
       <td style="color:var(--ok);">${r.v}</td>
       <td style="color:var(--warn);">${r.e}</td>
@@ -583,13 +599,14 @@ function renderPendingMatches() {
     return;
   }
 
-  let currentRoundNum = -1;
+  let currentRoundGroup = '';
   championsData.matches.forEach(m => {
-    if (m.round !== currentRoundNum) {
-      currentRoundNum = m.round;
+    const groupLabel = typeof m.round === 'number' ? `JORNADA ${m.round}` : m.round;
+    if (groupLabel !== currentRoundGroup) {
+      currentRoundGroup = groupLabel;
       const title = document.createElement('div');
       title.className = 'section-title';
-      title.textContent = `JORNADA ${m.round}`;
+      title.textContent = groupLabel;
       box.appendChild(title);
     }
 
@@ -597,7 +614,7 @@ function renderPendingMatches() {
     if (m.result) div.style.opacity = '0.5';
 
     div.innerHTML = `
-      <div><strong>${m.a} vs ${m.b}</strong></div>
+      <div><strong>${m.a} vs ${m.b}</strong> ${m.name ? `<small>(${m.name})</small>` : ''}</div>
       <div>${m.result ? `<span style="color:var(--ok); font-weight:bold;">${m.result}</span>` : `<span class="pill">Jugar</span>`}</div>
     `;
 
@@ -621,32 +638,30 @@ function updateGoalUI() {
 }
 
 function changeGoal(team, amount) {
-  if(team === 'A') currentGoalsA = Math.max(0, Math.min(3, currentGoalsA + amount));
-  else currentGoalsB = Math.max(0, Math.min(3, currentGoalsB + amount));
+  if(team === 'A') currentGoalsA = Math.max(0, Math.min(9, currentGoalsA + amount));
+  else currentGoalsB = Math.max(0, Math.min(9, currentGoalsB + amount));
   updateGoalUI();
 }
 
 function renderCurrentMatch() {
   const box = document.getElementById('matchBox');
-  let match = championsData.matches.find(m => m.id === championsData.currentMatchId && !m.result) || championsData.matches.find(m => !m.result);
+  const finalMatch = championsData.matches.find(m => m.round === 'FINAL');
 
-  if (!match) {
-    const ranked = recalcChampions();
-    const winner = ranked[0];
-    const runnerUp = ranked[1];
+  if (finalMatch && finalMatch.result) {
+    const parts = finalMatch.result.split('-');
+    const gA = parseInt(parts[0], 10);
+    const gB = parseInt(parts[1], 10);
+    const winner = gA > gB ? finalMatch.a : finalMatch.b;
+    const runnerUp = gA > gB ? finalMatch.b : finalMatch.a;
 
-    if (championsData.matches.length > 0 && winner) {
-      triggerConfetti();
-    }
+    triggerConfetti();
 
     box.innerHTML = `
       <div class="winner-card">
         <div class="winner-title">🥇 CAMPEÓN CHAMPIONS 🥇</div>
-        <div style="font-size:24px; font-weight:800; color:#fff;">${winner ? winner.name : '-'}</div>
-        ${runnerUp ? `
-          <div class="runner-title">🥈 SUBCAMPEÓN 🥈</div>
-          <div style="font-size:18px; font-weight:700; color:var(--silver);">${runnerUp.name}</div>
-        ` : ''}
+        <div style="font-size:24px; font-weight:800; color:#fff;">${winner}</div>
+        <div class="runner-title">🥈 SUBCAMPEÓN 🥈</div>
+        <div style="font-size:18px; font-weight:700; color:var(--silver);">${runnerUp}</div>
         
         <div class="video-container">
           <iframe 
@@ -670,10 +685,20 @@ function renderCurrentMatch() {
     return;
   }
 
+  let match = championsData.matches.find(m => m.id === championsData.currentMatchId && !m.result) || championsData.matches.find(m => !m.result);
+
+  if (!match) {
+    box.innerHTML = `<div class="muted-box">Esperando generación de Playoffs o torneo completado.</div>`;
+    return;
+  }
+
   championsData.currentMatchId = match.id;
+  const isPlayoff = match.type === 'playoff';
 
   box.innerHTML = `
-    <div style="font-size:12px; font-weight:bold; color:var(--gold); margin-bottom:6px; text-align:center;">JORNADA ${match.round}</div>
+    <div style="font-size:12px; font-weight:bold; color:var(--gold); margin-bottom:6px; text-align:center;">
+      ${isPlayoff ? match.name : `JORNADA ${match.round}`}
+    </div>
     <div class="match-goals">
       <div class="goal-row">
         <span>${match.a}</span>
@@ -697,6 +722,11 @@ function renderCurrentMatch() {
   `;
 
   document.getElementById('btnSaveGoals').onclick = () => {
+    if (isPlayoff && currentGoalsA === currentGoalsB) {
+      alert('En las eliminatorias no puede haber empate. Establezca un ganador.');
+      return;
+    }
+
     pushToHistory();
     match.result = `${currentGoalsA}-${currentGoalsB}`;
     championsData.currentMatchId = null;
@@ -720,7 +750,7 @@ function renderCurrentMatch() {
 
 document.getElementById('exportBtn').onclick = () => {
   const blob = new Blob([JSON.stringify(championsData, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = '01c_champions.json'; a.click();
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = '02_champions.json'; a.click();
   markSaved();
 };
 
