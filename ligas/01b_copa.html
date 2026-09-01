@@ -125,7 +125,7 @@ const DEFAULT_LIGA_FILENAME = '01a_liga.json';
 const STORAGE_PREFIX = 'copa_aula_v1_';
 
 let rawLigaData = null;
-let undoStack = []; // Historial ultra-ligero por deltas
+let undoStack = [];
 let isUnsaved = false;
 
 let goalsP1 = 0;
@@ -135,6 +135,76 @@ let copa = {
   classId: '', className: '', size: 32,
   slots: {}, activeCell: null
 };
+
+// --- SINTETIZADOR DE SONIDO DE CELEBRACIÓN / OVACIÓN ---
+function playCheerSound() {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+
+    // 1. Ruido blanco para simular aplausos colectivos
+    const bufferSize = ctx.sampleRate * 1.5; // 1.5 segundos
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const output = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      output[i] = Math.random() * 2 - 1;
+    }
+
+    const whiteNoise = ctx.createBufferSource();
+    whiteNoise.buffer = buffer;
+
+    // Filtro para suavizar el ruido como multitud
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(1000, ctx.currentTime);
+    filter.Q.setValueAtTime(1.5, ctx.currentTime);
+
+    // Envolvente de volumen (fade in y fade out)
+    const gainNode = ctx.createGain();
+    gainNode.gain.setValueAtTime(0.01, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime + 0.2);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.5);
+
+    whiteNoise.connect(filter);
+    filter.connect(gainNode);
+    gainNode.connect(ctx.destination);
+
+    whiteNoise.start();
+    whiteNoise.stop(ctx.currentTime + 1.5);
+
+    // 2. Acorde triunfal de celebración (Do - Mi - Sol - Do)
+    const notes = [523.25, 659.25, 783.99, 1046.50];
+    notes.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const oscGain = ctx.createGain();
+      
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.08);
+
+      oscGain.gain.setValueAtTime(0.01, ctx.currentTime + idx * 0.08);
+      oscGain.gain.exponentialRampToValueAtTime(0.15, ctx.currentTime + idx * 0.08 + 0.05);
+      oscGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.08 + 0.6);
+
+      osc.connect(oscGain);
+      oscGain.connect(ctx.destination);
+
+      osc.start(ctx.currentTime + idx * 0.08);
+      osc.stop(ctx.currentTime + idx * 0.08 + 0.6);
+    });
+  } catch (e) {
+    console.warn("Audio no soportado o bloqueado por interacción previa.", e);
+  }
+}
+
+// --- GENERADOR DE FECHA FORMATO YYMMDD ---
+function getFormattedYYMMDD() {
+  const d = new Date();
+  const yy = String(d.getFullYear()).slice(-2);
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yy}${mm}${dd}`;
+}
 
 window.addEventListener('beforeunload', (e) => {
   if (isUnsaved) {
@@ -199,7 +269,6 @@ function onClassChange() {
   undoStack = [];
   updateUndoButtonState();
 
-  // Intentar cargar el archivo individual del aula desde localStorage
   const localData = localStorage.getItem(STORAGE_PREFIX + classId);
   if (localData) {
     copa = JSON.parse(localData);
@@ -207,7 +276,6 @@ function onClassChange() {
     render();
     document.getElementById('activeMatchContent').innerHTML = `Copa cargada para ${copa.className}.`;
   } else {
-    // Si no hay datos guardados de esta aula, se prepara una estructura limpia
     const targetClass = (rawLigaData.classes || rawLigaData.clases || []).find(c => c.id == classId);
     copa = { classId, className: targetClass ? (targetClass.name || targetClass.nombre) : 'Clase', size: 32, slots: {}, activeCell: null };
     document.getElementById('bracketLayout').innerHTML = '';
@@ -378,7 +446,6 @@ function changeGoal(player, amount) {
   if(el2) el2.textContent = goalsP2;
 }
 
-// Registro ultra-rápido de partidos
 function submitMatchScore() {
   if(!copa.activeCell) return;
   if(goalsP1 === goalsP2) {
@@ -386,10 +453,12 @@ function submitMatchScore() {
     return;
   }
 
+  // Reproducir sonido de ovación / celebración
+  playCheerSound();
+
   const { col, row } = copa.activeCell;
   const match = copa.slots[col][row];
   
-  // Guardar cambio en pila ligera para Undo instantáneo
   undoStack.push({
     col, row,
     prevW: match.w,
@@ -556,12 +625,16 @@ function createMatchDOM(c, r, labelCustom = "") {
   return div;
 }
 
+// Exportación formateada con fecha YYMMDD
 document.getElementById('btnExport').onclick = () => {
   if(!copa.classId) { alert("No hay copa para guardar."); return; }
   const blob = new Blob([JSON.stringify(copa, null, 2)], {type: 'application/json'});
   const a = document.createElement('a'); 
+  const dateStr = getFormattedYYMMDD();
+  const safeClassName = (copa.className || copa.classId).replace(/\s+/g, '_');
+  
   a.href = URL.createObjectURL(blob); 
-  a.download = `01b_copa_${copa.className || copa.classId}.json`; 
+  a.download = `01b_copa_${safeClassName}_${dateStr}.json`; 
   a.click();
   markSaved();
 };
