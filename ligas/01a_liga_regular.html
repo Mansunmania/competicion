@@ -124,7 +124,7 @@
       
       <div class="row" style="margin-top:6px">
         <button class="btn ok mini" id="saveStudents">Guardar Lista</button>
-        <button class="btn warn mini" id="generateMatches">Generar Liga</button>
+        <button class="btn warn mini" id="generateMatches">Generar Ligas</button>
       </div>
       <div class="row" style="margin-top:6px">
         <button class="btn secondary mini" id="newRandomMatch">Sig. Partido</button>
@@ -619,13 +619,45 @@ document.getElementById('saveStudents').onclick=()=>{
   save(); render();
 };
 
-document.getElementById('generateMatches').onclick=()=>{
-  const board=currentBoard(); if(!board) return;
-  if(board.students.length<2){alert('Añade alumnos.');return}
-  pushToHistory(); 
-  board.tieBreakers = {}; board.matches=generateRoundRobinJourneys(board.students);
-  board.currentMatchId=board.matches[0]?.id||null;
-  save(); render();
+document.getElementById('generateMatches').onclick = () => {
+  const classBoards = currentClassBoards();
+  if (!classBoards || classBoards.length === 0) return;
+
+  const currentClass = app.classes.find(c => c.id === app.activeClassId);
+  const className = currentClass ? currentClass.name : '';
+
+  // 1. Identificar divisiones sin alumnos suficientes (mínimo 2)
+  const emptyOrInvalidBoards = classBoards.filter(b => b.students.length < 2);
+  const validBoards = classBoards.filter(b => b.students.length >= 2);
+
+  if (validBoards.length === 0) {
+    alert(`No hay suficiente alumnado en ninguna división de ${className} para generar ligas (mínimo 2 por categoría).`);
+    return;
+  }
+
+  // 2. Notificar si alguna categoría está vacía o incompleta
+  if (emptyOrInvalidBoards.length > 0) {
+    const namesList = emptyOrInvalidBoards.map(b => `• ${b.name.split(' (')[0]}`).join('\n');
+    const proceed = confirm(
+      `Atención: Las siguientes divisiones no tienen alumnos suficientes (mínimo 2):\n\n${namesList}\n\n` +
+      `¿Deseas generar la liga únicamente para las divisiones que sí tienen alumnos registrados?`
+    );
+    if (!proceed) return;
+  } else {
+    if (!confirm(`¿Generar el calendario completo de partidos para TODAS las divisiones de ${className}?`)) return;
+  }
+
+  // 3. Guardar estado en el historial y procesar la generación masiva
+  pushToHistory();
+
+  validBoards.forEach(board => {
+    board.tieBreakers = {};
+    board.matches = generateRoundRobinJourneys(board.students);
+    board.currentMatchId = board.matches[0]?.id || null;
+  });
+
+  save();
+  render();
 };
 
 document.getElementById('newRandomMatch').onclick=()=>{
