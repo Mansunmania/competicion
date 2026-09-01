@@ -113,12 +113,11 @@
       <div class="section-title">Divisiones</div>
       <div id="boardTabs" class="tabs"></div>
 
-      <div class="section-title">Ajustes División</div>
-      <input id="renameBoard" style="margin-bottom:6px" />
-      <div class="row">
-        <div><label>Plazas</label><input id="participantCount" type="number" /></div>
-        <div style="display:flex;align-items:flex-end;"><button class="btn secondary mini" style="width:100%" id="saveBoardConfig">Guardar</button></div>
-      </div>
+<div class="section-title">Nombre División</div>
+<div class="row">
+  <input id="renameBoard" placeholder="Nombre división" />
+  <button class="btn secondary mini" id="saveBoardConfig">Renombrar</button>
+</div>
       
       <div class="section-title">Alumnos (uno por línea)</div>
       <textarea id="studentsInput" rows="6"></textarea>
@@ -174,7 +173,7 @@
 
 <script>
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzUIijdWpsEB1Yr2VYRrIsozuyXgS4Q32fXb1o7Yn-L1n2S1T6Z00_e7iW72rA-5yW0/exec';
-const DEFAULT_FILENAME = '00_previa_suiza.json'; 
+const DEFAULT_FILENAME = '01a_liga_regular.json';
 const STORAGE_KEY = 'leagueboard_classroom_data_v4_goals';
 
 let memoryStore = '';
@@ -607,18 +606,19 @@ function renderForm(){
 
 function render(){ renderClassSelector(); renderTabs(); renderForm(); renderStandings(); renderPending(); renderMatch(); }
 
-document.getElementById('saveBoardConfig').onclick=()=>{
-  const board=currentBoard(); if(!board) return;
-  board.name=document.getElementById('renameBoard').value.trim();
-  board.desiredParticipants=parseInt(document.getElementById('participantCount').value,10)||4;
+// 1. Guardar renombra la división directamente:
+document.getElementById('saveBoardConfig').onclick = () => {
+  const board = currentBoard(); if(!board) return;
+  board.name = document.getElementById('renameBoard').value.trim();
   save(); render();
 };
 
-document.getElementById('saveStudents').onclick=()=>{
-  const board=currentBoard(); if(!board) return;
-  board.students=[...new Set(document.getElementById('studentsInput').value.split(/\n+/).map(s=>s.trim()).filter(Boolean))];
-  save(); render();
-};
+// 2. Al rellenar el formulario (renderForm), quita la referencia a participantCount:
+function renderForm(){
+  const board = currentBoard(); if(!board) return;
+  document.getElementById('studentsInput').value = board.students.join('\n');
+  document.getElementById('renameBoard').value = board.name;
+}
 
 document.getElementById('generateMatches').onclick=()=>{
   const board=currentBoard(); if(!board) return;
@@ -640,7 +640,7 @@ document.getElementById('resetBoard').onclick=()=>{
 
 document.getElementById('exportData').onclick=()=>{
   const blob=new Blob([JSON.stringify(app,null,2)],{type:'application/json'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='aula_datos_liga_goles_v2.json'; a.click();
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='01a_liga_regular.json'; a.click();
 };
 
 document.getElementById('reloadFromDriveBtn').onclick=()=>{ initDataCascade(); };
