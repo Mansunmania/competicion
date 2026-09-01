@@ -27,16 +27,16 @@
     .badge-drive { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
     .badge-local { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
 
-    .setup-bar { display: flex; flex-wrap: wrap; gap: 15px; align-items: center; justify-content: space-between; }
+    .setup-bar { display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end; justify-content: space-between; }
     label { display: block; font-size: 11px; font-weight: bold; color: #8ba3c7; text-transform: uppercase; margin-bottom: 4px; }
     select, button { font: inherit; border-radius: 6px; }
-    select { padding: 8px 12px; background: var(--bg); color: #fff; border: 1px solid var(--line); min-width: 200px; }
+    select { padding: 8px 12px; background: var(--bg); color: #fff; border: 1px solid var(--line); min-width: 200px; height: 38px; }
     
-    button { border: 0; padding: 10px 16px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+    button { border: 0; padding: 0 16px; height: 38px; font-weight: bold; cursor: pointer; transition: opacity 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
     .btn-pri { background: var(--pri); color: #fff; } .btn-pri:hover { opacity: 0.9; }
-    .btn-sec { background: #475569; color: #fff; }
+    .btn-sec { background: #334155; color: #f8fafc; border: 1px solid var(--line); } .btn-sec:hover { background: #475569; }
     .btn-bad { background: #991b1b; color: #fca5a5; }
-    .btn-undo { background: #d97706; color: #fff; font-size: 12px; padding: 6px 12px; margin-top: 10px; display: inline-flex; align-items: center; gap: 4px; }
+    .btn-undo { background: #d97706; color: #fff; font-size: 12px; padding: 6px 12px; margin-top: 10px; height: auto; }
     .btn-undo:hover { opacity: 0.9; }
     .btn-undo:disabled { background: #4b5563; color: #9ca3af; cursor: not-allowed; opacity: 0.5; }
 
@@ -44,12 +44,12 @@
     .match-controller { text-align: center; max-width: 600px; margin: 0 auto 20px auto; background: linear-gradient(135deg, #24305e, #1c2541); border: 2px solid var(--pri); }
     .goal-ctrl { display: flex; align-items: center; justify-content: space-between; background: #0b1329; border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; width: 45%; }
     .goal-ctrl span { font-weight: bold; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
-    .btn-counter { background: #1c2541; color: #fff; border: 1px solid var(--line); border-radius: 6px; width: 30px; height: 30px; font-weight: bold; cursor: pointer; }
+    .btn-counter { background: #1c2541; color: #fff; border: 1px solid var(--line); border-radius: 6px; width: 30px; height: 30px; font-weight: bold; cursor: pointer; padding:0; }
     .btn-counter:hover { background: var(--pri); }
     .counter-value { font-size: 16px; font-weight: bold; color: var(--gold); min-width: 20px; text-align: center; }
 
     /* CUADRO ATP HACIA EL CENTRO */
-    .bracket-container { display: grid; grid-template-columns: 1.2fr 1fr 1fr 1fr 1fr 1fr 1.2fr; gap: 10px; align-items: center; margin-top: 20px; min-width: 1200px; overflow-x: auto; }
+    .bracket-container { display: grid; grid-template-columns: 1.2fr 1fr 1fr 1.3fr 1fr 1fr 1.2fr; gap: 10px; align-items: center; margin-top: 20px; min-width: 1200px; overflow-x: auto; }
     .round-col { display: flex; flex-direction: column; justify-content: space-around; height: 680px; }
     
     .bracket-match { background: #0b1329; border: 1px solid var(--line); border-radius: 6px; padding: 4px 0; margin: 5px 0; box-shadow: 0 2px 5px rgba(0,0,0,0.2); cursor: pointer; transition: border 0.2s; }
@@ -62,7 +62,12 @@
     .p-slot.bye { color: var(--muted); font-style: italic; opacity: 0.5; }
     
     .round-title { text-align: center; font-size: 11px; font-weight: bold; color: var(--gold); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; background: #0f172a; padding: 4px; border-radius: 4px; }
-    .center-cup { text-align: center; background: rgba(255,209,102,0.1); border: 2px dashed var(--gold); padding: 15px; border-radius: 12px; }
+    
+    /* RECUADRO CENTRAL DE LA FINAL DESTACADO */
+    .center-cup { text-align: center; background: rgba(255,209,102,0.05); border: 2px dashed var(--gold); padding: 12px; border-radius: 12px; margin: 10px 0; transition: all 0.3s; }
+    .center-cup.active-selection { border: 2px solid var(--gold); background: rgba(255,209,102,0.15); }
+    .final-slot { font-size: 15px; font-weight: bold; padding: 8px; margin: 4px 0; border-radius: 6px; background: #0b1329; border: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
+    .final-slot.winner { color: var(--ok); border-color: var(--ok); }
   </style>
 </head>
 <body>
@@ -76,29 +81,28 @@
 
   <div class="status-bar">
     <div>Estado de la Fuente de Datos: <span id="dataSourceBadge" class="badge badge-local">Cargando...</span></div>
-    <button class="btn-sec" style="padding: 4px 10px; font-size: 11px;" id="reloadFromDriveBtn">🔄 Cargar de Drive</button>
+    <button class="btn-sec" style="padding: 0 10px; font-size: 11px; height: 28px;" id="reloadFromDriveBtn">🔄 Cargar de Drive</button>
   </div>
   
   <div class="panel setup-bar">
     <div>
-      <label>1. Cargar archivo de la Liga (.json)</label>
+      <label>1. Cargar archivo Liga (.json)</label>
       <input id="jsonFile" type="file" accept="application/json" style="font-size:12px;" />
     </div>
     <div>
       <label>2. Seleccionar Clase / Aula</label>
-      <select id="classSelector"><option value="">-- Carga la Liga o usa Drive --</option></select>
+      <select id="classSelector" onchange="onClassChange()"><option value="">-- Carga la Liga primero --</option></select>
     </div>
     <div>
       <button class="btn-pri" id="btnBuildCopa">⚔️ Sorteo ATP Real</button>
     </div>
-    <div style="display:flex; gap:6px; align-items:flex-end;">
+    <div style="display:flex; gap:8px; align-items:flex-end;">
       <div>
-        <label>Recuperar Copa anterior</label>
         <button class="btn-sec" id="btnImportCopa" onclick="document.getElementById('jsonCopaFile').click()">📥 Cargar Copa</button>
         <input id="jsonCopaFile" type="file" accept="application/json" style="display:none;" />
       </div>
-      <button class="btn-sec" id="btnExport" style="height:38px;">💾 Guardar Copa</button>
-      <button class="btn-bad" id="btnReset" style="height:38px;">Reset</button>
+      <button class="btn-sec" id="btnExport">💾 Guardar Copa</button>
+      <button class="btn-bad" id="btnReset">Reset</button>
     </div>
   </div>
 
@@ -120,11 +124,12 @@
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzUIijdWpsEBlYr2VYRrIsozuyXgS4Q32fkzuYxG-szocv4pb5-KLiaVDgH4tErXTUzbA/exec';
 const DEFAULT_LIGA_FILENAME = '01a_liga.json';
 const DEFAULT_COPA_FILENAME = '01b_copa.json';
-const STORAGE_KEY_COPA = 'classroom_copa_sixseven_v6';
+const STORAGE_KEY_COPA = 'classroom_copa_sixseven_v7';
 
 let rawLigaData = null;
 let copaHistory = [];
 let memoryStore = '';
+let isUnsaved = false;
 
 let goalsP1 = 0;
 let goalsP2 = 0;
@@ -133,6 +138,17 @@ let copa = {
   classId: '', className: '', size: 32,
   slots: {}, activeCell: null
 };
+
+// Control de prevención de salida sin guardar[cite: 6]
+window.addEventListener('beforeunload', (e) => {
+  if (isUnsaved) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+
+function markUnsaved() { isUnsaved = true; }
+function markSaved() { isUnsaved = false; }
 
 function updateBadge(type, label) {
   const badge = document.getElementById('dataSourceBadge');
@@ -143,7 +159,7 @@ function updateBadge(type, label) {
 
 function save() {
   const data = JSON.stringify(copa);
-  try { localStorage.setItem(STORAGE_KEY_COPA, data); } catch(e) { memoryStore = data; }
+  try { localStorage.setItem(`${STORAGE_KEY_COPA}_${copa.classId}`, data); } catch(e) { memoryStore = data; }
 }
 
 async function fetchFromDrive(filename) {
@@ -154,43 +170,27 @@ async function fetchFromDrive(filename) {
 
 async function initDataCascade() {
   updateBadge('local', '⏳ Conectando con Drive...');
-  
   try {
     const ligaData = await fetchFromDrive(DEFAULT_LIGA_FILENAME);
     if (ligaData) {
       rawLigaData = ligaData;
       populateClassSelector();
     }
-  } catch (err) {
-    console.warn("No se pudo cargar la Liga desde Drive:", err);
-  }
+  } catch (err) { console.warn("No se pudo cargar la Liga desde Drive:", err); }
 
   try {
     const copaData = await fetchFromDrive(DEFAULT_COPA_FILENAME);
     if (copaData && copaData.slots && copaData.className) {
       copa = copaData;
+      document.getElementById('classSelector').value = copa.classId || '';
       updateBadge('drive', '☁️ Cargado (Google Drive)');
+      markSaved();
       render();
       return;
     }
-  } catch (err) {
-    console.warn("No se pudo cargar la Copa desde Drive:", err);
-  }
+  } catch (err) { console.warn("No se pudo cargar la Copa desde Drive:", err); }
 
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY_COPA) || memoryStore;
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed && parsed.slots && parsed.className) {
-        copa = parsed;
-        updateBadge('local', '💾 Cargado (Local / Caché)');
-        render();
-        return;
-      }
-    }
-  } catch (e) {}
-
-  updateBadge('local', '✨ Esperando Selección');
+  updateBadge('local', '✨ Selecciona un aula');
 }
 
 function populateClassSelector() {
@@ -199,9 +199,7 @@ function populateClassSelector() {
   const select = document.getElementById('classSelector');
   select.innerHTML = '<option value="">-- Elige un aula --</option>';
   
-  // Ordena las clases para que la más reciente quede en primer lugar
   const sortedClasses = [...classesList].reverse();
-  
   sortedClasses.forEach(c => {
     let opt = document.createElement('option');
     opt.value = c.id;
@@ -210,12 +208,27 @@ function populateClassSelector() {
   });
 }
 
+function onClassChange() {
+  const classId = document.getElementById('classSelector').value;
+  if (!classId) return;
+
+  const raw = localStorage.getItem(`${STORAGE_KEY_COPA}_${classId}`);
+  if (raw) {
+    copa = JSON.parse(raw);
+    render();
+  } else {
+    copa = { classId, className: '', size: 32, slots: {}, activeCell: null };
+    document.getElementById('bracketLayout').innerHTML = '';
+    document.getElementById('activeMatchContent').innerHTML = 'Pulsa "⚔️ Sorteo ATP Real" para generar el cuadro de esta clase.';
+  }
+}
+
 document.getElementById('jsonFile').addEventListener('change', async (e) => {
   const file = e.target.files[0]; if(!file) return;
   try {
     rawLigaData = JSON.parse(await file.text());
     populateClassSelector();
-    alert("¡Liga local cargada con éxito!");
+    alert("¡Liga cargada con éxito!");
   } catch(err) { alert("Archivo JSON no válido."); }
 });
 
@@ -227,10 +240,12 @@ document.getElementById('jsonCopaFile').addEventListener('change', async (e) => 
       copa = importedData;
       copaHistory = importedData.historyPool || [];
       copa.activeCell = null;
+      document.getElementById('classSelector').value = copa.classId || '';
       updateUndoButtonState();
       save(); 
+      markSaved();
       render();
-      alert(`Copa de "${copa.className}" restaurada correctamente.`);
+      alert(`Copa de "${copa.className}" cargada correctamente.`);
     } else { alert("El archivo no es una Copa válida."); }
   } catch(err) { alert("Error al leer la Copa."); }
   e.target.value = '';
@@ -256,6 +271,7 @@ document.getElementById('btnBuildCopa').onclick = () => {
   initSlotsStructure(size);
   buildOfficialATPTournament(studentsPool, size);
   
+  markUnsaved();
   save(); render();
 };
 
@@ -376,7 +392,7 @@ function changeGoal(player, amount) {
 function submitMatchScore() {
   if(!copa.activeCell) return;
   if(goalsP1 === goalsP2) {
-    alert("En eliminatorias directas no puede haber empate. Debe ganar uno.");
+    alert("En eliminatorias directas no puede haber empate.");
     return;
   }
   
@@ -408,6 +424,7 @@ function submitMatchScore() {
   if(col === 3 && row === 1) advancePlayer(3, 2, 'p2', winnerName);
 
   copa.activeCell = null;
+  markUnsaved();
   save(); render();
   document.getElementById('activeMatchContent').innerHTML = `<span style="color:var(--ok); font-weight:bold;">¡Avanza ${winnerName} (${match.res})!</span>`;
 }
@@ -422,6 +439,7 @@ document.getElementById('btnUndoMatch').onclick = () => {
   copa = JSON.parse(copaHistory.pop());
   copa.activeCell = null;
   updateUndoButtonState();
+  markUnsaved();
   save(); render();
 };
 
@@ -471,7 +489,7 @@ function render() {
   if(!copa.className) return;
 
   const colsToRender = copa.size === 32 ? [0,1,2,3,4,5,6] : [1,2,3,4,5];
-  const colTitles = { 0:"R32 Izq", 1:"Octavos I", 2:"Cuartos I", 3:"📍 FINAL CENTRO", 4:"Cuartos D", 5:"Octavos D", 6:"R32 Der" };
+  const colTitles = { 0:"R32 Izq", 1:"Octavos I", 2:"Cuartos I", 3:"📍 GRAN FINAL", 4:"Cuartos D", 5:"Octavos D", 6:"R32 Der" };
 
   colsToRender.forEach(c => {
     const colDiv = document.createElement('div'); colDiv.className = 'round-col';
@@ -480,17 +498,39 @@ function render() {
     colDiv.appendChild(title);
 
     if(c === 3) {
-      colDiv.appendChild(createMatchDOM(3, 0, "Semifinal Izquierda (Vence Rama Izq)"));
-      const cup = document.createElement('div'); cup.className = 'center-cup';
-      const fMatch = copa.slots[3][2];
-      if(fMatch && fMatch.w) {
-        cup.innerHTML = `<span style="font-size:24px;">🏆</span><br><b style="color:var(--gold); font-size:13px;">${fMatch[fMatch.w]}</b><br><span style="font-size:10px; color:var(--ok); font-weight:bold;">¡CAMPEÓN! (${fMatch.res})</span>`;
+      colDiv.appendChild(createMatchDOM(3, 0, "Semifinal Izquierda"));
+      
+      // Bloque Central Destacado de la Final[cite: 6]
+      const fMatch = copa.slots[3][2] || { p1: '', p2: '', w: null, res: '' };
+      const isActiveFinal = copa.activeCell && copa.activeCell.col === 3 && copa.activeCell.row === 2;
+      
+      const cup = document.createElement('div'); 
+      cup.className = `center-cup ${isActiveFinal ? 'active-selection' : ''}`;
+      
+      if(fMatch.w) {
+        cup.innerHTML = `
+          <div style="font-size:30px; margin-bottom:5px;">🏆</div>
+          <div style="font-size:11px; color:var(--gold); font-weight:bold;">¡CAMPEÓN!</div>
+          <div style="font-size:18px; color:var(--ok); font-weight:bold; margin:4px 0;">${fMatch[fMatch.w]}</div>
+          <div style="font-size:11px; color:var(--muted);">Resultado Final: ${fMatch.res}</div>
+        `;
       } else {
-        cup.innerHTML = `<span style="font-size:20px;">🏆</span><br><span style="font-size:10px; color:var(--muted)">Copa Six Seven</span>`;
+        cup.innerHTML = `
+          <div style="font-size:26px;">🏆</div>
+          <div style="font-size:11px; color:var(--gold); font-weight:bold; margin-bottom:8px;">GRAN FINAL</div>
+          <div class="final-slot ${fMatch.w==='p1'?'winner':''}">${fMatch.p1 || '???'}</div>
+          <div style="font-size:10px; color:var(--muted); margin:2px 0;">VS</div>
+          <div class="final-slot ${fMatch.w==='p2'?'winner':''}">${fMatch.p2 || '???'}</div>
+        `;
       }
+      
+      if(fMatch.p1 && fMatch.p2) {
+        cup.style.cursor = 'pointer';
+        cup.onclick = () => selectMatch(3, 2);
+      }
+      
       colDiv.appendChild(cup);
-      colDiv.appendChild(createMatchDOM(3, 1, "Semifinal Derecha (Vence Rama Der)"));
-      colDiv.appendChild(createMatchDOM(3, 2, "👑 GRAN FINAL"));
+      colDiv.appendChild(createMatchDOM(3, 1, "Semifinal Derecha"));
     } else {
       copa.slots[c].forEach((m, r) => { colDiv.appendChild(createMatchDOM(c, r)); });
     }
@@ -525,16 +565,21 @@ function createMatchDOM(c, r, labelCustom = "") {
 document.getElementById('btnExport').onclick = () => {
   const exportObject = { ...copa, historyPool: copaHistory };
   const blob = new Blob([JSON.stringify(exportObject, null, 2)], {type: 'application/json'});
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = '01b_copa.json'; a.click();
+  const a = document.createElement('a'); 
+  a.href = URL.createObjectURL(blob); 
+  a.download = `01b_copa_${copa.className || 'export'}.json`; 
+  a.click();
+  markSaved();
 };
 
 document.getElementById('reloadFromDriveBtn').onclick = () => { initDataCascade(); };
 
 document.getElementById('btnReset').onclick = () => {
   if(confirm("¿Reiniciar la Copa por completo?")) {
-    copa = { classId:'', className:'', size:32, slots:{}, activeCell:null }; 
+    copa = { classId: copa.classId, className: copa.className, size:32, slots:{}, activeCell:null }; 
     copaHistory = [];
     updateUndoButtonState();
+    markUnsaved();
     save();
     document.getElementById('bracketLayout').innerHTML = '';
     document.getElementById('activeMatchContent').innerHTML = 'Copa reiniciada.';
