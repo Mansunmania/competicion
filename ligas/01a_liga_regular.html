@@ -15,8 +15,17 @@
     header { padding: 16px 20px; background: linear-gradient(135deg, var(--pri), var(--pri2)); color: #fff; }
     header h1 { margin: 0; font-size: 22px; } header p { margin: 4px 0 0; opacity: 0.9; font-size: 14px; }
     .wrap { padding: 16px; max-width: 1400px; margin: 0 auto; }
+    
+    .status-bar {
+      margin-bottom: 12px; padding: 10px 14px; background: #fff; border: 1px solid var(--line);
+      border-radius: 10px; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: space-between;
+    }
+    .badge { padding: 3px 8px; border-radius: 6px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .badge-drive { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+    .badge-local { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+
     .toolbar, .panel { background: var(--card); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 3px 10px rgba(0,0,0,.04); }
-    .toolbar { padding: 12px; margin-bottom: 14px; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; align-items: end; }
+    .toolbar { padding: 12px; margin-bottom: 14px; display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; align-items: end; }
     .panel { padding: 14px; }
     label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
     input, select, textarea, button { font: inherit; }
@@ -41,12 +50,11 @@
     .pill { font-size: 12px; padding: 4px 8px; border-radius: 99px; background: #eef2ff; color: #3730a3; }
     table { width: 100%; border-collapse: collapse; margin-top: 10px; }
     th, td { padding: 8px 4px; border-bottom: 1px solid var(--line); text-align: center; font-size: 13px; }
-    th:nth-child(2), td:nth-child(2) { text-align: left; } /* Alumno alineado a la izquierda */
+    th:nth-child(2), td:nth-child(2) { text-align: left; }
     th { font-size: 11px; color: var(--muted); text-transform: uppercase; }
     .rank { font-weight: 800; width: 25px; text-align: center; }
     .gold { color: var(--gold); } .silver { color: var(--silver); } .bronze { color: var(--bronze); }
     
-    /* INTERFAZ DE MARCADOR CON BOTONES COMPACTOS +/- */
     .match-goals { display: flex; flex-direction: column; gap: 10px; padding: 4px; margin-top: 10px; }
     .goal-row { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; background: #fff; padding: 10px 14px; border: 1px solid var(--line); border-radius: 12px; }
     .goal-row span { font-weight: 600; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; font-size: 14px; }
@@ -69,22 +77,24 @@
 <body>
 
 <header>
-  <h1>LeagueBoard Classroom</h1>
-  <p>Control de ligas escolares por divisiones. Marcador con botones +/- y estadísticas completas.</p>
+  <h1>LeagueBoard Classroom - Gestión de Ligas</h1>
+  <p>Control de ligas escolares por divisiones con sincronización continua.</p>
 </header>
 
 <div class="wrap">
+
+  <div class="status-bar">
+    <div>Estado de la Fuente de Datos: <span id="dataSourceBadge" class="badge badge-local">Cargando...</span></div>
+    <button class="btn secondary mini" id="reloadFromDriveBtn">🔄 Cargar de Drive</button>
+  </div>
+
   <div class="toolbar">
     <div>
-      <label>Nombre de Clase Base</label>
-      <input id="classNameInput" placeholder="Ej. 5º" />
+      <label>Nombre de Clase Nueva</label>
+      <input id="newClassNameInput" placeholder="Ej. 6ºA" />
     </div>
-    <div>
-      <label>Nº de Aulas</label>
-      <input id="classCount" type="number" min="1" max="10" value="4" />
-    </div>
-    <button class="btn" id="createClassesBtn">Generar Aulas</button>
-    <button class="btn" style="background:#8b5cf6" id="triggerPromotions">Ascensos/Descensos de Temporada</button>
+    <button class="btn ok" id="addSingleClassBtn">➕ Añadir Clase</button>
+    <button class="btn" style="background:#8b5cf6" id="triggerPromotions">Ascensos/Descensos</button>
     <button class="btn secondary" id="exportData">Exportar Copia</button>
   </div>
 
@@ -98,6 +108,7 @@
         <input id="editClassName" placeholder="Nombre clase" />
         <button class="btn secondary mini" id="saveClassNameBtn">Renombrar</button>
       </div>
+      <button class="btn bad mini" id="deleteClassBtn" style="width:100%; margin-top:6px;">🗑️ Eliminar Clase Actual</button>
       
       <div class="section-title">Divisiones</div>
       <div id="boardTabs" class="tabs"></div>
@@ -162,25 +173,70 @@
 </div>
 
 <script>
-const STORAGE_KEY='leagueboard_classroom_data_v4_goals';
-let memoryStore='';
-let app={ classes: [], boards: [], activeClassId: null, activeBoardId: null };
-const CATEGORY_NAMES = ["Shrek & Fiona", "Donkey", "Bart & Lisa Simpson"];
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzUIijdWpsEB1Yr2VYRrIsozuyXgS4Q32fXb1o7Yn-L1n2S1T6Z00_e7iW72rA-5yW0/exec';
+const DEFAULT_FILENAME = '00_previa_suiza.json'; 
+const STORAGE_KEY = 'leagueboard_classroom_data_v4_goals';
 
+let memoryStore = '';
+let app = { classes: [], boards: [], activeClassId: null, activeBoardId: null };
+const CATEGORY_NAMES = ["Shrek & Fiona", "Donkey", "Bart & Lisa Simpson"];
 let leagueHistory = [];
 
-// Variables volátiles para controlar los goles con botones sin registrar aún
 let currentGoalsA = 0;
 let currentGoalsB = 0;
 
-function uid(){return Math.random().toString(36).slice(2,10)}
-function save(){const data=JSON.stringify(app);try{localStorage.setItem(STORAGE_KEY,data)}catch(e){memoryStore=data}}
-function load(){
-  try{
-    const raw=localStorage.getItem(STORAGE_KEY);
-    if(raw) app=JSON.parse(raw);
-    else if(memoryStore) app=JSON.parse(memoryStore);
-  }catch(e){}
+function uid(){ return Math.random().toString(36).slice(2,10); }
+
+function updateBadge(type, label) {
+  const badge = document.getElementById('dataSourceBadge');
+  if(!badge) return;
+  badge.className = `badge ${type === 'drive' ? 'badge-drive' : 'badge-local'}`;
+  badge.textContent = label;
+}
+
+function save(){
+  const data = JSON.stringify(app);
+  try { localStorage.setItem(STORAGE_KEY, data); } catch(e) { memoryStore = data; }
+}
+
+async function initDataCascade() {
+  updateBadge('local', '⏳ Conectando con Drive...');
+  try {
+    const res = await fetch(`${APPS_SCRIPT_URL}?file=${DEFAULT_FILENAME}`, {
+      method: 'GET',
+      redirect: 'follow'
+    });
+    const result = await res.json();
+
+    if (result.success && result.data && Array.isArray(result.data.classes)) {
+      app = result.data;
+      if (!app.activeClassId && app.classes.length > 0) app.activeClassId = app.classes[0].id;
+      if (!app.activeBoardId) app.activeBoardId = currentClassBoards()[0]?.id || null;
+      save();
+      updateBadge('drive', '☁️ Cargado (Google Drive)');
+      render();
+      return;
+    }
+  } catch (err) {
+    console.warn("No se pudo conectar con Drive, buscando alternativos:", err);
+  }
+
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY) || memoryStore;
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && Array.isArray(parsed.classes)) {
+        app = parsed;
+        updateBadge('local', '💾 Cargado (Local / Caché)');
+        render();
+        return;
+      }
+    }
+  } catch (e) {}
+
+  ensureDefault();
+  updateBadge('local', '✨ Estructura Inicializada');
+  render();
 }
 
 function pushToHistory() {
@@ -203,8 +259,9 @@ function updateUndoButton() {
 function currentClassBoards() {
   return app.boards.filter(b => b.classId === app.activeClassId).sort((a,b) => a.level - b.level);
 }
+
 function currentBoard(){
-  return app.boards.find(b=>b.id===app.activeBoardId) || currentClassBoards()[0] || null;
+  return app.boards.find(b => b.id === app.activeBoardId) || currentClassBoards()[0] || null;
 }
 
 function createClassStructure(className) {
@@ -222,7 +279,7 @@ function createClassStructure(className) {
 }
 
 function ensureDefault(){
-  if(app.classes.length===0){
+  if(app.classes.length === 0){
     const idA = createClassStructure('5ºA');
     createClassStructure('5ºB');
     app.activeClassId = idA;
@@ -247,6 +304,35 @@ function renderClassSelector() {
     document.getElementById('editClassName').value = currentClass.name;
   }
 }
+
+document.getElementById('addSingleClassBtn').onclick = () => {
+  const nameInput = document.getElementById('newClassNameInput');
+  const name = nameInput.value.trim();
+  if(!name) { alert('Introduce un nombre para la clase'); return; }
+  const newId = createClassStructure(name);
+  app.activeClassId = newId;
+  app.activeBoardId = currentClassBoards()[0]?.id || null;
+  nameInput.value = '';
+  save(); render();
+};
+
+document.getElementById('deleteClassBtn').onclick = () => {
+  if (app.classes.length <= 1) {
+    alert('No puedes eliminar la última clase disponible.');
+    return;
+  }
+  const currentClass = app.classes.find(c => c.id === app.activeClassId);
+  if(!currentClass) return;
+
+  if (confirm(`¿Seguro que deseas eliminar la clase "${currentClass.name}" y todas sus divisiones?`)) {
+    pushToHistory();
+    app.classes = app.classes.filter(c => c.id !== currentClass.id);
+    app.boards = app.boards.filter(b => b.classId !== currentClass.id);
+    app.activeClassId = app.classes[0].id;
+    app.activeBoardId = currentClassBoards()[0]?.id || null;
+    save(); render();
+  }
+};
 
 document.getElementById('saveClassNameBtn').onclick = () => {
   const currentClass = app.classes.find(c => c.id === app.activeClassId);
@@ -287,12 +373,9 @@ function recalc(board){
       
       A.gf += gA; A.gc += gB;
       B.gf += gB; B.gc += gA;
-      
-      // Los puntos acumulados son la suma directa de goles (preguntas)
       A.pts += gA;
       B.pts += gB;
 
-      // Cálculo de Victorias, Empates y Derrotas estadísticos
       if(gA > gB) { A.v++; B.d++; }
       else if(gB > gA) { B.v++; A.d++; }
       else { A.e++; B.e++; }
@@ -350,8 +433,8 @@ function renderStandings(){
       <td style="color:var(--bad); font-weight:500;">${r.d}</td>
       <td>${r.gf}</td>
       <td>${r.gc}</td>`;
-    tbody.appendChild(tr)
-  })
+    tbody.appendChild(tr);
+  });
 }
 
 function generateRoundRobinJourneys(names) {
@@ -393,10 +476,10 @@ function renderPending(){
     if(!m.result) { 
       div.onclick=()=>{
         board.currentMatchId=m.id; 
-        currentGoalsA = 0; // Resetear contadores al abrir partido nuevo
+        currentGoalsA = 0;
         currentGoalsB = 0;
         save(); 
-        renderMatch()
+        renderMatch();
       }; 
     }
     box.appendChild(div);
@@ -479,7 +562,7 @@ function applyResult(resultString){
   const board=currentBoard(); const m=board.matches.find(x=>x.id===board.currentMatchId); if(!m) return;
   pushToHistory(); 
   m.result=resultString; board.currentMatchId=null; 
-  currentGoalsA = 0; currentGoalsB = 0; // Resetear volátiles
+  currentGoalsA = 0; currentGoalsB = 0;
   save(); render();
 }
 
@@ -524,17 +607,6 @@ function renderForm(){
 
 function render(){ renderClassSelector(); renderTabs(); renderForm(); renderStandings(); renderPending(); renderMatch(); }
 
-document.getElementById('createClassesBtn').onclick=()=>{
-  const count=Math.max(1,parseInt(document.getElementById('classCount').value,10)||1);
-  const prefix=(document.getElementById('classNameInput').value||'5º').trim();
-  app.classes=[]; app.boards=[]; let firstId = null;
-  for(let i=1; i<=count; i++) {
-    const cId = createClassStructure(`${prefix}º${String.fromCharCode(65+(i-1))}`); if(i===1) firstId = cId;
-  }
-  app.activeClassId = firstId; app.activeBoardId = currentClassBoards()[0]?.id || null;
-  save(); render();
-};
-
 document.getElementById('saveBoardConfig').onclick=()=>{
   const board=currentBoard(); if(!board) return;
   board.name=document.getElementById('renameBoard').value.trim();
@@ -571,6 +643,8 @@ document.getElementById('exportData').onclick=()=>{
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='aula_datos_liga_goles_v2.json'; a.click();
 };
 
+document.getElementById('reloadFromDriveBtn').onclick=()=>{ initDataCascade(); };
+
 document.getElementById('importFile').addEventListener('change', async (e)=>{
   const file=e.target.files[0]; if(!file) return; const text=await file.text();
   try{
@@ -585,7 +659,7 @@ document.getElementById('importFile').addEventListener('change', async (e)=>{
   e.target.value='';
 });
 
-load(); ensureDefault(); render();
+initDataCascade();
 </script>
 </body>
 </html>
