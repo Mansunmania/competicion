@@ -365,12 +365,52 @@ function populateClassSelector() {
   });
 }
 
-function onClassChange() {
+async function onClassChange() {
   const classId = document.getElementById('classSelector').value;
   if (!classId) return;
 
   undoStack = [];
   updateUndoButtonState();
+  
+  // Limpiar vista actual mientras carga
+  document.getElementById('bracketLayout').innerHTML = '';
+  document.getElementById('activeMatchContent').innerHTML = '⏳ Descargando Copa desde Drive...';
+
+  // 1. Obtener datos del aula seleccionada
+  const targetClass = (rawLigaData.classes || rawLigaData.clases || []).find(c => c.id == classId);
+  const className = targetClass ? (targetClass.name || targetClass.nombre) : classId;
+  const safeClassName = className.replace(/\s+/g, '_');
+
+  // 2. Intentar buscar el archivo de Copa de esta clase en Drive (ej: 01b_copa_5B.json)
+  const driveFilename = `01b_copa_${safeClassName}.json`;
+  let driveCopaData = null;
+
+  try {
+    driveCopaData = await fetchFromDrive(driveFilename);
+  } catch (err) {
+    console.warn("No se encontró Copa en Drive para esta clase, buscando en LocalStorage...");
+  }
+
+  // 3. Prioridad: 1º Drive -> 2º LocalStorage -> 3º Crear Copa vacía
+  if (driveCopaData && driveCopaData.slots) {
+    copa = driveCopaData;
+    saveLocal(); // Actualiza la copia local por si te quedas sin internet
+    markSaved();
+    render();
+    document.getElementById('activeMatchContent').innerHTML = `☁️ Copa de ${copa.className} sincronizada desde Drive.`;
+  } else {
+    const localData = localStorage.getItem(STORAGE_PREFIX + classId);
+    if (localData) {
+      copa = JSON.parse(localData);
+      markSaved();
+      render();
+      document.getElementById('activeMatchContent').innerHTML = `💾 Copa cargada desde el almacenamiento local.`;
+    } else {
+      copa = { classId, className, size: 32, slots: {}, activeCell: null };
+      document.getElementById('activeMatchContent').innerHTML = 'Haz clic en "⚔️ Sorteo ATP Real" para generar la Copa.';
+    }
+  }
+}
 
   const localData = localStorage.getItem(STORAGE_PREFIX + classId);
   if (localData) {
