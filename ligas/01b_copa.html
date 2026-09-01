@@ -19,6 +19,14 @@
     .wrap { padding: 16px; max-width: 1500px; margin: 0 auto; }
     .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 15px; margin-bottom: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
     
+    .status-bar {
+      margin-bottom: 12px; padding: 10px 14px; background: var(--card); border: 1px solid var(--line);
+      border-radius: 10px; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: space-between;
+    }
+    .badge { padding: 3px 8px; border-radius: 6px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .badge-drive { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+    .badge-local { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+
     .setup-bar { display: flex; flex-wrap: wrap; gap: 15px; align-items: center; justify-content: space-between; }
     label { display: block; font-size: 11px; font-weight: bold; color: #8ba3c7; text-transform: uppercase; margin-bottom: 4px; }
     select, button { font: inherit; border-radius: 6px; }
@@ -32,12 +40,15 @@
     .btn-undo:hover { opacity: 0.9; }
     .btn-undo:disabled { background: #4b5563; color: #9ca3af; cursor: not-allowed; opacity: 0.5; }
 
-    /* CAJITA PARTIDO ACTIVO */
+    /* CONTROLES DE MARCADOR */
     .match-controller { text-align: center; max-width: 600px; margin: 0 auto 20px auto; background: linear-gradient(135deg, #24305e, #1c2541); border: 2px solid var(--pri); }
-    .btn-player { background: #0b1329; color: #fff; border: 1px solid var(--line); padding: 12px; width: 45%; font-size: 14px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
-    .btn-player:hover { border-color: var(--ok); background: rgba(6,214,160,0.1); }
+    .goal-ctrl { display: flex; align-items: center; justify-content: space-between; background: #0b1329; border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; width: 45%; }
+    .goal-ctrl span { font-weight: bold; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
+    .btn-counter { background: #1c2541; color: #fff; border: 1px solid var(--line); border-radius: 6px; width: 30px; height: 30px; font-weight: bold; cursor: pointer; }
+    .btn-counter:hover { background: var(--pri); }
+    .counter-value { font-size: 16px; font-weight: bold; color: var(--gold); min-width: 20px; text-align: center; }
 
-    /* DISEÑO DEL CUADRO DE TENIS ATP HACIA EL CENTRO */
+    /* CUADRO ATP HACIA EL CENTRO */
     .bracket-container { display: grid; grid-template-columns: 1.2fr 1fr 1fr 1fr 1fr 1fr 1.2fr; gap: 10px; align-items: center; margin-top: 20px; min-width: 1200px; overflow-x: auto; }
     .round-col { display: flex; flex-direction: column; justify-content: space-around; height: 680px; }
     
@@ -62,6 +73,11 @@
 </header>
 
 <div class="wrap">
+
+  <div class="status-bar">
+    <div>Estado de la Fuente de Datos: <span id="dataSourceBadge" class="badge badge-local">Cargando...</span></div>
+    <button class="btn-sec" style="padding: 4px 10px; font-size: 11px;" id="reloadFromDriveBtn">🔄 Cargar de Drive</button>
+  </div>
   
   <div class="panel setup-bar">
     <div>
@@ -70,7 +86,7 @@
     </div>
     <div>
       <label>2. Seleccionar Clase / Aula</label>
-      <select id="classSelector"><option value="">-- Sube el JSON primero --</option></select>
+      <select id="classSelector"><option value="">-- Carga la Liga o usa Drive --</option></select>
     </div>
     <div>
       <button class="btn-pri" id="btnBuildCopa">⚔️ Sorteo ATP Real</button>
@@ -95,67 +111,129 @@
   </div>
 
   <div class="panel" style="overflow-x: auto; background: #111827;">
-    <div class="bracket-container" id="bracketLayout">
-    </div>
+    <div class="bracket-container" id="bracketLayout"></div>
   </div>
 
 </div>
 
 <script>
-const STORAGE_KEY = 'classroom_copa_sixseven_v5';
-let rawLigaData = null; 
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzUIijdWpsEBlYr2VYRrIsozuyXgS4Q32fkzuYxG-szocv4pb5-KLiaVDgH4tErXTUzbA/exec';
+const DEFAULT_LIGA_FILENAME = '01a_liga.json';
+const DEFAULT_COPA_FILENAME = '01b_copa.json';
+const STORAGE_KEY_COPA = 'classroom_copa_sixseven_v6';
 
-// Pila de historial para la función deshacer
+let rawLigaData = null;
 let copaHistory = [];
+let memoryStore = '';
+
+let goalsP1 = 0;
+let goalsP2 = 0;
 
 let copa = {
   classId: '', className: '', size: 32,
   slots: {}, activeCell: null
 };
 
+function updateBadge(type, label) {
+  const badge = document.getElementById('dataSourceBadge');
+  if(!badge) return;
+  badge.className = `badge ${type === 'drive' ? 'badge-drive' : 'badge-local'}`;
+  badge.textContent = label;
+}
+
+function save() {
+  const data = JSON.stringify(copa);
+  try { localStorage.setItem(STORAGE_KEY_COPA, data); } catch(e) { memoryStore = data; }
+}
+
+async function fetchFromDrive(filename) {
+  const res = await fetch(`${APPS_SCRIPT_URL}?file=${filename}`, { method: 'GET', redirect: 'follow' });
+  const result = await res.json();
+  return result.success ? result.data : null;
+}
+
+async function initDataCascade() {
+  updateBadge('local', '⏳ Conectando con Drive...');
+  
+  try {
+    const ligaData = await fetchFromDrive(DEFAULT_LIGA_FILENAME);
+    if (ligaData) {
+      rawLigaData = ligaData;
+      populateClassSelector();
+    }
+  } catch (err) {
+    console.warn("No se pudo cargar la Liga desde Drive:", err);
+  }
+
+  try {
+    const copaData = await fetchFromDrive(DEFAULT_COPA_FILENAME);
+    if (copaData && copaData.slots && copaData.className) {
+      copa = copaData;
+      updateBadge('drive', '☁️ Cargado (Google Drive)');
+      render();
+      return;
+    }
+  } catch (err) {
+    console.warn("No se pudo cargar la Copa desde Drive:", err);
+  }
+
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_COPA) || memoryStore;
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.slots && parsed.className) {
+        copa = parsed;
+        updateBadge('local', '💾 Cargado (Local / Caché)');
+        render();
+        return;
+      }
+    }
+  } catch (e) {}
+
+  updateBadge('local', '✨ Esperando Selección');
+}
+
+function populateClassSelector() {
+  if (!rawLigaData) return;
+  const classesList = rawLigaData.classes || rawLigaData.clases || [];
+  const select = document.getElementById('classSelector');
+  select.innerHTML = '<option value="">-- Elige un aula --</option>';
+  
+  // Ordena las clases para que la más reciente quede en primer lugar
+  const sortedClasses = [...classesList].reverse();
+  
+  sortedClasses.forEach(c => {
+    let opt = document.createElement('option');
+    opt.value = c.id;
+    opt.textContent = c.name || c.nombre || c.id;
+    select.appendChild(opt);
+  });
+}
+
 document.getElementById('jsonFile').addEventListener('change', async (e) => {
   const file = e.target.files[0]; if(!file) return;
   try {
     rawLigaData = JSON.parse(await file.text());
-    const classesList = rawLigaData.classes || rawLigaData.clases || [];
-    const select = document.getElementById('classSelector'); 
-    select.innerHTML = '<option value="">-- Elige un aula --</option>';
-    classesList.forEach(c => {
-      let opt = document.createElement('option'); opt.value = c.id; opt.textContent = c.name || c.nombre || c.id;
-      select.appendChild(opt);
-    });
-    alert("¡Liga cargada con éxito!");
+    populateClassSelector();
+    alert("¡Liga local cargada con éxito!");
   } catch(err) { alert("Archivo JSON no válido."); }
 });
 
-// NUEVO: Escuchador para recuperar archivos guardados de copas (.json)
 document.getElementById('jsonCopaFile').addEventListener('change', async (e) => {
   const file = e.target.files[0]; if(!file) return;
   try {
     const importedData = JSON.parse(await file.text());
-    
-    // Validamos de manera básica que el archivo tenga la estructura de una copa
     if(importedData && importedData.slots && importedData.className) {
       copa = importedData;
-      
-      // Si el archivo JSON guardado incluía su propia pila de historial la restauramos, si no, la limpiamos
       copaHistory = importedData.historyPool || [];
-      
-      copa.activeCell = null; // Limpiar selecciones activas para evitar bugs visuales
-      
+      copa.activeCell = null;
       updateUndoButtonState();
       save(); 
       render();
-      
-      document.getElementById('activeMatchContent').innerHTML = `<span style="color:var(--ok); font-weight:bold;">📥 Torneo de la copa "${copa.className}" cargado con éxito.</span>`;
       alert(`Copa de "${copa.className}" restaurada correctamente.`);
-    } else {
-      alert("El archivo no parece ser un archivo de Copa válido.");
-    }
-  } catch(err) { 
-    alert("Error al leer el archivo de la Copa."); 
-  }
-  e.target.value = ''; // Resetear el input file
+    } else { alert("El archivo no es una Copa válida."); }
+  } catch(err) { alert("Error al leer la Copa."); }
+  e.target.value = '';
 });
 
 document.getElementById('btnBuildCopa').onclick = () => {
@@ -190,20 +268,26 @@ function extractOrderedStudents(classId) {
     if(board) {
       let map = {};
       const students = board.students || board.alumnos || [];
-      students.forEach(s => map[s] = { name: s, pts: 0, tie: parseFloat(board.tieBreakers?.[s]) || 0 });
-      
-      let winPts = rawLigaData.globalPoints === "2,1,0" ? 2 : 3;
-      let drawPts = rawLigaData.globalPoints === "2,1,0" ? 0 : 1;
+      students.forEach(s => map[s] = { name: s, pts: 0, tie: parseFloat(board.tieBreakers?.[s]) || 0, gf: 0, gc: 0 });
       
       const matches = board.matches || [];
       matches.filter(m => m.result).forEach(m => {
         if(!map[m.a] || !map[m.b]) return;
-        if(m.result === 'A') map[m.a].pts += winPts;
-        else if(m.result === 'B') map[m.b].pts += winPts;
-        else if(m.result === 'D') { map[m.a].pts += drawPts; map[m.b].pts += drawPts; }
+        const parts = m.result.split('-');
+        const gA = parseInt(parts[0], 10) || 0;
+        const gB = parseInt(parts[1], 10) || 0;
+        
+        map[m.a].pts += gA;
+        map[m.b].pts += gB;
+        map[m.a].gf += gA; map[m.a].gc += gB;
+        map[m.b].gf += gB; map[m.b].gc += gA;
       });
       
-      let sortedBoard = Object.values(map).sort((x,y) => (y.pts !== x.pts) ? (y.pts - x.pts) : (y.tie - x.tie));
+      let sortedBoard = Object.values(map).sort((x,y) => {
+        if (y.pts !== x.pts) return y.pts - x.pts;
+        if (y.tie !== x.tie) return y.tie - x.tie;
+        return (y.gf - y.gc) - (x.gf - x.gc);
+      });
       sortedBoard.forEach(s => sortedGlobalList.push(s.name));
     }
   });
@@ -215,26 +299,24 @@ function initSlotsStructure(size) {
   cols.forEach(c => { copa.slots[c] = []; });
   
   if(size === 32) {
-    for(let i=0; i<8; i++) { copa.slots[0].push({p1:'', p2:'', w:null}); copa.slots[6].push({p1:'', p2:'', w:null}); }
+    for(let i=0; i<8; i++) { copa.slots[0].push({p1:'', p2:'', w:null, res:''}); copa.slots[6].push({p1:'', p2:'', w:null, res:''}); }
   }
-  for(let i=0; i<4; i++) { copa.slots[1].push({p1:'', p2:'', w:null}); copa.slots[5].push({p1:'', p2:'', w:null}); }
-  for(let i=0; i<2; i++) { copa.slots[2].push({p1:'', p2:'', w:null}); copa.slots[4].push({p1:'', p2:'', w:null}); }
-  copa.slots[3] = [ {p1:'', p2:'', w:null}, {p1:'', p2:'', w:null}, {p1:'', p2:'', w:null} ];
+  for(let i=0; i<4; i++) { copa.slots[1].push({p1:'', p2:'', w:null, res:''}); copa.slots[5].push({p1:'', p2:'', w:null, res:''}); }
+  for(let i=0; i<2; i++) { copa.slots[2].push({p1:'', p2:'', w:null, res:''}); copa.slots[4].push({p1:'', p2:'', w:null, res:''}); }
+  copa.slots[3] = [ {p1:'', p2:'', w:null, res:''}, {p1:'', p2:'', w:null, res:''}, {p1:'', p2:'', w:null, res:''} ];
 }
 
 function buildOfficialATPTournament(players, size) {
   let fullList = [];
-  for(let i = 0; i < size; i++) {
-    fullList.push(players[i] || 'BYE');
-  }
+  for(let i = 0; i < size; i++) fullList.push(players[i] || 'BYE');
 
   if(size === 32) {
     const leftIndices =  [0, 31, 16, 15, 8, 23, 24, 7, 12, 19, 28, 3, 4, 27, 20, 11];
     const rightIndices = [2, 29, 18, 13, 10, 21, 26, 5, 14, 17, 30, 1, 6, 25, 22, 9];
 
     for(let i=0; i<8; i++) {
-      copa.slots[0][i] = { p1: fullList[leftIndices[i*2]], p2: fullList[leftIndices[i*2+1]], w: null };
-      copa.slots[6][i] = { p1: fullList[rightIndices[i*2]], p2: fullList[rightIndices[i*2+1]], w: null };
+      copa.slots[0][i] = { p1: fullList[leftIndices[i*2]], p2: fullList[leftIndices[i*2+1]], w: null, res:'' };
+      copa.slots[6][i] = { p1: fullList[rightIndices[i*2]], p2: fullList[rightIndices[i*2+1]], w: null, res:'' };
     }
     resolveByesForColumn(0, 1);
     resolveByesForColumn(6, 5);
@@ -243,8 +325,8 @@ function buildOfficialATPTournament(players, size) {
     const rightIndices = [2, 13, 10, 5, 6, 9, 14, 1];
 
     for(let i=0; i<4; i++) {
-      copa.slots[1][i] = { p1: fullList[leftIndices[i*2]], p2: fullList[leftIndices[i*2+1]], w: null };
-      copa.slots[5][i] = { p1: fullList[rightIndices[i*2]], p2: fullList[rightIndices[i*2+1]], w: null };
+      copa.slots[1][i] = { p1: fullList[leftIndices[i*2]], p2: fullList[leftIndices[i*2+1]], w: null, res:'' };
+      copa.slots[5][i] = { p1: fullList[rightIndices[i*2]], p2: fullList[rightIndices[i*2+1]], w: null, res:'' };
     }
     resolveByesForColumn(1, 2);
     resolveByesForColumn(5, 4);
@@ -275,19 +357,38 @@ function selectMatch(col, row) {
   const m = copa.slots[col][row];
   if(!m || m.p1 === 'BYE' || m.p2 === 'BYE' || (!m.p1 && !m.p2)) return;
   copa.activeCell = { col, row };
+  goalsP1 = 0;
+  goalsP2 = 0;
   renderMatchController();
   render();
 }
 
-function submitWinner(winnerKey) {
+function changeGoal(player, amount) {
+  if(player === 1) goalsP1 = Math.max(0, Math.min(3, goalsP1 + amount));
+  else goalsP2 = Math.max(0, Math.min(3, goalsP2 + amount));
+  
+  const el1 = document.getElementById('valP1');
+  const el2 = document.getElementById('valP2');
+  if(el1) el1.textContent = goalsP1;
+  if(el2) el2.textContent = goalsP2;
+}
+
+function submitMatchScore() {
   if(!copa.activeCell) return;
+  if(goalsP1 === goalsP2) {
+    alert("En eliminatorias directas no puede haber empate. Debe ganar uno.");
+    return;
+  }
   
   pushToHistory();
 
   const { col, row } = copa.activeCell;
   const match = copa.slots[col][row];
   
+  const winnerKey = goalsP1 > goalsP2 ? 'p1' : 'p2';
   match.w = winnerKey;
+  match.res = `${goalsP1}-${goalsP2}`;
+  
   const winnerName = match[winnerKey];
   
   if(copa.size === 32) {
@@ -308,7 +409,7 @@ function submitWinner(winnerKey) {
 
   copa.activeCell = null;
   save(); render();
-  document.getElementById('activeMatchContent').innerHTML = `<span style="color:var(--ok); font-weight:bold;">¡Avanza ${winnerName}!</span>`;
+  document.getElementById('activeMatchContent').innerHTML = `<span style="color:var(--ok); font-weight:bold;">¡Avanza ${winnerName} (${match.res})!</span>`;
 }
 
 function pushToHistory() {
@@ -318,16 +419,10 @@ function pushToHistory() {
 
 document.getElementById('btnUndoMatch').onclick = () => {
   if(copaHistory.length === 0) return;
-  
-  const previousState = copaHistory.pop();
-  copa = JSON.parse(previousState);
+  copa = JSON.parse(copaHistory.pop());
   copa.activeCell = null;
-  
   updateUndoButtonState();
-  save(); 
-  render();
-  
-  document.getElementById('activeMatchContent').innerHTML = `<span style="color:var(--gold); font-weight:bold;">↩️ Último partido deshecho con éxito.</span>`;
+  save(); render();
 };
 
 function updateUndoButtonState() {
@@ -347,12 +442,27 @@ function renderMatchController() {
   const m = copa.slots[copa.activeCell.col][copa.activeCell.row];
   
   box.innerHTML = `
-    <div style="font-size:11px; color:var(--gold); font-weight:bold; margin-bottom:8px; text-transform:uppercase;">Partido Activo</div>
-    <div style="display:flex; justify-content:center; gap:15px; align-items:center;">
-      <button class="btn-player" onclick="submitWinner('p1')">${m.p1 || '???'}</button>
+    <div style="font-size:11px; color:var(--gold); font-weight:bold; margin-bottom:10px; text-transform:uppercase;">Partido Activo</div>
+    <div style="display:flex; justify-content:center; gap:12px; align-items:center;">
+      <div class="goal-ctrl">
+        <span>${m.p1 || '???'}</span>
+        <div style="display:flex; align-items:center; gap:4px;">
+          <button class="btn-counter" onclick="changeGoal(1, -1)">-</button>
+          <span class="counter-value" id="valP1">${goalsP1}</span>
+          <button class="btn-counter" onclick="changeGoal(1, 1)">+</button>
+        </div>
+      </div>
       <div style="font-weight:bold; font-size:12px; color:var(--muted);">VS</div>
-      <button class="btn-player" onclick="submitWinner('p2')">${m.p2 || '???'}</button>
+      <div class="goal-ctrl">
+        <span>${m.p2 || '???'}</span>
+        <div style="display:flex; align-items:center; gap:4px;">
+          <button class="btn-counter" onclick="changeGoal(2, -1)">-</button>
+          <span class="counter-value" id="valP2">${goalsP2}</span>
+          <button class="btn-counter" onclick="changeGoal(2, 1)">+</button>
+        </div>
+      </div>
     </div>
+    <button class="btn-pri" style="width:100%; margin-top:10px;" onclick="submitMatchScore()">⚽ Registrar Marcador</button>
   `;
 }
 
@@ -371,16 +481,14 @@ function render() {
 
     if(c === 3) {
       colDiv.appendChild(createMatchDOM(3, 0, "Semifinal Izquierda (Vence Rama Izq)"));
-      
       const cup = document.createElement('div'); cup.className = 'center-cup';
       const fMatch = copa.slots[3][2];
       if(fMatch && fMatch.w) {
-        cup.innerHTML = `<span style="font-size:24px;">🏆</span><br><b style="color:var(--gold); font-size:13px;">${fMatch[fMatch.w]}</b><br><span style="font-size:10px; color:var(--ok); font-weight:bold;">¡CAMPEÓN!</span>`;
+        cup.innerHTML = `<span style="font-size:24px;">🏆</span><br><b style="color:var(--gold); font-size:13px;">${fMatch[fMatch.w]}</b><br><span style="font-size:10px; color:var(--ok); font-weight:bold;">¡CAMPEÓN! (${fMatch.res})</span>`;
       } else {
         cup.innerHTML = `<span style="font-size:20px;">🏆</span><br><span style="font-size:10px; color:var(--muted)">Copa Six Seven</span>`;
       }
       colDiv.appendChild(cup);
-      
       colDiv.appendChild(createMatchDOM(3, 1, "Semifinal Derecha (Vence Rama Der)"));
       colDiv.appendChild(createMatchDOM(3, 2, "👑 GRAN FINAL"));
     } else {
@@ -396,14 +504,16 @@ function createMatchDOM(c, r, labelCustom = "") {
   if(copa.activeCell && copa.activeCell.col === c && copa.activeCell.row === r) div.className += ' active-selection';
   
   const label = labelCustom ? `<div style="font-size:9px; color:var(--muted); text-align:center; margin-bottom:2px;">${labelCustom}</div>` : '';
-  
   let p1Class = m.w === 'p1' ? 'winner' : (m.p1 === 'BYE' ? 'bye' : '');
   let p2Class = m.w === 'p2' ? 'winner' : (m.p2 === 'BYE' ? 'bye' : '');
+  
+  const resBadge = m.res ? `<span style="font-size:10px; color:var(--gold); font-weight:bold; margin-left:4px;">[${m.res}]</span>` : '';
   
   div.innerHTML = `
     ${label}
     <div class="p-slot ${p1Class}"><span>${m.p1 || '---'}</span> ${m.w === 'p1' ? '⚡':''}</div>
     <div class="p-slot ${p2Class}"><span>${m.p2 || '---'}</span> ${m.w === 'p2' ? '⚡':''}</div>
+    ${resBadge ? `<div style="text-align:right; padding-right:6px;">${resBadge}</div>` : ''}
   `;
   
   if(m.p1 !== 'BYE' && m.p2 !== 'BYE' && (m.p1 || m.p2)) {
@@ -412,15 +522,13 @@ function createMatchDOM(c, r, labelCustom = "") {
   return div;
 }
 
-function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(copa)); }
-function load() { const raw = localStorage.getItem(STORAGE_KEY); if(raw) { copa = JSON.parse(raw); render(); } }
-
 document.getElementById('btnExport').onclick = () => {
-  // Guardamos también el historial actual en el archivo JSON exportado para recuperarlo si hiciera falta
   const exportObject = { ...copa, historyPool: copaHistory };
   const blob = new Blob([JSON.stringify(exportObject, null, 2)], {type: 'application/json'});
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `copa_${copa.className}.json`; a.click();
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = '01b_copa.json'; a.click();
 };
+
+document.getElementById('reloadFromDriveBtn').onclick = () => { initDataCascade(); };
 
 document.getElementById('btnReset').onclick = () => {
   if(confirm("¿Reiniciar la Copa por completo?")) {
@@ -433,7 +541,7 @@ document.getElementById('btnReset').onclick = () => {
   }
 };
 
-load();
+initDataCascade();
 </script>
 </body>
 </html>
