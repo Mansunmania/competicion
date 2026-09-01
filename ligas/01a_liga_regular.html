@@ -173,7 +173,7 @@
 
 <script>
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzUIijdWpsEB1Yr2VYRrIsozuyXgS4Q32fXb1o7Yn-L1n2S1T6Z00_e7iW72rA-5yW0/exec';
-const DEFAULT_FILENAME = '01a_liga_regular.json';
+const DEFAULT_FILENAME = '01a_liga.json';
 const STORAGE_KEY = 'leagueboard_classroom_data_v4_goals';
 
 let memoryStore = '';
@@ -639,7 +639,7 @@ document.getElementById('resetBoard').onclick=()=>{
 
 document.getElementById('exportData').onclick=()=>{
   const blob=new Blob([JSON.stringify(app,null,2)],{type:'application/json'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='01a_liga_regular.json'; a.click();
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='01a_liga.json'; a.click();
 };
 
 document.getElementById('reloadFromDriveBtn').onclick=()=>{ initDataCascade(); };
