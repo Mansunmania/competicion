@@ -412,20 +412,6 @@ async function onClassChange() {
   }
 }
 
-  const localData = localStorage.getItem(STORAGE_PREFIX + classId);
-  if (localData) {
-    copa = JSON.parse(localData);
-    markSaved();
-    render();
-    document.getElementById('activeMatchContent').innerHTML = `Copa cargada para ${copa.className}.`;
-  } else {
-    const targetClass = (rawLigaData.classes || rawLigaData.clases || []).find(c => c.id == classId);
-    copa = { classId, className: targetClass ? (targetClass.name || targetClass.nombre) : 'Clase', size: 32, slots: {}, activeCell: null };
-    document.getElementById('bracketLayout').innerHTML = '';
-    document.getElementById('activeMatchContent').innerHTML = 'Haz clic en "⚔️ Sorteo ATP Real" para generar la Copa de esta clase.';
-  }
-}
-
 document.getElementById('jsonFile').addEventListener('change', async (e) => {
   const file = e.target.files[0]; if(!file) return;
   try {
