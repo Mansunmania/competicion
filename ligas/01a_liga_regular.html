@@ -598,27 +598,26 @@ document.getElementById('triggerPromotions').onclick=()=>{
 };
 
 function renderForm(){
-  const board=currentBoard(); if(!board) return;
-  document.getElementById('studentsInput').value=board.students.join('\n');
-  document.getElementById('renameBoard').value=board.name;
-  document.getElementById('participantCount').value=board.desiredParticipants||4;
+  const board = currentBoard(); if(!board) return;
+  document.getElementById('studentsInput').value = board.students.join('\n');
+  document.getElementById('renameBoard').value = board.name;
 }
 
 function render(){ renderClassSelector(); renderTabs(); renderForm(); renderStandings(); renderPending(); renderMatch(); }
 
-// 1. Guardar renombra la división directamente:
 document.getElementById('saveBoardConfig').onclick = () => {
   const board = currentBoard(); if(!board) return;
   board.name = document.getElementById('renameBoard').value.trim();
   save(); render();
 };
 
-// 2. Al rellenar el formulario (renderForm), quita la referencia a participantCount:
-function renderForm(){
-  const board = currentBoard(); if(!board) return;
-  document.getElementById('studentsInput').value = board.students.join('\n');
-  document.getElementById('renameBoard').value = board.name;
-}
+document.getElementById('saveStudents').onclick=()=>{
+  const board=currentBoard(); if(!board) return;
+  pushToHistory();
+  const raw=document.getElementById('studentsInput').value;
+  board.students=raw.split('\n').map(s=>s.trim()).filter(Boolean);
+  save(); render();
+};
 
 document.getElementById('generateMatches').onclick=()=>{
   const board=currentBoard(); if(!board) return;
