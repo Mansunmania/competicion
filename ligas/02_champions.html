@@ -20,7 +20,7 @@
     
     .status-bar {
       margin-bottom: 12px; padding: 10px 14px; background: var(--card); border: 1px solid var(--line);
-      border-radius: 10px; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: space-between;
+      border-radius: 10px; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
     }
     .badge { padding: 3px 8px; border-radius: 6px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
     .badge-drive { background: #064e3b; color: #6ee7b7; border: 1px solid #047857; }
@@ -64,7 +64,7 @@
 
     .muted-box { background: #0f172a; border: 1px dashed var(--line); padding: 12px; border-radius: 10px; text-align: center; font-size: 13px; color: var(--muted); }
     
-    .list { display: flex; flex-direction: column; gap: 6px; max-height: 50vh; overflow-y: auto; }
+    .list { display: flex; flex-direction: column; gap: 6px; max-height: 40vh; overflow-y: auto; }
     .item { display: flex; gap: 8px; align-items: center; justify-content: space-between; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; background: #0f172a; cursor: pointer; }
     .item:hover { border-color: var(--pri); }
     .pill { font-size: 10px; padding: 3px 6px; border-radius: 99px; background: #1e3a8a; color: #93c5fd; }
@@ -72,6 +72,13 @@
     .class-checkboxes { display: flex; flex-direction: column; gap: 4px; max-height: 100px; overflow-y: auto; background: #0f172a; padding: 6px; border-radius: 6px; border: 1px solid var(--line); margin-top: 4px; }
     .class-checkboxes label { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #fff; cursor: pointer; }
     .class-checkboxes input { width: auto; }
+
+    /* Estilos del Cuadro de Playoffs */
+    .playoffs-bracket { display: flex; flex-direction: column; gap: 10px; background: #0b1329; border: 1px solid var(--gold); border-radius: 12px; padding: 12px; margin-bottom: 14px; }
+    .bracket-match { background: #1e293b; border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+    .bracket-match:hover { border-color: var(--gold); }
+    .bracket-match.active { border-color: var(--ok); background: #0f291e; }
+    .bracket-title { font-size: 11px; font-weight: bold; color: var(--gold); text-transform: uppercase; margin-bottom: 4px; }
 
     .winner-card { background: linear-gradient(135deg, #1e1b4b, #312e81); border: 2px solid var(--gold); border-radius: 12px; padding: 16px; text-align: center; margin-bottom: 12px; }
     .winner-title { font-size: 20px; font-weight: 900; color: var(--gold); margin-bottom: 4px; text-transform: uppercase; }
@@ -94,10 +101,17 @@
 <div class="wrap">
 
   <div class="status-bar">
-    <div>Estado Champions: <span id="dataSourceBadge" class="badge badge-local">Cargando...</span></div>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <label style="margin:0; color:#fff;">Categoría:</label>
+      <select id="courseSelector" style="width:auto; padding:4px 8px;" onchange="switchCourse(this.value)">
+        <option value="5">5º Ed. Primaria</option>
+        <option value="6">6º Ed. Primaria</option>
+      </select>
+      <span id="dataSourceBadge" class="badge badge-local">Cargando...</span>
+    </div>
     <div style="display:flex; gap:8px;">
       <button class="btn secondary" style="font-size:11px;" id="exportBtn">💾 Exportar JSON</button>
-      <button class="btn secondary" style="font-size:11px;" onclick="document.getElementById('importChampionsFile').click()">📂 Cargar JSON</button>
+      <button class="btn secondary" style="font-size:11px;" onclick="triggerImport()">📂 Cargar JSON</button>
       <input type="file" id="importChampionsFile" accept="application/json" style="display:none" />
     </div>
   </div>
@@ -150,13 +164,22 @@
     </div>
 
     <div style="display:flex; flex-direction:column; gap:14px;">
+      
+      <!-- Cuadro Independiente de Playoffs -->
       <div class="panel">
-        <div class="section-title">Partido en Curso / Playoffs</div>
+        <div class="section-title">Cuadro de Fase Final (Playoffs)</div>
+        <div id="playoffsBox" class="playoffs-bracket">
+          <div class="muted-box">Completa la Fase de Liga para activar los Playoffs.</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="section-title">Partido en Curso</div>
         <div id="matchBox" class="muted-box">No hay partido activo.</div>
       </div>
 
       <div class="panel">
-        <div class="section-title">Calendario del Torneo</div>
+        <div class="section-title">Calendario Fase de Liga</div>
         <div id="matchesList" class="list"></div>
       </div>
     </div>
@@ -166,16 +189,8 @@
 
 <script>
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzUIijdWpsEBlYr2VYRrIsozuyXgS4Q32fkzuYxG-szocv4pb5-KLiaVDgH4tErXTUzbA/exec';
-const CHAMPIONS_STORAGE_KEY = 'leagueboard_02_champions_data_v1';
-const LIGA_FILENAME = '01a_liga.json';
 
-let championsData = {
-  students: [],
-  matches: [],
-  currentMatchId: null,
-  playoffsGenerated: false
-};
-
+let currentCourse = '5';
 let rawLigaData = null;
 let rawCupAData = null;
 let rawCupBData = null;
@@ -185,6 +200,15 @@ let championsHistory = [];
 let currentGoalsA = 0;
 let currentGoalsB = 0;
 
+let championsData = {
+  students: [],
+  matches: [],
+  currentMatchId: null,
+  playoffsGenerated: false
+};
+
+function getStorageKey() { return `leagueboard_02_champions_data_v1_${currentCourse}`; }
+function getDriveFilename() { return `02_champions_${currentCourse}.json`; }
 function uid(){ return Math.random().toString(36).slice(2,10); }
 
 window.addEventListener('beforeunload', (e) => {
@@ -193,6 +217,13 @@ window.addEventListener('beforeunload', (e) => {
 
 function markUnsaved() { isUnsaved = true; }
 function markSaved() { isUnsaved = false; }
+
+function checkUnsavedGuard() {
+  if (isUnsaved) {
+    return confirm("Tienes cambios sin guardar en esta Champions. ¿Seguro que deseas continuar sin guardar?");
+  }
+  return true;
+}
 
 function pushToHistory() {
   championsHistory.push(JSON.stringify(championsData));
@@ -325,16 +356,46 @@ function updateBadge(type, label) {
 }
 
 function saveChampions() {
-  localStorage.setItem(CHAMPIONS_STORAGE_KEY, JSON.stringify(championsData));
+  localStorage.setItem(getStorageKey(), JSON.stringify(championsData));
+}
+
+async function switchCourse(newCourse) {
+  if (!checkUnsavedGuard()) {
+    document.getElementById('courseSelector').value = currentCourse;
+    return;
+  }
+  currentCourse = newCourse;
+  markSaved();
+  await initApp();
 }
 
 async function initApp() {
-  const saved = localStorage.getItem(CHAMPIONS_STORAGE_KEY);
-  if (saved) {
-    try {
-      championsData = JSON.parse(saved);
-      updateBadge('local', '💾 Champions en curso');
-    } catch(e){}
+  let loadedFromDrive = false;
+
+  // Prioridad 1: Intentar cargar desde Google Drive
+  try {
+    const res = await fetch(`${APPS_SCRIPT_URL}?file=${getDriveFilename()}`, { method: 'GET', redirect: 'follow' });
+    const result = await res.json();
+    if (result.success && result.data) {
+      championsData = result.data;
+      loadedFromDrive = true;
+      updateBadge('drive', '☁️ Drive (Actualizado)');
+      saveChampions();
+    }
+  } catch(e) {}
+
+  // Prioridad 2: Respaldo local si falle Drive
+  if (!loadedFromDrive) {
+    const saved = localStorage.getItem(getStorageKey());
+    if (saved) {
+      try {
+        championsData = JSON.parse(saved);
+        updateBadge('local', '💾 Local (Sin Drive)');
+      } catch(e){}
+    } else {
+      championsData = { students: [], matches: [], currentMatchId: null, playoffsGenerated: false };
+      updateBadge('local', 'Sin datos');
+    }
   }
 
   await fetchLigaData();
@@ -345,7 +406,7 @@ async function fetchLigaData() {
   const container = document.getElementById('classSelectorBox');
   container.innerHTML = 'Cargando clases...';
   try {
-    const res = await fetch(`${APPS_SCRIPT_URL}?file=${LIGA_FILENAME}`, { method: 'GET', redirect: 'follow' });
+    const res = await fetch(`${APPS_SCRIPT_URL}?file=01a_liga.json`, { method: 'GET', redirect: 'follow' });
     const result = await res.json();
     if (result.success && result.data) {
       rawLigaData = result.data;
@@ -403,16 +464,19 @@ document.getElementById('btnCompute').onclick = () => {
     if (!board) return;
 
     const ranked = recalcBoard(board);
-    const top3 = ranked.slice(0, 3).map(r => r.name);
-    finalQualified.push(...top3);
+    // Tomar estrictamente los TOP 3 de la Liga
+    const top3Liga = ranked.slice(0, 3).map(r => r.name);
+    finalQualified.push(...top3Liga);
 
+    // Resolver Plaza de Copa
     const cupData = (idx === 0) ? rawCupAData : rawCupBData;
     let cupSlot = null;
 
     if (cupData && cupData.matches) {
-      cupSlot = resolveCupSlot(cupData, top3);
+      cupSlot = resolveCupSlot(cupData, top3Liga);
     }
 
+    // Si la copa no aporta plaza nueva, pasa al 4º clasificado de la Liga
     if (!cupSlot && ranked.length >= 4) {
       cupSlot = ranked[3].name;
     }
@@ -505,6 +569,7 @@ function renderAll() {
   checkAndGeneratePlayoffs();
   renderStandings();
   renderPendingMatches();
+  renderPlayoffsBracket();
   renderCurrentMatch();
 }
 
@@ -594,14 +659,16 @@ function renderStandings() {
 
 function renderPendingMatches() {
   const box = document.getElementById('matchesList'); box.innerHTML = '';
-  if (!championsData.matches.length) {
+  const leagueMatches = championsData.matches.filter(m => m.type === 'league');
+
+  if (!leagueMatches.length) {
     box.innerHTML = '<div class="muted-box">Calcula e inicia la Champions para ver el calendario.</div>';
     return;
   }
 
   let currentRoundGroup = '';
-  championsData.matches.forEach(m => {
-    const groupLabel = typeof m.round === 'number' ? `JORNADA ${m.round}` : m.round;
+  leagueMatches.forEach(m => {
+    const groupLabel = `JORNADA ${m.round}`;
     if (groupLabel !== currentRoundGroup) {
       currentRoundGroup = groupLabel;
       const title = document.createElement('div');
@@ -614,7 +681,7 @@ function renderPendingMatches() {
     if (m.result) div.style.opacity = '0.5';
 
     div.innerHTML = `
-      <div><strong>${m.a} vs ${m.b}</strong> ${m.name ? `<small>(${m.name})</small>` : ''}</div>
+      <div><strong>${m.a} vs ${m.b}</strong></div>
       <div>${m.result ? `<span style="color:var(--ok); font-weight:bold;">${m.result}</span>` : `<span class="pill">Jugar</span>`}</div>
     `;
 
@@ -627,6 +694,45 @@ function renderPendingMatches() {
       };
     }
     box.appendChild(div);
+  });
+}
+
+function renderPlayoffsBracket() {
+  const container = document.getElementById('playoffsBox');
+  const playoffMatches = championsData.matches.filter(m => m.type === 'playoff');
+
+  if (!playoffMatches.length) {
+    container.innerHTML = '<div class="muted-box">Completa la Fase de Liga para activar los Playoffs.</div>';
+    return;
+  }
+
+  container.innerHTML = '';
+
+  playoffMatches.forEach(m => {
+    const isActive = championsData.currentMatchId === m.id;
+    const div = document.createElement('div');
+    div.className = `bracket-match ${isActive ? 'active' : ''}`;
+
+    div.innerHTML = `
+      <div>
+        <div class="bracket-title">${m.name}</div>
+        <div style="font-size:13px; font-weight:bold; color:#fff;">${m.a} vs ${m.b}</div>
+      </div>
+      <div>
+        ${m.result ? `<span style="font-size:14px; font-weight:800; color:var(--gold);">${m.result}</span>` : `<span class="pill">Jugar</span>`}
+      </div>
+    `;
+
+    if (!m.result) {
+      div.onclick = () => {
+        championsData.currentMatchId = m.id;
+        currentGoalsA = 0; currentGoalsB = 0;
+        saveChampions();
+        renderAll();
+      };
+    }
+
+    container.appendChild(div);
   });
 }
 
@@ -665,7 +771,7 @@ function renderCurrentMatch() {
         
         <div class="video-container">
           <iframe 
-            src="https://www.youtube.com/embed/M1PeoghJUMI?autoplay=1&loop=1&playlist=M1PeoghJUMI" 
+            src="https://www.youtube.com/embed/M1PeoghJUMI" 
             title="Every UCL Champion and Trophy Lift This Century" 
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
             allowfullscreen>
@@ -750,16 +856,22 @@ function renderCurrentMatch() {
 
 document.getElementById('exportBtn').onclick = () => {
   const blob = new Blob([JSON.stringify(championsData, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = '02_champions.json'; a.click();
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = getDriveFilename(); a.click();
   markSaved();
 };
+
+function triggerImport() {
+  if (checkUnsavedGuard()) {
+    document.getElementById('importChampionsFile').click();
+  }
+}
 
 document.getElementById('importChampionsFile').addEventListener('change', async (e) => {
   const file = e.target.files[0]; if (!file) return;
   try {
     championsData = JSON.parse(await file.text());
-    markSaved(); saveChampions(); renderAll(); alert('Champions cargada.');
-  } catch(err) { alert('Archivo no válido.'); }
+    markSaved(); saveChampions(); renderAll(); alert('Champions cargada con éxito.');
+  } catch(err) { alert('Archivo JSON no válido.'); }
   e.target.value = '';
 });
 
