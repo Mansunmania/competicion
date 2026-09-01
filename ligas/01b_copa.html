@@ -67,9 +67,46 @@
     .center-cup.active-selection { border: 2px solid var(--gold); background: rgba(255,209,102,0.15); }
     .final-slot { font-size: 15px; font-weight: bold; padding: 8px; margin: 4px 0; border-radius: 6px; background: #0b1329; border: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
     .final-slot.winner { color: var(--ok); border-color: var(--ok); }
+
+    /* CANVAS DE CONFETI SUPERPUESTO */
+    #confettiCanvas {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      pointer-events: none; z-index: 999; display: none;
+    }
+
+    /* MODAL DEL VÍDEO DE CELEBRACIÓN */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0, 0, 0, 0.85); display: flex; align-items: center; justify-content: center;
+      z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.3s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: auto; }
+    .modal-box {
+      background: var(--card); border: 2px solid var(--gold); border-radius: 12px;
+      padding: 16px; width: 90%; max-width: 680px; text-align: center; position: relative;
+    }
+    .modal-box h2 { margin: 0 0 10px 0; color: var(--gold); font-size: 20px; }
+    .close-modal {
+      position: absolute; top: 10px; right: 14px; background: none; border: none;
+      color: var(--ink); font-size: 20px; cursor: pointer; padding: 0; height: auto;
+    }
   </style>
 </head>
 <body>
+
+<canvas id="confettiCanvas"></canvas>
+
+<div class="modal-overlay" id="videoModal">
+  <div class="modal-box">
+    <button class="close-modal" onclick="closeVideoModal()">✖</button>
+    <h2>🏆 ¡VICTORIA EN LA COPA! 🏆</h2>
+    <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 8px;">
+      <iframe id="youtubeIframe" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border:0;"
+        src="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen>
+      </iframe>
+    </div>
+  </div>
+</div>
 
 <header>
   <h1>🏆 COPA SIX SEVEN 🏆</h1>
@@ -136,6 +173,77 @@ let copa = {
   slots: {}, activeCell: null
 };
 
+// --- EFECTO DE CONFETI NATIVO ---
+let confettiAnimId = null;
+function triggerConfetti() {
+  const canvas = document.getElementById('confettiCanvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  canvas.style.display = 'block';
+
+  const particles = [];
+  const colors = ['#ffd166', '#ef476f', '#06d6a0', '#118ab2', '#073b4c', '#ffffff'];
+
+  for (let i = 0; i < 120; i++) {
+    particles.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height - canvas.height,
+      size: Math.random() * 8 + 4,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      vy: Math.random() * 3 + 2,
+      vx: Math.random() * 2 - 1,
+      rot: Math.random() * 360,
+      vRot: Math.random() * 6 - 3
+    });
+  }
+
+  const startTime = Date.now();
+
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles.forEach(p => {
+      p.y += p.vy;
+      p.x += p.vx;
+      p.rot += p.vRot;
+
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate((p.rot * Math.PI) / 180);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+      ctx.restore();
+
+      if (p.y > canvas.height) p.y = -10;
+    });
+
+    if (Date.now() - startTime < 6000) {
+      confettiAnimId = requestAnimationFrame(animate);
+    } else {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      canvas.style.display = 'none';
+    }
+  }
+
+  if (confettiAnimId) cancelAnimationFrame(confettiAnimId);
+  animate();
+}
+
+// --- MODAL DE VÍDEO YOUTUBE ---
+function openVideoModal() {
+  const modal = document.getElementById('videoModal');
+  const iframe = document.getElementById('youtubeIframe');
+  iframe.src = "https://www.youtube.com/embed/UAixsyx70AM?autoplay=1&start=72";
+  modal.classList.add('open');
+}
+
+function closeVideoModal() {
+  const modal = document.getElementById('videoModal');
+  const iframe = document.getElementById('youtubeIframe');
+  iframe.src = "";
+  modal.classList.remove('open');
+}
+
 // --- SINTETIZADOR DE SONIDO DE CELEBRACIÓN / OVACIÓN ---
 function playCheerSound() {
   try {
@@ -143,8 +251,7 @@ function playCheerSound() {
     if (!AudioCtx) return;
     const ctx = new AudioCtx();
 
-    // 1. Ruido blanco para simular aplausos colectivos
-    const bufferSize = ctx.sampleRate * 1.5; // 1.5 segundos
+    const bufferSize = ctx.sampleRate * 1.5;
     const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
     const output = buffer.getChannelData(0);
     for (let i = 0; i < bufferSize; i++) {
@@ -154,13 +261,11 @@ function playCheerSound() {
     const whiteNoise = ctx.createBufferSource();
     whiteNoise.buffer = buffer;
 
-    // Filtro para suavizar el ruido como multitud
     const filter = ctx.createBiquadFilter();
     filter.type = 'bandpass';
     filter.frequency.setValueAtTime(1000, ctx.currentTime);
     filter.Q.setValueAtTime(1.5, ctx.currentTime);
 
-    // Envolvente de volumen (fade in y fade out)
     const gainNode = ctx.createGain();
     gainNode.gain.setValueAtTime(0.01, ctx.currentTime);
     gainNode.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime + 0.2);
@@ -173,7 +278,6 @@ function playCheerSound() {
     whiteNoise.start();
     whiteNoise.stop(ctx.currentTime + 1.5);
 
-    // 2. Acorde triunfal de celebración (Do - Mi - Sol - Do)
     const notes = [523.25, 659.25, 783.99, 1046.50];
     notes.forEach((freq, idx) => {
       const osc = ctx.createOscillator();
@@ -193,11 +297,10 @@ function playCheerSound() {
       osc.stop(ctx.currentTime + idx * 0.08 + 0.6);
     });
   } catch (e) {
-    console.warn("Audio no soportado o bloqueado por interacción previa.", e);
+    console.warn("Audio bloqueado o no soportado.", e);
   }
 }
 
-// --- GENERADOR DE FECHA FORMATO YYMMDD ---
 function getFormattedYYMMDD() {
   const d = new Date();
   const yy = String(d.getFullYear()).slice(-2);
@@ -453,11 +556,11 @@ function submitMatchScore() {
     return;
   }
 
-  // Reproducir sonido de ovación / celebración
   playCheerSound();
 
   const { col, row } = copa.activeCell;
   const match = copa.slots[col][row];
+  const isFinal = (col === 3 && row === 2);
   
   undoStack.push({
     col, row,
@@ -493,7 +596,18 @@ function submitMatchScore() {
   markUnsaved();
   saveLocal(); 
   render();
-  document.getElementById('activeMatchContent').innerHTML = `<span style="color:var(--ok); font-weight:bold;">¡Avanza ${winnerName} (${match.res})!</span>`;
+
+  if(isFinal) {
+    document.getElementById('activeMatchContent').innerHTML = `
+      <div style="color:var(--gold); font-weight:bold; font-size:16px;">
+        🎉 ¡${winnerName} es el Campeón o Campeona de la Copa! 🎉
+      </div>
+    `;
+    triggerConfetti();
+    openVideoModal();
+  } else {
+    document.getElementById('activeMatchContent').innerHTML = `<span style="color:var(--ok); font-weight:bold;">¡Avanza ${winnerName} (${match.res})!</span>`;
+  }
 }
 
 document.getElementById('btnUndoMatch').onclick = () => {
@@ -571,11 +685,17 @@ function render() {
       cup.className = `center-cup ${isActiveFinal ? 'active-selection' : ''}`;
       
       if(fMatch.w) {
+        const runnerUpKey = fMatch.w === 'p1' ? 'p2' : 'p1';
+        const runnerUpName = fMatch[runnerUpKey];
+
         cup.innerHTML = `
-          <div style="font-size:30px; margin-bottom:5px;">🏆</div>
-          <div style="font-size:11px; color:var(--gold); font-weight:bold;">¡CAMPEÓN!</div>
-          <div style="font-size:18px; color:var(--ok); font-weight:bold; margin:4px 0;">${fMatch[fMatch.w]}</div>
-          <div style="font-size:11px; color:var(--muted);">Resultado: ${fMatch.res}</div>
+          <div style="font-size:30px; margin-bottom:2px;">🏆</div>
+          <div style="font-size:10px; color:var(--gold); font-weight:bold; text-transform:uppercase;">¡CAMPEÓN / CAMPEONA!</div>
+          <div style="font-size:18px; color:var(--ok); font-weight:bold; margin:2px 0;">${fMatch[fMatch.w]}</div>
+          <div style="font-size:11px; color:#94a3b8; margin-top:6px; border-top:1px dashed var(--line); padding-top:6px;">
+            🥈 Subcampeón/a: <strong style="color:var(--ink);">${runnerUpName}</strong>
+          </div>
+          <div style="font-size:10px; color:var(--muted); margin-top:4px;">Marcador: ${fMatch.res}</div>
         `;
       } else {
         cup.innerHTML = `
@@ -625,7 +745,6 @@ function createMatchDOM(c, r, labelCustom = "") {
   return div;
 }
 
-// Exportación formateada con fecha YYMMDD
 document.getElementById('btnExport').onclick = () => {
   if(!copa.classId) { alert("No hay copa para guardar."); return; }
   const blob = new Blob([JSON.stringify(copa, null, 2)], {type: 'application/json'});
