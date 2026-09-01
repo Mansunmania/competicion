@@ -11,9 +11,9 @@
       --warn: #d97706; --bad: #dc2626; --gold: #f59e0b; --silver: #94a3b8; --bronze: #b45309;
     }
     * { box-sizing: border-box; }
-    body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--ink); }
-    header { padding: 16px 20px; background: linear-gradient(135deg, var(--pri), var(--pri2)); color: #fff; }
-    header h1 { margin: 0; font-size: 22px; } header p { margin: 4px 0 0; opacity: 0.9; font-size: 14px; }
+    body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--ink); padding-bottom: 50px; }
+    header { padding: 16px 20px; background: linear-gradient(135deg, var(--pri), var(--pri2)); color: #fff; text-align: center; }
+    header h1 { margin: 0; font-size: 24px; letter-spacing: 1px; } header p { margin: 4px 0 0; opacity: 0.9; font-size: 14px; }
     .wrap { padding: 16px; max-width: 1400px; margin: 0 auto; }
     
     .status-bar {
@@ -30,7 +30,8 @@
     label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
     input, select, textarea, button { font: inherit; }
     input, select, textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
-    button { border: 0; border-radius: 10px; padding: 10px 14px; font-weight: 700; cursor: pointer; }
+    button { border: 0; border-radius: 10px; padding: 10px 14px; font-weight: 700; cursor: pointer; transition: opacity 0.2s; }
+    button:hover { opacity: 0.9; }
     .btn { background: var(--pri); color: #fff; }
     .btn.secondary { background: #e5eefc; color: #1746a2; }
     .btn.warn { background: #fff7ed; color: #9a3412; border: 1px solid #fed7aa; }
@@ -72,13 +73,87 @@
     .mini { padding: 4px 8px; font-size: 11px; }
     .tie-ctrl { display: inline-flex; gap: 2px; align-items: center; justify-content: center; }
     .btn-tie { padding: 1px 5px; font-size: 11px; border-radius: 4px; background: #f1f5f9; border: 1px solid var(--line); cursor: pointer; }
+
+    /* CANVAS CONFETI */
+    #confettiCanvas {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      pointer-events: none; z-index: 999; display: none;
+    }
+
+    /* MODAL FIN DE TEMPORADA */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(15, 23, 42, 0.85); display: flex; align-items: center; justify-content: center;
+      z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.3s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: auto; }
+    .modal-box {
+      background: #ffffff; border: 3px solid var(--gold); border-radius: 16px;
+      padding: 24px; width: 90%; max-width: 600px; text-align: center; position: relative;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    }
+    .modal-box h2 { margin: 0 0 16px 0; color: #1e293b; font-size: 22px; text-transform: uppercase; letter-spacing: 1px; }
+    .close-modal {
+      position: absolute; top: 12px; right: 16px; background: none; border: none;
+      color: #64748b; font-size: 22px; cursor: pointer; padding: 0; height: auto;
+    }
+    
+    .winner-rank-box { margin-bottom: 20px; display: flex; flex-direction: column; gap: 12px; align-items: center; }
+    .w-card { width: 100%; border-radius: 10px; padding: 10px; border: 1px solid var(--line); background: #f8fafc; }
+    .w-shrek { border-color: var(--gold); background: #fffbeb; }
+    .w-shrek .w-title { font-size: 13px; color: var(--bronze); font-weight: bold; }
+    .w-shrek .w-name { font-size: 26px; color: #b45309; font-weight: 900; }
+    
+    .w-donkey { border-color: #cbd5e1; background: #f1f5f9; }
+    .w-donkey .w-title { font-size: 12px; color: #475569; font-weight: bold; }
+    .w-donkey .w-name { font-size: 20px; color: #1e293b; font-weight: 800; }
+    
+    .w-simpson { border-color: #e2e8f0; background: #fafafa; }
+    .w-simpson .w-title { font-size: 11px; color: #64748b; font-weight: bold; }
+    .w-simpson .w-name { font-size: 16px; color: #334155; font-weight: 700; }
+
+    .champions-section {
+      background: #f0fdf4; border: 1px dashed var(--ok); border-radius: 10px; padding: 12px; margin-top: 10px;
+    }
+    .champions-title { font-size: 12px; font-weight: bold; color: #15803d; text-transform: uppercase; margin-bottom: 6px; }
+    .champions-list { font-size: 14px; font-weight: bold; color: #166534; }
   </style>
 </head>
 <body>
 
+<canvas id="confettiCanvas"></canvas>
+
+<!-- MODAL DE RESUMEN DE TEMPORADA -->
+<div class="modal-overlay" id="seasonModal">
+  <div class="modal-box">
+    <button class="close-modal" onclick="closeSeasonModal()">✖</button>
+    <h2>🏆 ¡TEMPORADA FINALIZADA! 🏆</h2>
+    
+    <div class="winner-rank-box">
+      <div class="w-card w-shrek">
+        <div class="w-title">🥇 CAMPEÓN/A SHREK Y FIONA</div>
+        <div class="w-name" id="winnerShrek">-</div>
+      </div>
+      <div class="w-card w-donkey">
+        <div class="w-title">🥈 CAMPEÓN/A DONKEY</div>
+        <div class="w-name" id="winnerDonkey">-</div>
+      </div>
+      <div class="w-card w-simpson">
+        <div class="w-title">🥉 CAMPEÓN/A BART Y LISA</div>
+        <div class="w-name" id="winnerSimpson">-</div>
+      </div>
+    </div>
+
+    <div class="champions-section">
+      <div class="champions-title">⭐ CLASIFICADOS PARA CHAMPIONS ⭐</div>
+      <div class="champions-list" id="championsList">-</div>
+    </div>
+  </div>
+</div>
+
 <header>
   <h1>LeagueBoard Classroom - Gestión de Ligas</h1>
-  <p>Control de ligas escolares por divisiones con sincronización continua.</p>
+  <p>Control de ligas escolares por divisiones con sincronización continua</p>
 </header>
 
 <div class="wrap">
@@ -113,18 +188,18 @@
       <div class="section-title">Divisiones</div>
       <div id="boardTabs" class="tabs"></div>
 
-<div class="section-title">Nombre División</div>
-<div class="row">
-  <input id="renameBoard" placeholder="Nombre división" />
-  <button class="btn secondary mini" id="saveBoardConfig">Renombrar</button>
-</div>
+      <div class="section-title">Nombre División</div>
+      <div class="row">
+        <input id="renameBoard" placeholder="Nombre división" />
+        <button class="btn secondary mini" id="saveBoardConfig">Renombrar</button>
+      </div>
       
       <div class="section-title">Alumnos (uno por línea)</div>
       <textarea id="studentsInput" rows="6"></textarea>
       
       <div class="row" style="margin-top:6px">
         <button class="btn ok mini" id="saveStudents">Guardar Lista</button>
-        <button class="btn warn mini" id="generateMatches">Generar Ligas</button>
+        <button class="btn warn mini" id="generateMatches">Generar Liga</button>
       </div>
       <div class="row" style="margin-top:6px">
         <button class="btn secondary mini" id="newRandomMatch">Sig. Partido</button>
@@ -180,11 +255,145 @@ let memoryStore = '';
 let app = { classes: [], boards: [], activeClassId: null, activeBoardId: null };
 const CATEGORY_NAMES = ["Shrek & Fiona", "Donkey", "Bart & Lisa Simpson"];
 let leagueHistory = [];
+let isUnsaved = false;
 
 let currentGoalsA = 0;
 let currentGoalsB = 0;
 
 function uid(){ return Math.random().toString(36).slice(2,10); }
+
+window.addEventListener('beforeunload', (e) => {
+  if (isUnsaved) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+
+function markUnsaved() { isUnsaved = true; }
+function markSaved() { isUnsaved = false; }
+
+// --- SINTETIZADOR DE SONIDO (WEB AUDIO API) ---
+function playMatchSound(isVictory) {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+
+    if (isVictory) {
+      // Sonido de victoria (secuencia triunfal de la copa)
+      const bufferSize = ctx.sampleRate * 1.2;
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const output = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
+
+      const whiteNoise = ctx.createBufferSource();
+      whiteNoise.buffer = buffer;
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(1000, ctx.currentTime);
+      filter.Q.setValueAtTime(1.5, ctx.currentTime);
+
+      const gainNode = ctx.createGain();
+      gainNode.gain.setValueAtTime(0.01, ctx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + 0.1);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.2);
+
+      whiteNoise.connect(filter); filter.connect(gainNode); gainNode.connect(ctx.destination);
+      whiteNoise.start(); whiteNoise.stop(ctx.currentTime + 1.2);
+
+      const notes = [523.25, 659.25, 783.99, 1046.50];
+      notes.forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const oscGain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.08);
+
+        oscGain.gain.setValueAtTime(0.01, ctx.currentTime + idx * 0.08);
+        oscGain.gain.exponentialRampToValueAtTime(0.15, ctx.currentTime + idx * 0.08 + 0.05);
+        oscGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.08 + 0.5);
+
+        osc.connect(oscGain); oscGain.connect(ctx.destination);
+        osc.start(ctx.currentTime + idx * 0.08); osc.stop(ctx.currentTime + idx * 0.08 + 0.5);
+      });
+    } else {
+      // Sonido de empate (tono de suspense / tensión)
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sawtooth';
+      
+      // Bajada dramática de frecuencia
+      osc.frequency.setValueAtTime(180, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(90, ctx.currentTime + 0.8);
+
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
+
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(); osc.stop(ctx.currentTime + 0.8);
+    }
+  } catch (e) { console.warn("Audio no soportado o bloqueado por navegador", e); }
+}
+
+// --- EFECTO DE CONFETI NATIVO ---
+let confettiAnimId = null;
+function triggerConfetti() {
+  const canvas = document.getElementById('confettiCanvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+  canvas.style.display = 'block';
+
+  const particles = [];
+  const colors = ['#f59e0b', '#2563eb', '#16a34a', '#dc2626', '#8b5cf6', '#ffffff'];
+
+  for (let i = 0; i < 120; i++) {
+    particles.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height - canvas.height,
+      size: Math.random() * 8 + 4,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      vy: Math.random() * 3 + 2,
+      vx: Math.random() * 2 - 1,
+      rot: Math.random() * 360,
+      vRot: Math.random() * 6 - 3
+    });
+  }
+
+  const startTime = Date.now();
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles.forEach(p => {
+      p.y += p.vy; p.x += p.vx; p.rot += p.vRot;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate((p.rot * Math.PI) / 180);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+      ctx.restore();
+      if (p.y > canvas.height) p.y = -10;
+    });
+
+    if (Date.now() - startTime < 6000) {
+      confettiAnimId = requestAnimationFrame(animate);
+    } else {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      canvas.style.display = 'none';
+    }
+  }
+  if (confettiAnimId) cancelAnimationFrame(confettiAnimId);
+  animate();
+}
+
+function openSeasonModal(c1, c2, c3, champions) {
+  document.getElementById('winnerShrek').textContent = c1 || '---';
+  document.getElementById('winnerDonkey').textContent = c2 || '---';
+  document.getElementById('winnerSimpson').textContent = c3 || '---';
+  document.getElementById('championsList').textContent = champions.length ? champions.join(' • ') : '---';
+  document.getElementById('seasonModal').classList.add('open');
+}
+
+function closeSeasonModal() {
+  document.getElementById('seasonModal').classList.remove('open');
+}
 
 function updateBadge(type, label) {
   const badge = document.getElementById('dataSourceBadge');
@@ -212,6 +421,7 @@ async function initDataCascade() {
       if (!app.activeClassId && app.classes.length > 0) app.activeClassId = app.classes[0].id;
       if (!app.activeBoardId) app.activeBoardId = currentClassBoards()[0]?.id || null;
       save();
+      markSaved();
       updateBadge('drive', '☁️ Cargado (Google Drive)');
       render();
       return;
@@ -226,6 +436,7 @@ async function initDataCascade() {
       const parsed = JSON.parse(raw);
       if (parsed && Array.isArray(parsed.classes)) {
         app = parsed;
+        markSaved();
         updateBadge('local', '💾 Cargado (Local / Caché)');
         render();
         return;
@@ -234,6 +445,7 @@ async function initDataCascade() {
   } catch (e) {}
 
   ensureDefault();
+  markSaved();
   updateBadge('local', '✨ Estructura Inicializada');
   render();
 }
@@ -312,7 +524,7 @@ document.getElementById('addSingleClassBtn').onclick = () => {
   app.activeClassId = newId;
   app.activeBoardId = currentClassBoards()[0]?.id || null;
   nameInput.value = '';
-  save(); render();
+  markUnsaved(); save(); render();
 };
 
 document.getElementById('deleteClassBtn').onclick = () => {
@@ -329,7 +541,7 @@ document.getElementById('deleteClassBtn').onclick = () => {
     app.boards = app.boards.filter(b => b.classId !== currentClass.id);
     app.activeClassId = app.classes[0].id;
     app.activeBoardId = currentClassBoards()[0]?.id || null;
-    save(); render();
+    markUnsaved(); save(); render();
   }
 };
 
@@ -343,7 +555,7 @@ document.getElementById('saveClassNameBtn').onclick = () => {
       b.name = b.name.includes(`(${oldName})`) ? b.name.replace(`(${oldName})`, `(${newName})`) : `${b.name.split(' (')[0]} (${newName})`;
     }
   });
-  save(); render();
+  markUnsaved(); save(); render();
 };
 
 function renderTabs(){
@@ -397,7 +609,7 @@ function modifyTiebreaker(studentName, amount) {
   if(!board.tieBreakers) board.tieBreakers = {};
   let currentVal = parseFloat(board.tieBreakers[studentName]) || 0;
   board.tieBreakers[studentName] = Math.round((currentVal + amount) * 10) / 10;
-  save(); render();
+  markUnsaved(); save(); render();
 }
 
 function renderStandings(){
@@ -551,7 +763,7 @@ function renderMatch(){
   document.getElementById('btnUndoAction').onclick=()=>{
     if(leagueHistory.length === 0) return;
     app = JSON.parse(leagueHistory.pop());
-    save(); render();
+    markUnsaved(); save(); render();
   };
   
   updateUndoButton();
@@ -561,8 +773,13 @@ function applyResult(resultString){
   const board=currentBoard(); const m=board.matches.find(x=>x.id===board.currentMatchId); if(!m) return;
   pushToHistory(); 
   m.result=resultString; board.currentMatchId=null; 
+
+  // Reproducir sonido según victoria o empate
+  const isVictory = currentGoalsA !== currentGoalsB;
+  playMatchSound(isVictory);
+
   currentGoalsA = 0; currentGoalsB = 0;
-  save(); render();
+  markUnsaved(); save(); render();
 }
 
 document.getElementById('triggerPromotions').onclick=()=>{
@@ -572,13 +789,24 @@ document.getElementById('triggerPromotions').onclick=()=>{
       alert(`Faltan partidos por jugar en la división: ${b.name.split(' (')[0]}`); return;
     }
   }
-  if(!confirm(`¿Consolidar cambios de temporada en esta clase?`)) return;
-  
-  pushToHistory(); 
 
+  // Extraer clasificaciones finales antes de modificar los grupos
   const standing1 = recalc(classBoards[0]).map(r => r.name); 
   const standing2 = recalc(classBoards[1]).map(r => r.name); 
   const standing3 = recalc(classBoards[2]).map(r => r.name); 
+
+  const champShrek = standing1[0] || 'N/A';
+  const champDonkey = standing2[0] || 'N/A';
+  const champSimpson = standing3[0] || 'N/A';
+  const championsQualified = standing1.slice(0, 3);
+
+  // Lanzar Confeti y abrir Modal Resumen de Campeones
+  triggerConfetti();
+  openSeasonModal(champShrek, champDonkey, champSimpson, championsQualified);
+
+  if(!confirm(`¿Consolidar cambios de temporada en esta clase?`)) return;
+  
+  pushToHistory(); 
 
   const bajanDePrimera = standing1.length >= 2 ? [standing1[standing1.length - 1], standing1[standing1.length - 2]] : [];
   const subenDeSegunda  = standing2.length >= 2 ? [standing2[0], standing2[1]] : [];
@@ -594,7 +822,7 @@ document.getElementById('triggerPromotions').onclick=()=>{
     b.matches = []; b.currentMatchId = null; b.tieBreakers = {}; 
     if(b.students.length >= 2){ b.matches = generateRoundRobinJourneys(b.students); b.currentMatchId = b.matches[0]?.id || null; }
   });
-  app.activeBoardId = classBoards[0].id; save(); render();
+  app.activeBoardId = classBoards[0].id; markUnsaved(); save(); render();
 };
 
 function renderForm(){
@@ -608,7 +836,7 @@ function render(){ renderClassSelector(); renderTabs(); renderForm(); renderStan
 document.getElementById('saveBoardConfig').onclick = () => {
   const board = currentBoard(); if(!board) return;
   board.name = document.getElementById('renameBoard').value.trim();
-  save(); render();
+  markUnsaved(); save(); render();
 };
 
 document.getElementById('saveStudents').onclick=()=>{
@@ -616,48 +844,16 @@ document.getElementById('saveStudents').onclick=()=>{
   pushToHistory();
   const raw=document.getElementById('studentsInput').value;
   board.students=raw.split('\n').map(s=>s.trim()).filter(Boolean);
-  save(); render();
+  markUnsaved(); save(); render();
 };
 
-document.getElementById('generateMatches').onclick = () => {
-  const classBoards = currentClassBoards();
-  if (!classBoards || classBoards.length === 0) return;
-
-  const currentClass = app.classes.find(c => c.id === app.activeClassId);
-  const className = currentClass ? currentClass.name : '';
-
-  // 1. Identificar divisiones sin alumnos suficientes (mínimo 2)
-  const emptyOrInvalidBoards = classBoards.filter(b => b.students.length < 2);
-  const validBoards = classBoards.filter(b => b.students.length >= 2);
-
-  if (validBoards.length === 0) {
-    alert(`No hay suficiente alumnado en ninguna división de ${className} para generar ligas (mínimo 2 por categoría).`);
-    return;
-  }
-
-  // 2. Notificar si alguna categoría está vacía o incompleta
-  if (emptyOrInvalidBoards.length > 0) {
-    const namesList = emptyOrInvalidBoards.map(b => `• ${b.name.split(' (')[0]}`).join('\n');
-    const proceed = confirm(
-      `Atención: Las siguientes divisiones no tienen alumnos suficientes (mínimo 2):\n\n${namesList}\n\n` +
-      `¿Deseas generar la liga únicamente para las divisiones que sí tienen alumnos registrados?`
-    );
-    if (!proceed) return;
-  } else {
-    if (!confirm(`¿Generar el calendario completo de partidos para TODAS las divisiones de ${className}?`)) return;
-  }
-
-  // 3. Guardar estado en el historial y procesar la generación masiva
-  pushToHistory();
-
-  validBoards.forEach(board => {
-    board.tieBreakers = {};
-    board.matches = generateRoundRobinJourneys(board.students);
-    board.currentMatchId = board.matches[0]?.id || null;
-  });
-
-  save();
-  render();
+document.getElementById('generateMatches').onclick=()=>{
+  const board=currentBoard(); if(!board) return;
+  if(board.students.length<2){alert('Añade alumnos.');return}
+  pushToHistory(); 
+  board.tieBreakers = {}; board.matches=generateRoundRobinJourneys(board.students);
+  board.currentMatchId=board.matches[0]?.id||null;
+  markUnsaved(); save(); render();
 };
 
 document.getElementById('newRandomMatch').onclick=()=>{
@@ -666,12 +862,13 @@ document.getElementById('newRandomMatch').onclick=()=>{
 };
 
 document.getElementById('resetBoard').onclick=()=>{
-  const board=currentBoard(); if(board && confirm('¿Resetear?')){ pushToHistory(); board.students=[]; board.matches=[]; board.currentMatchId=null; board.tieBreakers={}; save(); render(); }
+  const board=currentBoard(); if(board && confirm('¿Resetear?')){ pushToHistory(); board.students=[]; board.matches=[]; board.currentMatchId=null; board.tieBreakers={}; markUnsaved(); save(); render(); }
 };
 
 document.getElementById('exportData').onclick=()=>{
   const blob=new Blob([JSON.stringify(app,null,2)],{type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='01a_liga.json'; a.click();
+  markSaved();
 };
 
 document.getElementById('reloadFromDriveBtn').onclick=()=>{ initDataCascade(); };
@@ -684,7 +881,7 @@ document.getElementById('importFile').addEventListener('change', async (e)=>{
       app=data; 
       leagueHistory = []; 
       app.activeClassId=app.classes[0]?.id||null; app.activeBoardId=currentClassBoards()[0]?.id||null;
-      save(); render(); alert('Datos recuperados.');
+      markSaved(); save(); render(); alert('Datos recuperados.');
     }
   }catch(err){ alert('Archivo no compatible.'); }
   e.target.value='';
