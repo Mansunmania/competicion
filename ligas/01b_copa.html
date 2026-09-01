@@ -48,7 +48,7 @@
     .btn-counter:hover { background: var(--pri); }
     .counter-value { font-size: 16px; font-weight: bold; color: var(--gold); min-width: 20px; text-align: center; }
 
-    /* CUADRO ATP HACIA EL CENTRO */
+    /* CUADRO ATP */
     .bracket-container { display: grid; grid-template-columns: 1.2fr 1fr 1fr 1.3fr 1fr 1fr 1.2fr; gap: 10px; align-items: center; margin-top: 20px; min-width: 1200px; overflow-x: auto; }
     .round-col { display: flex; flex-direction: column; justify-content: space-around; height: 680px; }
     
@@ -63,8 +63,7 @@
     
     .round-title { text-align: center; font-size: 11px; font-weight: bold; color: var(--gold); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; background: #0f172a; padding: 4px; border-radius: 4px; }
     
-    /* RECUADRO CENTRAL DE LA FINAL DESTACADO */
-    .center-cup { text-align: center; background: rgba(255,209,102,0.05); border: 2px dashed var(--gold); padding: 12px; border-radius: 12px; margin: 10px 0; transition: all 0.3s; }
+    .center-cup { text-align: center; background: rgba(255,209,102,0.05); border: 2px dashed var(--gold); padding: 12px; border-radius: 12px; margin: 10px 0; transition: all 0.2s; }
     .center-cup.active-selection { border: 2px solid var(--gold); background: rgba(255,209,102,0.15); }
     .final-slot { font-size: 15px; font-weight: bold; padding: 8px; margin: 4px 0; border-radius: 6px; background: #0b1329; border: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
     .final-slot.winner { color: var(--ok); border-color: var(--ok); }
@@ -80,7 +79,7 @@
 <div class="wrap">
 
   <div class="status-bar">
-    <div>Estado de la Fuente de Datos: <span id="dataSourceBadge" class="badge badge-local">Cargando...</span></div>
+    <div>Estado: <span id="dataSourceBadge" class="badge badge-local">Cargando...</span></div>
     <button class="btn-sec" style="padding: 0 10px; font-size: 11px; height: 28px;" id="reloadFromDriveBtn">🔄 Cargar de Drive</button>
   </div>
   
@@ -98,10 +97,10 @@
     </div>
     <div style="display:flex; gap:8px; align-items:flex-end;">
       <div>
-        <button class="btn-sec" id="btnImportCopa" onclick="document.getElementById('jsonCopaFile').click()">📥 Cargar Copa</button>
+        <button class="btn-sec" id="btnImportCopa" onclick="document.getElementById('jsonCopaFile').click()">📥 Cargar Copa Aula</button>
         <input id="jsonCopaFile" type="file" accept="application/json" style="display:none;" />
       </div>
-      <button class="btn-sec" id="btnExport">💾 Guardar Copa</button>
+      <button class="btn-sec" id="btnExport">💾 Guardar Copa Aula</button>
       <button class="btn-bad" id="btnReset">Reset</button>
     </div>
   </div>
@@ -123,12 +122,10 @@
 <script>
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzUIijdWpsEBlYr2VYRrIsozuyXgS4Q32fkzuYxG-szocv4pb5-KLiaVDgH4tErXTUzbA/exec';
 const DEFAULT_LIGA_FILENAME = '01a_liga.json';
-const DEFAULT_COPA_FILENAME = '01b_copa.json';
-const STORAGE_KEY_COPA = 'classroom_copa_sixseven_v7';
+const STORAGE_PREFIX = 'copa_aula_v1_';
 
 let rawLigaData = null;
-let copaHistory = [];
-let memoryStore = '';
+let undoStack = []; // Historial ultra-ligero por deltas
 let isUnsaved = false;
 
 let goalsP1 = 0;
@@ -139,7 +136,6 @@ let copa = {
   slots: {}, activeCell: null
 };
 
-// Control de prevención de salida sin guardar[cite: 6]
 window.addEventListener('beforeunload', (e) => {
   if (isUnsaved) {
     e.preventDefault();
@@ -157,9 +153,9 @@ function updateBadge(type, label) {
   badge.textContent = label;
 }
 
-function save() {
-  const data = JSON.stringify(copa);
-  try { localStorage.setItem(`${STORAGE_KEY_COPA}_${copa.classId}`, data); } catch(e) { memoryStore = data; }
+function saveLocal() {
+  if(!copa.classId) return;
+  try { localStorage.setItem(STORAGE_PREFIX + copa.classId, JSON.stringify(copa)); } catch(e){}
 }
 
 async function fetchFromDrive(filename) {
@@ -175,22 +171,11 @@ async function initDataCascade() {
     if (ligaData) {
       rawLigaData = ligaData;
       populateClassSelector();
+      updateBadge('drive', '☁️ Liga Sincronizada');
     }
-  } catch (err) { console.warn("No se pudo cargar la Liga desde Drive:", err); }
-
-  try {
-    const copaData = await fetchFromDrive(DEFAULT_COPA_FILENAME);
-    if (copaData && copaData.slots && copaData.className) {
-      copa = copaData;
-      document.getElementById('classSelector').value = copa.classId || '';
-      updateBadge('drive', '☁️ Cargado (Google Drive)');
-      markSaved();
-      render();
-      return;
-    }
-  } catch (err) { console.warn("No se pudo cargar la Copa desde Drive:", err); }
-
-  updateBadge('local', '✨ Selecciona un aula');
+  } catch (err) { 
+    updateBadge('local', '⚠️ Liga Offline / Local');
+  }
 }
 
 function populateClassSelector() {
@@ -199,8 +184,7 @@ function populateClassSelector() {
   const select = document.getElementById('classSelector');
   select.innerHTML = '<option value="">-- Elige un aula --</option>';
   
-  const sortedClasses = [...classesList].reverse();
-  sortedClasses.forEach(c => {
+  [...classesList].reverse().forEach(c => {
     let opt = document.createElement('option');
     opt.value = c.id;
     opt.textContent = c.name || c.nombre || c.id;
@@ -212,14 +196,22 @@ function onClassChange() {
   const classId = document.getElementById('classSelector').value;
   if (!classId) return;
 
-  const raw = localStorage.getItem(`${STORAGE_KEY_COPA}_${classId}`);
-  if (raw) {
-    copa = JSON.parse(raw);
+  undoStack = [];
+  updateUndoButtonState();
+
+  // Intentar cargar el archivo individual del aula desde localStorage
+  const localData = localStorage.getItem(STORAGE_PREFIX + classId);
+  if (localData) {
+    copa = JSON.parse(localData);
+    markSaved();
     render();
+    document.getElementById('activeMatchContent').innerHTML = `Copa cargada para ${copa.className}.`;
   } else {
-    copa = { classId, className: '', size: 32, slots: {}, activeCell: null };
+    // Si no hay datos guardados de esta aula, se prepara una estructura limpia
+    const targetClass = (rawLigaData.classes || rawLigaData.clases || []).find(c => c.id == classId);
+    copa = { classId, className: targetClass ? (targetClass.name || targetClass.nombre) : 'Clase', size: 32, slots: {}, activeCell: null };
     document.getElementById('bracketLayout').innerHTML = '';
-    document.getElementById('activeMatchContent').innerHTML = 'Pulsa "⚔️ Sorteo ATP Real" para generar el cuadro de esta clase.';
+    document.getElementById('activeMatchContent').innerHTML = 'Haz clic en "⚔️ Sorteo ATP Real" para generar la Copa de esta clase.';
   }
 }
 
@@ -228,7 +220,7 @@ document.getElementById('jsonFile').addEventListener('change', async (e) => {
   try {
     rawLigaData = JSON.parse(await file.text());
     populateClassSelector();
-    alert("¡Liga cargada con éxito!");
+    alert("¡Liga local cargada!");
   } catch(err) { alert("Archivo JSON no válido."); }
 });
 
@@ -236,18 +228,17 @@ document.getElementById('jsonCopaFile').addEventListener('change', async (e) => 
   const file = e.target.files[0]; if(!file) return;
   try {
     const importedData = JSON.parse(await file.text());
-    if(importedData && importedData.slots && importedData.className) {
+    if(importedData && importedData.slots && importedData.classId) {
       copa = importedData;
-      copaHistory = importedData.historyPool || [];
-      copa.activeCell = null;
+      undoStack = [];
       document.getElementById('classSelector').value = copa.classId || '';
       updateUndoButtonState();
-      save(); 
+      saveLocal(); 
       markSaved();
       render();
       alert(`Copa de "${copa.className}" cargada correctamente.`);
-    } else { alert("El archivo no es una Copa válida."); }
-  } catch(err) { alert("Error al leer la Copa."); }
+    } else { alert("El archivo no corresponde a una Copa de aula válida."); }
+  } catch(err) { alert("Error al abrir la Copa."); }
   e.target.value = '';
 });
 
@@ -255,16 +246,15 @@ document.getElementById('btnBuildCopa').onclick = () => {
   const classId = document.getElementById('classSelector').value;
   if(!rawLigaData || !classId) { alert("Selecciona una clase primero."); return; }
   
-  const classesList = rawLigaData.classes || rawLigaData.clases || [];
-  const targetClass = classesList.find(c => c.id == classId);
-  const className = targetClass ? (targetClass.name || targetClass.nombre || 'Clase') : 'Clase';
+  const targetClass = (rawLigaData.classes || rawLigaData.clases || []).find(c => c.id == classId);
+  const className = targetClass ? (targetClass.name || targetClass.nombre) : 'Clase';
   
   let studentsPool = extractOrderedStudents(classId);
-  if(studentsPool.length < 4) { alert("Alumnos insuficientes."); return; }
+  if(studentsPool.length < 4) { alert("No hay suficientes alumnos en esta clase."); return; }
   
   let size = studentsPool.length <= 16 ? 16 : 32;
   
-  copaHistory = [];
+  undoStack = [];
   updateUndoButtonState();
 
   copa = { classId, className, size, slots: {}, activeCell: null };
@@ -272,7 +262,8 @@ document.getElementById('btnBuildCopa').onclick = () => {
   buildOfficialATPTournament(studentsPool, size);
   
   markUnsaved();
-  save(); render();
+  saveLocal(); 
+  render();
 };
 
 function extractOrderedStudents(classId) {
@@ -286,15 +277,13 @@ function extractOrderedStudents(classId) {
       const students = board.students || board.alumnos || [];
       students.forEach(s => map[s] = { name: s, pts: 0, tie: parseFloat(board.tieBreakers?.[s]) || 0, gf: 0, gc: 0 });
       
-      const matches = board.matches || [];
-      matches.filter(m => m.result).forEach(m => {
+      (board.matches || []).filter(m => m.result).forEach(m => {
         if(!map[m.a] || !map[m.b]) return;
         const parts = m.result.split('-');
         const gA = parseInt(parts[0], 10) || 0;
         const gB = parseInt(parts[1], 10) || 0;
         
-        map[m.a].pts += gA;
-        map[m.b].pts += gB;
+        map[m.a].pts += gA; map[m.b].pts += gB;
         map[m.a].gf += gA; map[m.a].gc += gB;
         map[m.b].gf += gB; map[m.b].gc += gA;
       });
@@ -389,18 +378,26 @@ function changeGoal(player, amount) {
   if(el2) el2.textContent = goalsP2;
 }
 
+// Registro ultra-rápido de partidos
 function submitMatchScore() {
   if(!copa.activeCell) return;
   if(goalsP1 === goalsP2) {
     alert("En eliminatorias directas no puede haber empate.");
     return;
   }
-  
-  pushToHistory();
 
   const { col, row } = copa.activeCell;
   const match = copa.slots[col][row];
   
+  // Guardar cambio en pila ligera para Undo instantáneo
+  undoStack.push({
+    col, row,
+    prevW: match.w,
+    prevRes: match.res,
+    snapshot: JSON.parse(JSON.stringify(copa.slots))
+  });
+  updateUndoButtonState();
+
   const winnerKey = goalsP1 > goalsP2 ? 'p1' : 'p2';
   match.w = winnerKey;
   match.res = `${goalsP1}-${goalsP2}`;
@@ -425,29 +422,27 @@ function submitMatchScore() {
 
   copa.activeCell = null;
   markUnsaved();
-  save(); render();
+  saveLocal(); 
+  render();
   document.getElementById('activeMatchContent').innerHTML = `<span style="color:var(--ok); font-weight:bold;">¡Avanza ${winnerName} (${match.res})!</span>`;
 }
 
-function pushToHistory() {
-  copaHistory.push(JSON.stringify(copa));
-  updateUndoButtonState();
-}
-
 document.getElementById('btnUndoMatch').onclick = () => {
-  if(copaHistory.length === 0) return;
-  copa = JSON.parse(copaHistory.pop());
+  if(undoStack.length === 0) return;
+  const lastState = undoStack.pop();
+  copa.slots = lastState.snapshot;
   copa.activeCell = null;
   updateUndoButtonState();
   markUnsaved();
-  save(); render();
+  saveLocal(); 
+  render();
 };
 
 function updateUndoButtonState() {
   const btn = document.getElementById('btnUndoMatch');
-  if(copaHistory.length > 0) {
+  if(undoStack.length > 0) {
     btn.disabled = false;
-    btn.textContent = `↩️ Deshacer Último Partido (${copaHistory.length})`;
+    btn.textContent = `↩️ Deshacer Último Partido (${undoStack.length})`;
   } else {
     btn.disabled = true;
     btn.textContent = `↩️ Deshacer Último Partido`;
@@ -500,7 +495,6 @@ function render() {
     if(c === 3) {
       colDiv.appendChild(createMatchDOM(3, 0, "Semifinal Izquierda"));
       
-      // Bloque Central Destacado de la Final[cite: 6]
       const fMatch = copa.slots[3][2] || { p1: '', p2: '', w: null, res: '' };
       const isActiveFinal = copa.activeCell && copa.activeCell.col === 3 && copa.activeCell.row === 2;
       
@@ -512,7 +506,7 @@ function render() {
           <div style="font-size:30px; margin-bottom:5px;">🏆</div>
           <div style="font-size:11px; color:var(--gold); font-weight:bold;">¡CAMPEÓN!</div>
           <div style="font-size:18px; color:var(--ok); font-weight:bold; margin:4px 0;">${fMatch[fMatch.w]}</div>
-          <div style="font-size:11px; color:var(--muted);">Resultado Final: ${fMatch.res}</div>
+          <div style="font-size:11px; color:var(--muted);">Resultado: ${fMatch.res}</div>
         `;
       } else {
         cup.innerHTML = `
@@ -563,11 +557,11 @@ function createMatchDOM(c, r, labelCustom = "") {
 }
 
 document.getElementById('btnExport').onclick = () => {
-  const exportObject = { ...copa, historyPool: copaHistory };
-  const blob = new Blob([JSON.stringify(exportObject, null, 2)], {type: 'application/json'});
+  if(!copa.classId) { alert("No hay copa para guardar."); return; }
+  const blob = new Blob([JSON.stringify(copa, null, 2)], {type: 'application/json'});
   const a = document.createElement('a'); 
   a.href = URL.createObjectURL(blob); 
-  a.download = `01b_copa_${copa.className || 'export'}.json`; 
+  a.download = `01b_copa_${copa.className || copa.classId}.json`; 
   a.click();
   markSaved();
 };
@@ -575,12 +569,12 @@ document.getElementById('btnExport').onclick = () => {
 document.getElementById('reloadFromDriveBtn').onclick = () => { initDataCascade(); };
 
 document.getElementById('btnReset').onclick = () => {
-  if(confirm("¿Reiniciar la Copa por completo?")) {
+  if(confirm("¿Reiniciar la Copa de esta clase?")) {
     copa = { classId: copa.classId, className: copa.className, size:32, slots:{}, activeCell:null }; 
-    copaHistory = [];
+    undoStack = [];
     updateUndoButtonState();
     markUnsaved();
-    save();
+    saveLocal();
     document.getElementById('bracketLayout').innerHTML = '';
     document.getElementById('activeMatchContent').innerHTML = 'Copa reiniciada.';
   }
