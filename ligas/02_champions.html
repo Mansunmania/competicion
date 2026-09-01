@@ -3,457 +3,677 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Champions League Classroom - Control Manual</title>
+  <title>LeagueBoard Classroom - Champions League</title>
   <style>
     :root {
       --bg: #0f172a; --card: #1e293b; --ink: #f8fafc; --muted: #94a3b8;
-      --line: #334155; --pri: #3b82f6; --pri2: #1d4ed8; --ok: #10b981;
-      --warn: #f59e0b; --bad: #ef4444; --gold: #fbbf24;
+      --line: #334155; --pri: #3b82f6; --pri2: #1d4ed8; --ok: #22c55e;
+      --warn: #f59e0b; --bad: #ef4444; --gold: #fbbf24; --silver: #cbd5e1;
     }
     * { box-sizing: border-box; }
-    body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--ink); padding-bottom: 40px; }
-    header { padding: 20px; background: linear-gradient(135deg, #1e1b4b, #0f172a); border-bottom: 2px solid #312e81; text-align: center; }
-    header h1 { margin: 0; font-size: 26px; color: #fff; letter-spacing: 1px; }
-    header p { margin: 6px 0 0; color: var(--muted); font-size: 14px; }
+    body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--ink); padding-bottom: 50px; }
+    header { padding: 16px 20px; background: linear-gradient(135deg, #1e1b4b, #312e81, #1e3a8a); color: #fff; text-align: center; border-bottom: 2px solid var(--gold); }
+    header h1 { margin: 0; font-size: 24px; letter-spacing: 2px; text-transform: uppercase; color: var(--gold); } 
+    header p { margin: 4px 0 0; opacity: 0.9; font-size: 14px; }
+    
     .wrap { padding: 16px; max-width: 1400px; margin: 0 auto; }
     
-    .panel { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); margin-bottom: 16px; }
-    .toolbar { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; }
-    
-    label { display: block; font-size: 11px; font-weight: bold; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
-    textarea, button { font: inherit; }
-    textarea { width: 100%; background: #0f172a; border: 1px solid var(--line); color: #fff; border-radius: 8px; padding: 10px; font-family: monospace; resize: vertical; }
-    
-    button { border: 0; border-radius: 8px; padding: 10px 16px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
-    .btn-champions { background: linear-gradient(135deg, #dfa526, #b45309); color: #fff; }
-    .btn-champions:hover { opacity: 0.9; }
-    .btn-secondary { background: #334155; color: #fff; }
-    .btn-ok { background: var(--ok); color: #fff; }
-    .btn-bad { background: #7f1d1d; color: #fca5a5; border: 1px solid var(--bad); }
+    .status-bar {
+      margin-bottom: 12px; padding: 10px 14px; background: var(--card); border: 1px solid var(--line);
+      border-radius: 10px; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: space-between;
+    }
+    .badge { padding: 3px 8px; border-radius: 6px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .badge-drive { background: #064e3b; color: #6ee7b7; border: 1px solid #047857; }
+    .badge-local { background: #78350f; color: #fde047; border: 1px solid #b45309; }
 
-    .grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
-    @media (min-width: 1000px) { .grid { grid-template-columns: 1.3fr 1fr; } }
+    .grid-setup { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; margin-bottom: 16px; }
+    .panel { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px; box-shadow: 0 4px 12px rgba(0,0,0,.3); }
     
-    .column { display: flex; flex-direction: column; gap: 16px; }
+    label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; font-weight: bold; }
+    input, select, textarea, button { font: inherit; }
+    input, select, textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: #0f172a; color: #fff; font-size: 13px; }
+    textarea { font-family: monospace; }
     
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th, td { padding: 8px 4px; border-bottom: 1px solid var(--line); text-align: center; font-size: 13px; }
+    button { border: 0; border-radius: 8px; padding: 8px 12px; font-weight: 700; cursor: pointer; transition: opacity 0.2s; }
+    button:hover { opacity: 0.9; }
+    .btn { background: var(--pri); color: #fff; }
+    .btn.secondary { background: #334155; color: #f1f5f9; }
+    .btn.ok { background: var(--ok); color: #fff; }
+    .btn.gold { background: var(--gold); color: #0f172a; }
+    .btn.bad { background: var(--bad); color: #fff; }
+
+    .btn.undo { background: var(--warn); color: #0f172a; margin-top: 8px; width: 100%; text-align: center; }
+    .btn.undo:disabled { background: #334155; color: #64748b; cursor: not-allowed; opacity: 0.5; }
+
+    .section-title { font-size: 12px; font-weight: 800; margin: 10px 0 6px; color: var(--gold); text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .main-grid { display: grid; grid-template-columns: 380px 1fr; gap: 14px; }
+    
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    th, td { padding: 6px 4px; border-bottom: 1px solid var(--line); text-align: center; font-size: 12px; }
     th:nth-child(2), td:nth-child(2) { text-align: left; }
-    th { font-size: 11px; color: var(--muted); text-transform: uppercase; background: #111827; }
-    
-    .rank { font-weight: 800; width: 25px; text-align: center; }
-    .top4 { background: rgba(16, 185, 129, 0.04); }
-    .gold { color: var(--gold); }
-    
-    .list { display: flex; flex-direction: column; gap: 8px; max-height: 50vh; overflow-y: auto; }
-    .match-card { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center; border: 1px solid var(--line); border-radius: 10px; padding: 10px; background: #1e293b; cursor: pointer; }
-    .match-card.played { opacity: 0.4; background: #111827; }
-    
-    .btn-p { padding: 8px; background: #0f172a; color: #fff; border: 1px solid var(--line); text-align: center; width: 100%; font-size: 13px; cursor: pointer; }
-    .btn-p:hover { background: var(--pri); border-color: var(--pri); }
-    .btn-tie { padding: 1px 6px; font-size: 11px; background: #334155; color: #fff; border-radius: 4px; cursor: pointer; }
+    th { font-size: 10px; color: var(--muted); text-transform: uppercase; }
 
-    /* INTERFAZ DE MARCADOR CON BOTONES COMPACTOS +/- */
     .match-goals { display: flex; flex-direction: column; gap: 10px; padding: 4px; margin-top: 10px; }
-    .goal-row { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; background: #111827; padding: 10px 14px; border: 1px solid var(--line); border-radius: 12px; }
-    .goal-row span { font-weight: 600; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; font-size: 14px; text-align: left; }
+    .goal-row { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; background: #0f172a; padding: 10px 14px; border: 1px solid var(--line); border-radius: 12px; }
+    .goal-row span { font-weight: 600; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; font-size: 14px; }
     .counter-box { display: inline-flex; align-items: center; gap: 8px; }
-    .btn-counter { background: #334155; border: 1px solid var(--line); color: #fff; border-radius: 8px; width: 34px; height: 34px; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
-    .btn-counter:hover { background: #475569; }
-    .counter-value { font-size: 18px; font-weight: 800; min-width: 20px; text-align: center; color: var(--pri); }
+    .btn-counter { background: #1e293b; border: 1px solid var(--line); border-radius: 8px; width: 34px; height: 34px; font-size: 16px; font-weight: bold; color:#fff; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .btn-counter:hover { background: #334155; }
+    .counter-value { font-size: 18px; font-weight: 800; min-width: 20px; text-align: center; color: var(--gold); }
 
-    .playoff-box { background: linear-gradient(135deg, #1e1b4b, #2e1065); border: 2px solid var(--gold); border-radius: 14px; padding: 16px; }
-    .playoff-title { color: var(--gold); font-size: 18px; font-weight: 800; text-transform: uppercase; margin-bottom: 12px; text-align: center; letter-spacing: 1px; }
-    .playoff-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
-    @media (min-width: 600px) { .playoff-grid { grid-template-columns: 1fr 1fr; } }
+    .muted-box { background: #0f172a; border: 1px dashed var(--line); padding: 12px; border-radius: 10px; text-align: center; font-size: 13px; color: var(--muted); }
     
-    .bracket-card { background: rgba(0,0,0,0.3); border: 1px dashed var(--gold); padding: 10px; border-radius: 8px; text-align: center; }
+    .list { display: flex; flex-direction: column; gap: 6px; max-height: 50vh; overflow-y: auto; }
+    .item { display: flex; gap: 8px; align-items: center; justify-content: space-between; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; background: #0f172a; cursor: pointer; }
+    .item:hover { border-color: var(--pri); }
+    .pill { font-size: 10px; padding: 3px 6px; border-radius: 99px; background: #1e3a8a; color: #93c5fd; }
+
+    /* ESTILOS PODIO FINAL Y VIDEO */
+    .winner-card {
+      background: linear-gradient(135deg, #1e1b4b, #312e81);
+      border: 2px solid var(--gold);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+    .winner-title { font-size: 20px; font-weight: 900; color: var(--gold); margin-bottom: 4px; text-transform: uppercase; }
+    .runner-title { font-size: 16px; font-weight: 700; color: var(--silver); margin-top: 8px; }
+    .video-container {
+      position: relative;
+      width: 100%;
+      max-width: 320px;
+      margin: 12px auto 0;
+      aspect-ratio: 9/16;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    }
+    .video-container iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+
+    /* CANVAS CONFETI */
+    #confettiCanvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 999; display: none; }
   </style>
 </head>
 <body>
 
+<canvas id="confettiCanvas"></canvas>
+
 <header>
-  <h1>⭐ CLASSROOM CHAMPIONS LEAGUE ⭐</h1>
-  <p>Fase de grupos por puntos directos (goles), marcador con botones +/- y eliminatorias controladas.</p>
+  <h1>⭐ CHAMPIONS LEAGUE CLASSROOM ⭐</h1>
+  <p>Torneo Interclases Final de Temporada</p>
 </header>
 
 <div class="wrap">
-  
+
+  <div class="status-bar">
+    <div>Estado Champions: <span id="dataSourceBadge" class="badge badge-local">Cargando...</span></div>
+    <div style="display:flex; gap:8px;">
+      <button class="btn secondary" style="font-size:11px;" id="exportBtn">💾 Exportar JSON</button>
+      <button class="btn secondary" style="font-size:11px;" onclick="document.getElementById('importChampionsFile').click()">📂 Cargar JSON</button>
+      <input type="file" id="importChampionsFile" accept="application/json" style="display:none" />
+    </div>
+  </div>
+
   <!-- PANEL DE CONFIGURACIÓN E IMPORTACIÓN -->
-  <div class="panel">
-    <div class="toolbar">
-      <div style="flex: 1; min-width: 250px;">
-        <label>Opción A: Cargar .json de la Liga Regular</label>
-        <input id="importLigaJson" type="file" accept="application/json" style="font-size:12px; color:var(--muted);" />
+  <div class="grid-setup">
+    <div class="panel">
+      <div class="section-title">1. Origen Ligas (Auto)</div>
+      <div class="muted-box" id="ligaStatusBox" style="text-align:left; font-size:11px;">
+        Cargando 01a_liga.json...
       </div>
-      <div style="flex: 2; min-width: 300px;">
-        <label>Opción B: Participantes de la Champions (1 por línea - Máx 8)</label>
-        <textarea id="manualPlayersList" rows="3" placeholder="Alumno 1 (6ºA)&#10;Alumno 2 (6ºB)"></textarea>
-      </div>
-      <div>
-        <button class="btn-ok" id="btnGenerateTournament">⚙️ Generar Torneo</button>
+      <button class="btn secondary" style="width:100%; margin-top:8px; font-size:11px;" id="reloadLigaBtn">🔄 Recargar Liga Local/Drive</button>
+    </div>
+
+    <div class="panel">
+      <div class="section-title">2. Copas de Clase (Manual)</div>
+      <label>Copa Clase A (.json)</label>
+      <input type="file" id="cupAFile" accept="application/json" style="margin-bottom:6px;" />
+      <label>Copa Clase B (.json)</label>
+      <input type="file" id="cupBFile" accept="application/json" />
+    </div>
+
+    <div class="panel">
+      <div class="section-title">3. Lista Final de Clasificados</div>
+      <textarea id="qualifiedStudentsInput" rows="4" placeholder="Pulse 'Calcular Clasificados' o escriba aquí..."></textarea>
+      <div style="display:flex; gap:6px; margin-top:6px;">
+        <button class="btn gold" style="flex:1; font-size:11px;" id="btnCompute">⚡ Calcular</button>
+        <button class="btn ok" style="flex:1; font-size:11px;" id="btnStartTournament">🏆 Iniciar Champions</button>
       </div>
     </div>
   </div>
 
-  <!-- CONTROL DE GUARDADO GENERAL -->
-  <div class="panel toolbar" style="background: #111827;">
-    <span style="font-size:13px; color:var(--muted)">Copias de seguridad del estado actual de la Champions:</span>
-    <div style="display: flex; gap: 8px;">
-      <button class="btn-secondary" id="exportChampions">💾 Guardar Progreso Champions</button>
-      <button class="btn-bad" id="resetAll">❌ Reset Completo</button>
-    </div>
-  </div>
-
-  <!-- CONTENIDO PRINCIPAL -->
-  <div class="grid">
-    
-    <!-- COLUMNA IZQUIERDA: CLASIFICACIÓN Y ELIMINATORIAS -->
-    <div class="column">
-      <div class="panel" style="overflow-x: auto;">
-        <h3 style="margin: 0 0 4px; font-size: 18px; color: var(--gold);">🏆 Tabla General (Grupo Champions)</h3>
-        <p style="margin: 0 0 10px; font-size: 12px; color: var(--muted);">Los puntos (PTS) son la suma total de tus goles. Usa el desempate manual si es necesario antes de ir a semis.</p>
-        <table>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th style="text-align: left;">Alumno (Aula)</th>
-              <th>PTS</th>
-              <th>Desempate</th>
-              <th>V</th>
-              <th>E</th>
-              <th>D</th>
-              <th>GF</th>
-              <th>GC</th>
-            </tr>
-          </thead>
-          <tbody id="standingsBody">
-            <tr><td colspan="9" style="text-align:center; color:var(--muted); padding:20px;">Introduce o importa los alumnos arriba para iniciar la competición.</td></tr>
-          </tbody>
-        </table>
-        
-        <!-- BOTÓN DISPARADOR MANUAL DE SEMIFINALES -->
-        <div id="triggerPlayoffsBox" style="display:none; text-align:center; margin-top:15px; padding-top:15px; border-top:1px solid var(--line);">
-          <button class="btn-champions" id="btnLockGroups" style="font-size:15px; padding:12px 24px;">🔒 Cerrar Grupos y Generar Semis</button>
-        </div>
-      </div>
-
-      <!-- SECCIÓN ELIMINATORIAS -->
-      <div id="playoffSection" class="playoff-box" style="display: none;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <div class="playoff-title" style="margin:0;">💥 FASE FINAL ELIMINATORIA 💥</div>
-          <button class="btn-bad" id="btnResetPlayoffs" style="padding:4px 8px; font-size:11px;">Resetear Llaves</button>
-        </div>
-        
-        <div class="playoff-grid">
-          <div class="bracket-card">
-            <label style="color:var(--gold);">Semifinal 1 (1º vs 4º)</label>
-            <div id="semi1Box" style="margin-top:8px;"></div>
-          </div>
-          <div class="bracket-card">
-            <label style="color:var(--gold);">Semifinal 2 (2º vs 3º)</label>
-            <div id="semi2Box" style="margin-top:8px;"></div>
-          </div>
-        </div>
-        <div class="bracket-card" style="margin-top:12px; border-style: solid; background: rgba(251, 191, 36, 0.05);">
-          <label style="color:var(--gold); font-size: 12px;">🏆 GRAN FINAL DE CAMPEONES 🏆</label>
-          <div id="finalBox" style="margin-top:8px; font-weight: bold; font-size: 16px;">Esperando semifinales...</div>
-        </div>
-      </div>
+  <!-- ZONA PRINCIPAL DEL TORNEO -->
+  <div class="main-grid">
+    <div class="panel">
+      <div class="section-title">Clasificación Champions</div>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th style="text-align:left;">Alumno</th>
+            <th>PTS</th>
+            <th>V</th>
+            <th>E</th>
+            <th>D</th>
+            <th>GF</th>
+            <th>GC</th>
+          </tr>
+        </thead>
+        <tbody id="standingsBody"></tbody>
+      </table>
     </div>
 
-    <!-- COLUMNA DERECHA: PARTIDOS -->
-    <div class="column">
+    <div style="display:flex; flex-direction:column; gap:14px;">
       <div class="panel">
-        <h3 style="margin:0 0 10px; font-size:18px;">⚽ Partido en Juego</h3>
-        <div id="activeMatchBox" style="background:#0f172a; padding:12px; border-radius:10px; text-align:center; border:1px dashed var(--line);">
-          Torneo no iniciado.
-        </div>
+        <div class="section-title">Partido en Curso</div>
+        <div id="matchBox" class="muted-box">No hay partido seleccionado.</div>
       </div>
 
       <div class="panel">
-        <h3 style="margin:0 0 10px; font-size:18px;">📅 Calendario del Grupo</h3>
-        <div id="scheduleBox" class="list"><div style="color:var(--muted); font-size:13px;">Sin partidos.</div></div>
+        <div class="section-title">Calendario de Partidos</div>
+        <div id="matchesList" class="list"></div>
       </div>
     </div>
-
   </div>
+
 </div>
 
 <script>
-const STORAGE_KEY = 'classroom_champions_goals_v3';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzUIijdWpsEBlYr2VYRrIsozuyXgS4Q32fkzuYxG-szocv4pb5-KLiaVDgH4tErXTUzbA/exec';
+const CHAMPIONS_STORAGE_KEY = 'leagueboard_champions_data_v1';
+const LIGA_FILENAME = '01a_liga.json';
 
-let tournament = {
-  players: [],        // { name, tiebreaker }
-  matches: [],        // { id, round, a, b, result }
-  currentMatchId: null,
-  playoffsLocked: false,
-  playoffs: {
-    semi1: { a: '', b: '', result: null },
-    semi2: { a: '', b: '', result: null },
-    final: { a: '', b: '', result: null }
-  }
+let championsData = {
+  students: [],
+  matches: [],
+  currentMatchId: null
 };
 
-// Variables volátiles para el control de goles del partido activo
+let rawLigaData = null;
+let rawCupAData = null;
+let rawCupBData = null;
+let isUnsaved = false;
+let championsHistory = [];
+
 let currentGoalsA = 0;
 let currentGoalsB = 0;
 
-function uid() { return Math.random().toString(36).slice(2,10); }
-function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(tournament)); }
+function uid(){ return Math.random().toString(36).slice(2,10); }
 
-function load() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if(raw) {
-    tournament = JSON.parse(raw);
-    if(tournament.players.length > 0 && !tournament.playoffsLocked) {
-      document.getElementById('manualPlayersList').value = tournament.players.map(p => p.name).join('\n');
-    }
+window.addEventListener('beforeunload', (e) => {
+  if (isUnsaved) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+
+function markUnsaved() { isUnsaved = true; }
+function markSaved() { isUnsaved = false; }
+
+function pushToHistory() {
+  championsHistory.push(JSON.stringify(championsData));
+  updateUndoButton();
+}
+
+function updateUndoButton() {
+  const btn = document.getElementById('btnUndoAction');
+  if (!btn) return;
+  if (championsHistory.length > 0) {
+    btn.disabled = false;
+    btn.textContent = `↩️ Deshacer Último Resultado (${championsHistory.length})`;
+  } else {
+    btn.disabled = true;
+    btn.textContent = `↩️ Deshacer Último Resultado`;
   }
 }
 
-// 1. EXTRACCIÓN DESDE ARCHIVO DE LA LIGA REGULAR
-document.getElementById('importLigaJson').addEventListener('change', async (e) => {
-  const file = e.target.files[0]; if(!file) return;
-  const text = await file.text();
+// --- SINTETIZADOR DE SONIDO (WEB AUDIO API) ---
+function playMatchSound(isVictory) {
   try {
-    const data = JSON.parse(text);
-    let pool = [];
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
 
-    data.classes.forEach(c => {
-      // Intenta extraer los alumnos de la 1ª División de cada aula encontrada
-      const board = data.boards.find(b => b.classId === c.id && b.level === 0);
-      if (board && board.students.length > 0) {
-        let map = {};
-        board.students.forEach(s => map[s] = { name: s, pts: 0, extra: parseFloat(board.tieBreakers?.[s]) || 0 });
-        
-        board.matches.filter(m => m.result).forEach(m => {
-          if(!map[m.a] || !map[m.b]) return;
-          const parts = m.result.split('-');
-          map[m.a].pts += parseInt(parts[0], 10) || 0;
-          map[m.b].pts += parseInt(parts[1], 10) || 0;
-        });
+    if (isVictory) {
+      const bufferSize = ctx.sampleRate * 1.2;
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const output = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
 
-        let sorted = Object.values(map).sort((x, y) => (y.pts !== x.pts) ? (y.pts - x.pts) : (y.extra - x.extra));
-        // Clasifican automáticamente los 2 primeros de Primera División de cada clase
-        for(let i = 0; i < Math.min(2, sorted.length); i++) {
-          pool.push(`${sorted[i].name} (${c.name})`);
-        }
-      }
+      const whiteNoise = ctx.createBufferSource();
+      whiteNoise.buffer = buffer;
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(1000, ctx.currentTime);
+      filter.Q.setValueAtTime(1.5, ctx.currentTime);
+
+      const gainNode = ctx.createGain();
+      gainNode.gain.setValueAtTime(0.01, ctx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + 0.1);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.2);
+
+      whiteNoise.connect(filter); filter.connect(gainNode); gainNode.connect(ctx.destination);
+      whiteNoise.start(); whiteNoise.stop(ctx.currentTime + 1.2);
+
+      const notes = [523.25, 659.25, 783.99, 1046.50];
+      notes.forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const oscGain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.08);
+
+        oscGain.gain.setValueAtTime(0.01, ctx.currentTime + idx * 0.08);
+        oscGain.gain.exponentialRampToValueAtTime(0.15, ctx.currentTime + idx * 0.08 + 0.05);
+        oscGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.08 + 0.5);
+
+        osc.connect(oscGain); oscGain.connect(ctx.destination);
+        osc.start(ctx.currentTime + idx * 0.08); osc.stop(ctx.currentTime + idx * 0.08 + 0.5);
+      });
+    } else {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sawtooth';
+      
+      osc.frequency.setValueAtTime(180, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(90, ctx.currentTime + 0.8);
+
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
+
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(); osc.stop(ctx.currentTime + 0.8);
+    }
+  } catch (e) { console.warn("Audio no disponible", e); }
+}
+
+// --- CONFETI NATIVO ---
+let confettiAnimId = null;
+function triggerConfetti() {
+  const canvas = document.getElementById('confettiCanvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+  canvas.style.display = 'block';
+
+  const particles = [];
+  const colors = ['#fbbf24', '#3b82f6', '#22c55e', '#ef4444', '#a855f7', '#ffffff'];
+
+  for (let i = 0; i < 140; i++) {
+    particles.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height - canvas.height,
+      size: Math.random() * 8 + 4,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      vy: Math.random() * 3 + 2,
+      vx: Math.random() * 2 - 1,
+      rot: Math.random() * 360,
+      vRot: Math.random() * 6 - 3
+    });
+  }
+
+  const startTime = Date.now();
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles.forEach(p => {
+      p.y += p.vy; p.x += p.vx; p.rot += p.vRot;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate((p.rot * Math.PI) / 180);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+      ctx.restore();
+      if (p.y > canvas.height) p.y = -10;
     });
 
-    document.getElementById('manualPlayersList').value = pool.join('\n');
-    alert("¡Clasificados cargados en el cuadro de texto! Revisa la lista y haz clic en 'Generar Torneo'.");
-  } catch(err) {
-    alert("Error al procesar el archivo estructurado de la liga.");
+    if (Date.now() - startTime < 7000) {
+      confettiAnimId = requestAnimationFrame(animate);
+    } else {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      canvas.style.display = 'none';
+    }
   }
-  e.target.value = '';
+  if (confettiAnimId) cancelAnimationFrame(confettiAnimId);
+  animate();
+}
+
+function updateBadge(type, label) {
+  const badge = document.getElementById('dataSourceBadge');
+  if(!badge) return;
+  badge.className = `badge ${type === 'drive' ? 'badge-drive' : 'badge-local'}`;
+  badge.textContent = label;
+}
+
+function saveChampions() {
+  localStorage.setItem(CHAMPIONS_STORAGE_KEY, JSON.stringify(championsData));
+}
+
+// CARGA INICIAL DE DATOS
+async function initApp() {
+  const saved = localStorage.getItem(CHAMPIONS_STORAGE_KEY);
+  if (saved) {
+    try {
+      championsData = JSON.parse(saved);
+      updateBadge('local', '💾 Champions en curso');
+    } catch(e){}
+  }
+
+  await fetchLigaData();
+  renderAll();
+}
+
+async function fetchLigaData() {
+  const box = document.getElementById('ligaStatusBox');
+  box.textContent = 'Buscando datos de Liga...';
+  try {
+    const res = await fetch(`${APPS_SCRIPT_URL}?file=${LIGA_FILENAME}`, { method: 'GET', redirect: 'follow' });
+    const result = await res.json();
+    if (result.success && result.data) {
+      rawLigaData = result.data;
+      box.innerHTML = `✅ <strong>Liga conectada</strong> (${rawLigaData.classes.length} clases encontradas).`;
+      return;
+    }
+  } catch(e) {}
+  
+  box.innerHTML = `⚠️ No se conectó con Drive. Asumiendo datos locales de liga si existen.`;
+}
+
+// LECTURA DE ARCHIVOS DE COPA
+document.getElementById('cupAFile').addEventListener('change', async (e) => {
+  const file = e.target.files[0]; if(!file) return;
+  try { rawCupAData = JSON.parse(await file.text()); alert('Copa Clase A cargada.'); } catch(err){ alert('JSON no válido.'); }
 });
 
-// 2. GENERACIÓN DEL TORNEO ROUND ROBIN
-document.getElementById('btnGenerateTournament').onclick = () => {
-  const text = document.getElementById('manualPlayersList').value.trim();
-  if(!text) { alert("La lista de alumnos está vacía."); return; }
-  
-  let lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-  if(lines.length > 8) {
-    alert("Formato configurado para un máximo de 8 jugadores en grupo único. Se truncará la lista.");
-    lines = lines.slice(0, 8);
+document.getElementById('cupBFile').addEventListener('change', async (e) => {
+  const file = e.target.files[0]; if(!file) return;
+  try { rawCupBData = JSON.parse(await file.text()); alert('Copa Clase B cargada.'); } catch(err){ alert('JSON no válido.'); }
+});
+
+// ALGORITMO DE ASIGNACIÓN AUTOMÁTICA DE PLAZAS
+document.getElementById('btnCompute').onclick = () => {
+  if (!rawLigaData || !rawLigaData.classes) {
+    alert('No hay datos de liga disponibles para calcular.');
+    return;
   }
 
-  tournament.players = lines.map(name => ({ name, tiebreaker: 0 }));
-  tournament.matches = generateRoundRobin(lines);
-  tournament.currentMatchId = tournament.matches[0]?.id || null;
-  tournament.playoffsLocked = false;
-  tournament.playoffs = { semi1: {a:'',b:'',result:null}, semi2: {a:'',b:'',result:null}, final: {a:'',b:'',result:null} };
+  let finalQualified = [];
+
+  rawLigaData.classes.forEach((cls, idx) => {
+    const board = rawLigaData.boards.find(b => b.classId === cls.id && b.level === 0);
+    if (!board) return;
+
+    const ranked = recalcBoard(board);
+    const top3 = ranked.slice(0, 3).map(r => r.name);
+    
+    finalQualified.push(...top3);
+
+    const cupData = (idx === 0) ? rawCupAData : rawCupBData;
+    let cupSlot = null;
+
+    if (cupData && cupData.matches) {
+      cupSlot = resolveCupSlot(cupData, top3);
+    }
+
+    if (!cupSlot && ranked.length >= 4) {
+      cupSlot = ranked[3].name;
+    }
+
+    if (cupSlot && !finalQualified.includes(cupSlot)) {
+      finalQualified.push(cupSlot);
+    }
+  });
+
+  document.getElementById('qualifiedStudentsInput').value = finalQualified.join('\n');
+};
+
+function recalcBoard(board) {
+  const map = {};
+  board.students.forEach(s => map[s] = { name: s, pts: 0, gf: 0, gc: 0 });
   
-  currentGoalsA = 0;
-  currentGoalsB = 0;
+  (board.matches || []).forEach(m => {
+    if (m.result) {
+      const parts = m.result.split('-');
+      const gA = parseInt(parts[0], 10);
+      const gB = parseInt(parts[1], 10);
+      if (map[m.a]) { map[m.a].pts += gA; map[m.a].gf += gA; map[m.a].gc += gB; }
+      if (map[m.b]) { map[m.b].pts += gB; map[m.b].gf += gB; map[m.b].gc += gA; }
+    }
+  });
+
+  return Object.values(map).sort((x, y) => y.pts - x.pts || (y.gf - y.gc) - (x.gf - x.gc));
+}
+
+function resolveCupSlot(cupData, top3Liga) {
+  const matches = cupData.matches || [];
+  const finalMatch = matches.find(m => m.round === 'FINAL' || m.id === 'final');
   
-  save(); render();
+  if (!finalMatch || !finalMatch.result) return null;
+
+  const parts = finalMatch.result.split('-');
+  const gA = parseInt(parts[0], 10);
+  const gB = parseInt(parts[1], 10);
+
+  const winner = gA > gB ? finalMatch.a : finalMatch.b;
+  const runnerUp = gA > gB ? finalMatch.b : finalMatch.a;
+
+  if (!top3Liga.includes(winner)) return winner;
+  if (!top3Liga.includes(runnerUp)) return runnerUp;
+
+  const semiMatches = matches.filter(m => m.round === 'SEMIS' || m.round === 'SF');
+  let semiLoserVsWinner = null;
+  let otherSemiLoser = null;
+
+  semiMatches.forEach(m => {
+    if (m.result) {
+      const p = m.result.split('-');
+      const w = parseInt(p[0],10) > parseInt(p[1],10) ? m.a : m.b;
+      const l = parseInt(p[0],10) > parseInt(p[1],10) ? m.b : m.a;
+      if (w === winner) semiLoserVsWinner = l;
+      else otherSemiLoser = l;
+    }
+  });
+
+  if (semiLoserVsWinner && !top3Liga.includes(semiLoserVsWinner)) return semiLoserVsWinner;
+  if (otherSemiLoser && !top3Liga.includes(otherSemiLoser)) return otherSemiLoser;
+
+  return null;
+}
+
+// INICIAR TORNEO DE CHAMPIONS
+document.getElementById('btnStartTournament').onclick = () => {
+  const rawText = document.getElementById('qualifiedStudentsInput').value;
+  const list = rawText.split('\n').map(s => s.trim()).filter(Boolean);
+
+  if (list.length < 2) {
+    alert('Se necesitan al menos 2 participantes para la Champions.');
+    return;
+  }
+
+  if (confirm('¿Deseas iniciar una nueva Champions League con los jugadores listados?')) {
+    pushToHistory();
+    championsData.students = list;
+    championsData.matches = generateRoundRobin(list);
+    championsData.currentMatchId = championsData.matches[0]?.id || null;
+    markUnsaved();
+    saveChampions();
+    renderAll();
+  }
 };
 
 function generateRoundRobin(names) {
   let list = [...names]; if (list.length % 2 !== 0) list.push("DESCANSA");
   const numPlayers = list.length; const numRounds = numPlayers - 1; const matchesPerRound = numPlayers / 2;
-  let matches = [];
-  
+  let rounds = [];
   for (let round = 0; round < numRounds; round++) {
+    let roundMatches = [];
     for (let match = 0; match < matchesPerRound; match++) {
       const home = list[match]; const away = list[numPlayers - 1 - match];
       if (home !== "DESCANSA" && away !== "DESCANSA") {
-        matches.push({ id: uid(), round: round + 1, a: home, b: away, result: null });
+        roundMatches.push({ id: uid(), round: round + 1, a: home, b: away, result: null });
       }
     }
-    list.splice(1, 0, list.pop());
+    list.splice(1, 0, list.pop()); if(roundMatches.length > 0) rounds.push(roundMatches);
   }
-  return matches.sort((x,y) => x.round - y.round);
+  let finalMatches = [];
+  rounds.forEach((roundArr, index) => { roundArr.forEach(m => { m.round = index + 1; finalMatches.push(m); }); });
+  return finalMatches;
 }
 
-// 3. CÓMPUTO AVANZADO DE PUNTOS Y GOLES
-function computeStandings() {
-  let map = {};
-  tournament.players.forEach(p => map[p.name] = { name: p.name, pts: 0, v:0, e:0, d:0, gf:0, gc:0, p:0, extra: p.tiebreaker || 0 });
-  
-  tournament.matches.filter(m => m.result).forEach(m => {
-    let A = map[m.a], B = map[m.b]; if(!A || !B) return;
-    A.p++; B.p++;
-    
-    const parts = m.result.split('-');
-    const gA = parseInt(parts[0], 10) || 0;
-    const gB = parseInt(parts[1], 10) || 0;
-    
-    A.gf += gA; A.gc += gB;
-    B.gf += gB; B.gc += gA;
-    
-    // Los puntos son la suma directa de goles/aciertos conseguidos
-    A.pts += gA;
-    B.pts += gB;
+// RENDERIZADO GENERAL
+function renderAll() {
+  renderStandings();
+  renderPendingMatches();
+  renderCurrentMatch();
+}
 
-    if(gA > gB) { A.v++; B.d++; }
-    else if(gB > gA) { B.v++; A.d++; }
-    else { A.e++; B.e++; }
+function recalcChampions() {
+  const map = {};
+  championsData.students.forEach(s => map[s] = { name: s, pts: 0, v: 0, e: 0, d: 0, gf: 0, gc: 0 });
+
+  championsData.matches.forEach(m => {
+    if (m.result) {
+      const A = map[m.a], B = map[m.b]; if(!A || !B) return;
+      const parts = m.result.split('-');
+      const gA = parseInt(parts[0], 10);
+      const gB = parseInt(parts[1], 10);
+
+      A.gf += gA; A.gc += gB;
+      B.gf += gB; B.gc += gA;
+      A.pts += gA; B.pts += gB;
+
+      if(gA > gB) { A.v++; B.d++; }
+      else if(gB > gA) { B.v++; A.d++; }
+      else { A.e++; B.e++; }
+    }
   });
-  return Object.values(map).sort((x, y) => {
-    if (y.pts !== x.pts) return y.pts - x.pts;
-    if (y.extra !== x.extra) return y.extra - x.extra;
-    const difX = x.gf - x.gc;
-    const difY = y.gf - y.gc;
-    if (difY !== difX) return difY - difX;
-    return x.name.localeCompare(y.name);
-  });
+
+  return Object.values(map).sort((x, y) => y.pts - x.pts || (y.gf - y.gc) - (x.gf - x.gc) || x.name.localeCompare(y.name));
 }
 
-function adjustTiebreaker(name, val) {
-  let p = tournament.players.find(x => x.name === name);
-  if(p) { p.tiebreaker = Math.round(((p.tiebreaker || 0) + val) * 10) / 10; save(); render(); }
-}
-
-// 4. PASO CONTROLADO A ELIMINATORIAS (SEMIFINALES)
-document.getElementById('btnLockGroups').onclick = () => {
-  const ranked = computeStandings();
-  if(ranked.length < 4) { alert("Se requieren al menos 4 participantes activos para generar las semifinales."); return; }
-  
-  if(confirm("¿Cerrar la liguilla? Asegúrate de resolver empates críticos usando la columna de Desempate.")) {
-    tournament.playoffs.semi1.a = ranked[0].name; // 1º vs 4º
-    tournament.playoffs.semi1.b = ranked[3].name;
-    tournament.playoffs.semi2.a = ranked[1].name; // 2º vs 3º
-    tournament.playoffs.semi2.b = ranked[2].name;
-    tournament.playoffsLocked = true;
-    save(); render();
-  }
-};
-
-function changeGoal(team, amount) {
-  if(team === 'A') {
-    currentGoalsA = Math.max(0, Math.min(3, currentGoalsA + amount));
-    const el = document.getElementById('valA'); if(el) el.textContent = currentGoalsA;
-  } else {
-    currentGoalsB = Math.max(0, Math.min(3, currentGoalsB + amount));
-    const el = document.getElementById('valB'); if(el) el.textContent = currentGoalsB;
-  }
-}
-
-function render() {
+function renderStandings() {
   const tbody = document.getElementById('standingsBody'); tbody.innerHTML = '';
-  if(tournament.players.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--muted); padding:20px;">Introduce o importa los alumnos arriba para iniciar la competición.</td></tr>`;
-    document.getElementById('scheduleBox').innerHTML = '<div style="color:var(--muted); font-size:13px;">Sin partidos.</div>';
-    document.getElementById('playoffSection').style.display = 'none';
-    document.getElementById('triggerPlayoffsBox').style.display = 'none';
-    return;
-  }
+  const ranked = recalcChampions();
 
-  const ranked = computeStandings();
   ranked.forEach((r, i) => {
     const tr = document.createElement('tr');
-    if (i < 4) tr.className = 'top4';
-    const medal = i === 0 ? 'gold' : '';
-    const extraText = r.extra > 0 ? `+${r.extra}` : r.extra;
-    const safeName = r.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-    const disabledAttr = tournament.playoffsLocked ? 'disabled style="opacity:0.2; cursor:not-allowed;"' : '';
-
+    if (i === 0) tr.style.color = 'var(--gold)';
+    else if (i === 1) tr.style.color = 'var(--silver)';
     tr.innerHTML = `
-      <td class="rank ${medal}">${i+1}</td>
-      <td style="text-align: left;"><strong>${r.name}</strong></td>
+      <td style="font-weight:bold;">${i+1}</td>
+      <td style="text-align:left;"><strong>${r.name}</strong></td>
       <td><span style="font-size:14px; font-weight:bold; color:var(--gold)">${r.pts}</span></td>
-      <td>
-        <button class="btn-tie" ${disabledAttr} onclick="adjustTiebreaker('${safeName}', -0.1)">-</button>
-        <span style="font-weight:600; padding:0 4px; min-width:24px; display:inline-block;">${extraText}</span>
-        <button class="btn-tie" ${disabledAttr} onclick="adjustTiebreaker('${safeName}', 0.1)">+</button>
-      </td>
-      <td style="color:var(--ok); font-weight:500;">${r.v}</td>
-      <td style="color:var(--warn); font-weight:500;">${r.e}</td>
-      <td style="color:var(--bad); font-weight:500;">${r.d}</td>
+      <td style="color:var(--ok);">${r.v}</td>
+      <td style="color:var(--warn);">${r.e}</td>
+      <td style="color:var(--bad);">${r.d}</td>
       <td>${r.gf}</td>
       <td>${r.gc}</td>
     `;
     tbody.appendChild(tr);
   });
-
-  if(!tournament.playoffsLocked) {
-    document.getElementById('triggerPlayoffsBox').style.display = 'block';
-    document.getElementById('playoffSection').style.display = 'none';
-  } else {
-    document.getElementById('triggerPlayoffsBox').style.display = 'none';
-    document.getElementById('playoffSection').style.display = 'block';
-    renderPlayoffBracket();
-  }
-
-  // Render Calendario lateral
-  const schedBox = document.getElementById('scheduleBox'); schedBox.innerHTML = '';
-  let currentRound = -1;
-  tournament.matches.forEach(m => {
-    if(m.round !== currentRound) {
-      currentRound = m.round;
-      const rTitle = document.createElement('div');
-      rTitle.style = 'margin-top:10px; background:#111827; color:var(--gold); padding:4px 8px; border-radius:6px; font-size:11px; font-weight:bold; text-align:center;';
-      rTitle.textContent = `JORNADA ${m.round}`;
-      schedBox.appendChild(rTitle);
-    }
-    const div = document.createElement('div');
-    div.className = 'match-card' + (m.result ? ' played' : '');
-    
-    let lbl = `<button style="padding:2px 6px; font-size:10px;" class="btn-champions">Jugar</button>`;
-    if(m.result) lbl = `<span style="font-size:12px; font-weight:bold; color:var(--ok)">${m.result}</span>`;
-
-    div.innerHTML = `
-      <div><span style="font-size:12px; font-weight:600; text-overflow:ellipsis; overflow:hidden; white-space:nowrap; display:block;">${m.a}</span></div>
-      <div style="text-align:center;">${lbl}</div>
-      <div style="text-align:right;"><span style="font-size:12px; font-weight:600; text-overflow:ellipsis; overflow:hidden; white-space:nowrap; display:block;">${m.b}</span></div>
-    `;
-    
-    if(!m.result && !tournament.playoffsLocked) { 
-      div.onclick = () => { 
-        tournament.currentMatchId = m.id; 
-        currentGoalsA = 0;
-        currentGoalsB = 0;
-        save(); 
-        renderMatch(); 
-      }; 
-    }
-    schedBox.appendChild(div);
-  });
-
-  renderMatch();
 }
 
-function renderMatch() {
-  const box = document.getElementById('activeMatchBox');
-  if(!tournament.matches.length) return;
-  if(tournament.playoffsLocked) { box.innerHTML = `<div style="color:var(--gold); font-weight:bold; padding:10px;">🔒 Liguilla cerrada. Se están disputando las eliminatorias.</div>`; return; }
-  
-  let match = tournament.matches.find(m => m.id === tournament.currentMatchId && !m.result) || tournament.matches.find(m => !m.result);
-  if(!match) { box.innerHTML = `<div style="color:var(--ok); font-weight:bold; padding:10px;">¡Todos los partidos jugados! Evalúa desempates y pulsa el botón dorado inferior para arrancar las eliminatorias.</div>`; return; }
-  
-  if (tournament.currentMatchId !== match.id) {
-    tournament.currentMatchId = match.id;
-    currentGoalsA = 0;
-    currentGoalsB = 0;
+function renderPendingMatches() {
+  const box = document.getElementById('matchesList'); box.innerHTML = '';
+  if (!championsData.matches.length) {
+    box.innerHTML = '<div class="muted-box">Calcula e inicia la Champions para ver el calendario.</div>';
+    return;
   }
 
+  let currentRoundNum = -1;
+  championsData.matches.forEach(m => {
+    if (m.round !== currentRoundNum) {
+      currentRoundNum = m.round;
+      const title = document.createElement('div');
+      title.className = 'section-title';
+      title.textContent = `JORNADA ${m.round}`;
+      box.appendChild(title);
+    }
+
+    const div = document.createElement('div'); div.className = 'item';
+    if (m.result) div.style.opacity = '0.5';
+
+    div.innerHTML = `
+      <div><strong>${m.a} vs ${m.b}</strong></div>
+      <div>${m.result ? `<span style="color:var(--ok); font-weight:bold;">${m.result}</span>` : `<span class="pill">Jugar</span>`}</div>
+    `;
+
+    if (!m.result) {
+      div.onclick = () => {
+        championsData.currentMatchId = m.id;
+        currentGoalsA = 0; currentGoalsB = 0;
+        saveChampions();
+        renderAll();
+      };
+    }
+    box.appendChild(div);
+  });
+}
+
+function updateGoalUI() {
+  const elA = document.getElementById('valA');
+  const elB = document.getElementById('valB');
+  if(elA) elA.textContent = currentGoalsA;
+  if(elB) elB.textContent = currentGoalsB;
+}
+
+function changeGoal(team, amount) {
+  if(team === 'A') currentGoalsA = Math.max(0, Math.min(3, currentGoalsA + amount));
+  else currentGoalsB = Math.max(0, Math.min(3, currentGoalsB + amount));
+  updateGoalUI();
+}
+
+function renderCurrentMatch() {
+  const box = document.getElementById('matchBox');
+  let match = championsData.matches.find(m => m.id === championsData.currentMatchId && !m.result) || championsData.matches.find(m => !m.result);
+
+  if (!match) {
+    const ranked = recalcChampions();
+    const winner = ranked[0];
+    const runnerUp = ranked[1];
+
+    if (championsData.matches.length > 0 && winner) {
+      triggerConfetti();
+    }
+
+    box.innerHTML = `
+      <div class="winner-card">
+        <div class="winner-title">🥇 CAMPEÓN CHAMPIONS 🥇</div>
+        <div style="font-size:24px; font-weight:800; color:#fff;">${winner ? winner.name : '-'}</div>
+        ${runnerUp ? `
+          <div class="runner-title">🥈 SUBCAMPEÓN 🥈</div>
+          <div style="font-size:18px; font-weight:700; color:var(--silver);">${runnerUp.name}</div>
+        ` : ''}
+        
+        <div class="video-container">
+          <iframe 
+            src="https://www.youtube.com/embed/M1PeoghJUMI?autoplay=1&loop=1&playlist=M1PeoghJUMI" 
+            title="Every UCL Champion and Trophy Lift This Century" 
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+            allowfullscreen>
+          </iframe>
+        </div>
+      </div>
+      <button id="btnUndoAction" class="btn undo" disabled>↩️ Deshacer Último Resultado</button>
+    `;
+
+    document.getElementById('btnUndoAction').onclick = () => {
+      if(championsHistory.length === 0) return;
+      championsData = JSON.parse(championsHistory.pop());
+      markUnsaved(); saveChampions(); renderAll();
+    };
+
+    updateUndoButton();
+    return;
+  }
+
+  championsData.currentMatchId = match.id;
+
   box.innerHTML = `
-    <div style="font-size:11px; color:var(--gold); font-weight:bold; margin-bottom:8px;">JORNADA DE CHAMPIONS ${match.round}</div>
+    <div style="font-size:12px; font-weight:bold; color:var(--gold); margin-bottom:6px; text-align:center;">JORNADA ${match.round}</div>
     <div class="match-goals">
       <div class="goal-row">
         <span>${match.a}</span>
@@ -471,96 +691,51 @@ function renderMatch() {
           <button class="btn-counter" onclick="changeGoal('B', 1)">+</button>
         </div>
       </div>
-      <button class="btn-ok" id="btnSaveChampGoals" style="width:100%; margin-top:6px; font-size:13px;">⚽ Registrar Resultado</button>
+      <button class="btn ok" id="btnSaveGoals" style="width:100%; margin-top:4px;">⚽ Registrar Marcador</button>
     </div>
+    <button id="btnUndoAction" class="btn undo" disabled>↩️ Deshacer Último Resultado</button>
   `;
 
-  document.getElementById('btnSaveChampGoals').onclick = () => {
+  document.getElementById('btnSaveGoals').onclick = () => {
+    pushToHistory();
     match.result = `${currentGoalsA}-${currentGoalsB}`;
-    tournament.currentMatchId = null;
-    currentGoalsA = 0;
-    currentGoalsB = 0;
-    save(); render();
-  };
-}
-
-function renderPlayoffBracket() {
-  const p = tournament.playoffs;
-  
-  // Semifinal 1
-  const s1Box = document.getElementById('semi1Box');
-  if(!p.semi1.result) {
-    s1Box.innerHTML = `
-      <button class="btn-p" onclick="resolveSemi('semi1','A')">👉 ${p.semi1.a}</button>
-      <div style="font-size:10px; margin:4px 0; color:var(--muted)">vs</div>
-      <button class="btn-p" onclick="resolveSemi('semi1','B')">👉 ${p.semi1.b}</button>
-    `;
-  } else {
-    s1Box.innerHTML = `<span style="color:var(--ok); font-weight:bold; font-size:14px;">🎉 ${p.semi1.result === 'A' ? p.semi1.a : p.semi1.b}</span>`;
-  }
-
-  // Semifinal 2
-  const s2Box = document.getElementById('semi2Box');
-  if(!p.semi2.result) {
-    s2Box.innerHTML = `
-      <button class="btn-p" onclick="resolveSemi('semi2','A')">👉 ${p.semi2.a}</button>
-      <div style="font-size:10px; margin:4px 0; color:var(--muted)">vs</div>
-      <button class="btn-p" onclick="resolveSemi('semi2','B')">👉 ${p.semi2.b}</button>
-    `;
-  } else {
-    s2Box.innerHTML = `<span style="color:var(--ok); font-weight:bold; font-size:14px;">🎉 ${p.semi2.result === 'A' ? p.semi2.a : p.semi2.b}</span>`;
-  }
-
-  // Gran Final
-  const fBox = document.getElementById('finalBox');
-  if(p.semi1.result && p.semi2.result) {
-    p.final.a = p.semi1.result === 'A' ? p.semi1.a : p.semi1.b;
-    p.final.b = p.semi2.result === 'A' ? p.semi2.a : p.semi2.b;
+    championsData.currentMatchId = null;
     
-    if(!p.final.result) {
-      fBox.innerHTML = `
-        <button class="btn-p" style="border-color:var(--gold); color:var(--gold);" onclick="resolveFinal('A')">👑 ${p.final.a}</button>
-        <div style="font-size:11px; margin:6px 0; color:var(--muted)">VS</div>
-        <button class="btn-p" style="border-color:var(--gold); color:var(--gold);" onclick="resolveFinal('B')">👑 ${p.final.b}</button>
-      `;
-    } else {
-      const ganador = p.final.result === 'A' ? p.final.a : p.final.b;
-      fBox.innerHTML = `
-        <div style="color:var(--gold); font-size:20px; font-weight:900; text-shadow: 0 0 10px rgba(251,191,36,0.3);">🏆 ¡${ganador.toUpperCase()}!</div>
-        <div style="font-size:11px; color:var(--muted); margin-top:2px;">CAMPEÓN ABSOLUTO DE LA EDICIÓN</div>
-      `;
-    }
-  } else {
-    fBox.innerHTML = "<span style='color:var(--muted); font-size:13px;'>Esperando resultados de semis...</span>";
-  }
+    playMatchSound(currentGoalsA !== currentGoalsB);
+
+    currentGoalsA = 0; currentGoalsB = 0;
+    markUnsaved();
+    saveChampions();
+    renderAll();
+  };
+
+  document.getElementById('btnUndoAction').onclick = () => {
+    if(championsHistory.length === 0) return;
+    championsData = JSON.parse(championsHistory.pop());
+    markUnsaved(); saveChampions(); renderAll();
+  };
+
+  updateUndoButton();
 }
 
-function resolveSemi(key, winner) { tournament.playoffs[key].result = winner; save(); render(); }
-function resolveFinal(winner) { tournament.playoffs.final.result = winner; save(); render(); }
-
-document.getElementById('btnResetPlayoffs').onclick = () => {
-  if(confirm("¿Quieres reabrir el grupo de Champions? Las llaves de eliminatorias se borrarán para que puedas corregir marcadores o desempates.")) {
-    tournament.playoffsLocked = false;
-    tournament.playoffs = { semi1: {a:'',b:'',result:null}, semi2: {a:'',b:'',result:null}, final: {a:'',b:'',result:null} };
-    save(); render();
-  }
+document.getElementById('exportBtn').onclick = () => {
+  const blob = new Blob([JSON.stringify(championsData, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = '01c_champions.json'; a.click();
+  markSaved();
 };
 
-document.getElementById('exportChampions').onclick = () => {
-  const blob = new Blob([JSON.stringify(tournament, null, 2)], {type: 'application/json'});
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'backup_champions_goles.json'; a.click();
-};
+document.getElementById('importChampionsFile').addEventListener('change', async (e) => {
+  const file = e.target.files[0]; if (!file) return;
+  try {
+    championsData = JSON.parse(await file.text());
+    markSaved(); saveChampions(); renderAll(); alert('Champions cargada.');
+  } catch(err) { alert('Archivo no válido.'); }
+  e.target.value = '';
+});
 
-document.getElementById('resetAll').onclick = () => {
-  if(confirm("¿Estás seguro de que quieres limpiar por completo el panel de Champions?")) {
-    tournament = { players: [], matches: [], currentMatchId: null, playoffsLocked: false, playoffs: { semi1:{a:'',b:'',result:null}, semi2:{a:'',b:'',result:null}, final:{a:'',b:'',result:null} } };
-    document.getElementById('manualPlayersList').value = '';
-    currentGoalsA = 0; currentGoalsB = 0;
-    save(); render();
-  }
-};
+document.getElementById('reloadLigaBtn').onclick = fetchLigaData;
 
-load(); render();
+initApp();
 </script>
 </body>
 </html>
