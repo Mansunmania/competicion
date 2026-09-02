@@ -313,40 +313,52 @@ function handleManualLoadDrive() {
 
 async function initDataCascade() {
   setSyncStatus('⏳ Cargando...');
+  
   if (APPS_SCRIPT_URL && APPS_SCRIPT_URL.startsWith("https://script.google.com")) {
     try {
-      const res = await fetch(`${APPS_SCRIPT_URL}?file=${DEFAULT_FILENAME}`, { method: 'GET', redirect: 'follow' });
+      const res = await fetch(`${APPS_SCRIPT_URL}?file=${DEFAULT_FILENAME}`, { 
+        method: 'GET', 
+        redirect: 'follow' 
+      });
+      
       const result = await res.json();
-      if (result.success && result.data && result.data.groups) {
-        db = result.data; saveLocal(); setSyncStatus('☁️ Sincronizado (Drive)'); hasUnsavedChanges = false; finishLoad(); return;
+      console.log("Respuesta de Apps Script:", result); // Inspecciona esto en F12
+
+      // Validación más flexible por si la estructura varía ligeramente
+      const groupsData = result.data?.groups || result.groups;
+
+      if ((result.success || groupsData) && groupsData) {
+        db = result.data ? result.data : result;
+        saveLocal(); 
+        setSyncStatus('☁️ Sincronizado (Drive)'); 
+        hasUnsavedChanges = false; 
+        finishLoad(); 
+        return;
       }
-    } catch (e) { console.warn("No se pudo conectar con Drive:", e); }
+    } catch (e) { 
+      console.error("Error al conectar o parsear Drive:", e); 
+    }
   }
 
+  // Si falla la red o el formato, intenta con localStorage
   const rawLocal = localStorage.getItem(LOCAL_STORAGE_KEY);
   if (rawLocal) {
     try {
       const parsed = JSON.parse(rawLocal);
       if (parsed.groups && Object.keys(parsed.groups).length > 0) {
-        db = parsed; setSyncStatus('💾 Cargado (Local)'); finishLoad(); return;
+        db = parsed; 
+        setSyncStatus('💾 Cargado (Local)'); 
+        finishLoad(); 
+        return;
       }
     } catch (e) {}
   }
 
-  try {
-    const res = await fetch(GITHUB_FALLBACK_URL);
-    if (res.ok) {
-      const data = await res.json();
-      if (data.groups) {
-        db = data; saveLocal(); setSyncStatus('🐙 Cargado (GitHub)'); finishLoad(); return;
-      }
-    }
-  } catch (e) {}
-
+  // Fallback final
   setSyncStatus('⚠️ Modo local básico');
   finishLoad();
 }
-
+  
 function finishLoad() { getActiveData(); updateGroupSelector(); render(); }
 function saveLocal() { localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(db)); }
 function save() { 
