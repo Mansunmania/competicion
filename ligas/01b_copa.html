@@ -244,12 +244,25 @@ function closeVideoModal() {
   modal.classList.remove('open');
 }
 
-// --- SINTETIZADOR DE EFECTOS DE SONIDO (Web Audio API) ---
+// Variable global para reutilizar el mismo contexto de audio
+let sharedAudioCtx = null;
+
 function playSoundEffect(type) {
   try {
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     if (!AudioCtx) return;
-    const ctx = new AudioCtx();
+
+    // Inicializamos o reutilizamos el contexto existente
+    if (!sharedAudioCtx) {
+      sharedAudioCtx = new AudioCtx();
+    }
+
+    // Reanudamos el contexto si el navegador lo dejó suspendido por la política de Autoplay
+    if (sharedAudioCtx.state === 'suspended') {
+      sharedAudioCtx.resume();
+    }
+
+    const ctx = sharedAudioCtx;
     const now = ctx.currentTime;
 
     if (type === 'goal') {
