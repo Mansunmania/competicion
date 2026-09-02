@@ -611,8 +611,54 @@ function resolveCupSlot(cupData, top3Liga) {
 
   return null;
 }
+
+document.getElementById('btnCompute').onclick = () => {
+  if (!rawLigaData || !rawLigaData.classes) {
+    alert('No hay datos de liga cargados.');
+    return;
+  }
+
+  const selectedClassIds = Array.from(document.querySelectorAll('#classSelectorBox input:checked')).map(cb => cb.value);
+
+  if (selectedClassIds.length === 0) {
+    alert('Seleccione al menos una clase.');
+    return;
+  }
+
+  let finalQualified = [];
+
+  const cupMap = [rawCupAData, rawCupBData];
+
+  selectedClassIds.forEach((classId, idx) => {
+    const cls = rawLigaData.classes.find(c => c.id === classId);
+    if (!cls) return;
+
+    const classBoards = rawLigaData.boards.filter(b => b.classId === cls.id);
+    if (classBoards.length === 0) return;
+    
+    // Seleccionar Primera División (Level 0)
+    const topDivisionBoard = classBoards.find(b => b.level === 0) || classBoards[0];
+
+    const ranked = recalcBoard(topDivisionBoard);
+    
+    const top3Liga = ranked.slice(0, 3).map(r => r.name);
+    top3Liga.forEach(student => {
+      if (!finalQualified.includes(student)) finalQualified.push(student);
+    });
+
+    const cupData = cupMap[idx];
+    if (cupData) {
+      const cupSlot = resolveCupSlot(cupData, top3Liga);
+      if (cupSlot && !finalQualified.includes(cupSlot)) {
+        finalQualified.push(cupSlot);
+      }
+    }
+  });
+
+  document.getElementById('qualifiedStudentsInput').value = finalQualified.join('\n');
+};
   
-document.getElementById('btnStartTournament').onclick = () => {
+  document.getElementById('btnStartTournament').onclick = () => {
   const rawText = document.getElementById('qualifiedStudentsInput').value;
   const list = rawText.split('\n').map(s => s.trim()).filter(Boolean);
 
