@@ -554,49 +554,41 @@ function resolveCupSlot(cupData, top3Liga) {
   if (!cupData || !cupData.slots) return null;
 
   const slots = cupData.slots;
+  const round3 = slots["3"] || [];
 
-  // 1. EVALUAR FINAL (Ronda "3")
-  const finalRound = slots["3"];
-  if (finalRound && finalRound.length > 0) {
-    const finalMatch = finalRound[finalRound.length - 1];
-    if (finalMatch && finalMatch.w) {
-      const winner = finalMatch.w === 'p1' ? finalMatch.p1 : finalMatch.p2;
-      const runnerUp = finalMatch.w === 'p1' ? finalMatch.p2 : finalMatch.p1;
+  if (round3.length === 0) return null;
 
-      // Criterio 1: Campeón de Copa
-      if (winner && winner !== 'BYE' && !top3Liga.includes(winner)) return winner;
+  // 1. FINAL (Último partido de la ronda "3")
+  const finalMatch = round3[round3.length - 1];
+  if (finalMatch && finalMatch.w) {
+    const winner = finalMatch.w === 'p1' ? finalMatch.p1 : finalMatch.p2;
+    const runnerUp = finalMatch.w === 'p1' ? finalMatch.p2 : finalMatch.p1;
 
-      // Criterio 2: Subcampeón de Copa
-      if (runnerUp && runnerUp !== 'BYE' && !top3Liga.includes(runnerUp)) return runnerUp;
+    // Criterio 1: Campeón de Copa
+    if (winner && winner !== 'BYE' && !top3Liga.includes(winner)) return winner;
+
+    // Criterio 2: Subcampeón de Copa
+    if (runnerUp && runnerUp !== 'BYE' && !top3Liga.includes(runnerUp)) return runnerUp;
+  }
+
+  // 2. SEMIFINALES (Primeros partidos de la ronda "3")
+  // En un cuadro de 4 eliminatorias finales, las semifinales son las anteriores a la final
+  const semiMatches = round3.slice(0, round3.length - 1);
+  for (const m of semiMatches) {
+    if (!m.w) continue;
+    const loser = m.w === 'p1' ? m.p2 : m.p1;
+    if (loser && loser !== 'BYE' && !top3Liga.includes(loser)) {
+      return loser; // Devuelve al primer semifinalista no clasificado (ej: Marcos Sebastián o Juan Thiago)
     }
   }
 
-  // 2. EVALUAR SEMIFINALES (Ronda "2")
-  const semiRound = slots["2"];
-  if (semiRound && semiRound.length >= 2) {
-    const candidates = [];
-
-    semiRound.forEach(m => {
-      if (!m.w) return;
-      const loser = m.w === 'p1' ? m.p2 : m.p1;
-      if (loser && loser !== 'BYE' && !top3Liga.includes(loser)) {
-        candidates.push(loser);
-      }
-    });
-
-    // Devuelve el primer semifinalista no clasificado
-    if (candidates.length > 0) return candidates[0];
-  }
-
-  // 3. EVALUAR CUARTOS DE FINAL (Si los hay, evaluando la ronda "1" o "4" según el cuadro)
-  const quarterRound = slots["1"] || slots["4"];
-  if (quarterRound && quarterRound.length > 0) {
-    for (const m of quarterRound) {
-      if (!m.w) continue;
-      const loser = m.w === 'p1' ? m.p2 : m.p1;
-      if (loser && loser !== 'BYE' && !top3Liga.includes(loser)) {
-        return loser;
-      }
+  // 3. CUARTOS DE FINAL (Rondas "2" y "4")
+  const quarterMatches = [...(slots["2"] || []), ...(slots["4"] || [])];
+  for (const m of quarterMatches) {
+    if (!m.w) continue;
+    const loser = m.w === 'p1' ? m.p2 : m.p1;
+    if (loser && loser !== 'BYE' && !top3Liga.includes(loser)) {
+      return loser;
     }
   }
 
