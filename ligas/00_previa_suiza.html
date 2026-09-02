@@ -299,7 +299,6 @@ function checkUnsavedBeforeAction(actionName = "continuar") {
   return true;
 }
 
-// Control previo al cerrar/recargar la ventana
 window.addEventListener('beforeunload', (e) => {
   if (hasUnsavedChanges) {
     e.preventDefault();
@@ -585,7 +584,6 @@ function renderMatchEditor() {
     pushHistory();
     match.result = `${currentA}-${currentB}`;
     
-    // Reproducir sonido según el resultado del partido (victoria u ovación si hay ganador, o tono de empate)
     if (currentA === currentB) {
       playSoundEffect('draw');
     } else {
@@ -619,6 +617,12 @@ function setupUndoHandler() {
 }
 
 function changeGoal(team, amt) {
+  if (amt > 0) {
+    playSoundEffect('goal');
+  } else {
+    playSoundEffect('var');
+  }
+
   if (team === 'A') {
     currentA = Math.max(0, currentA + amt);
   } else {
@@ -628,14 +632,56 @@ function changeGoal(team, amt) {
   document.getElementById('valB').textContent = currentB;
 }
 
-// SINTETIZADOR DE SONIDOS (Web Audio API) - Adaptado de la Liga
+// SINTETIZADOR DE EFECTOS DE SONIDO (Web Audio API)
 function playSoundEffect(type) {
   try {
     const ctx = getAudioContext();
     const now = ctx.currentTime;
 
-    if (type === 'victory') {
-      // Efecto de Ovación / Ruido de Estadio (Liga)
+    if (type === 'goal') {
+      // Cántico sintetizado "¡Goooool!" al sumar gol (+)
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(220, now); // Nota La
+      osc.frequency.exponentialRampToValueAtTime(440, now + 0.3); // Sube una octava acelerando
+      
+      gain.gain.setValueAtTime(0.01, now);
+      gain.gain.linearRampToValueAtTime(0.3, now + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.6);
+
+    } else if (type === 'var') {
+      // Silbato corto del VAR al restar gol (-)
+      const playWhistlePuff = (startTime) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(2800, startTime);
+        osc.frequency.linearRampToValueAtTime(2600, startTime + 0.08);
+
+        gain.gain.setValueAtTime(0.01, startTime);
+        gain.gain.linearRampToValueAtTime(0.2, startTime + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.08);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start(startTime);
+        osc.stop(startTime + 0.08);
+      };
+
+      playWhistlePuff(now);
+      playWhistlePuff(now + 0.1);
+
+    } else if (type === 'victory') {
+      // Ovación y ambiente de estadio al guardar un partido ganado
       const bufferSize = ctx.sampleRate * 1.5;
       const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
       const output = buffer.getChannelData(0);
@@ -663,7 +709,6 @@ function playSoundEffect(type) {
       whiteNoise.start(now);
       whiteNoise.stop(now + 1.5);
 
-      // Fanfarria / Acorde Triunfal
       const notes = [523.25, 659.25, 783.99, 1046.50];
       notes.forEach((freq, idx) => {
         const osc = ctx.createOscillator();
@@ -684,7 +729,7 @@ function playSoundEffect(type) {
       });
 
     } else if (type === 'draw') {
-      // Efecto de Empate (Bajada de tono modulada)
+      // Bajada de tono melancólica en caso de empate
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'sine';
