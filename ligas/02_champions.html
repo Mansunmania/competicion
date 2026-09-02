@@ -126,12 +126,19 @@
     </div>
 
     <div class="panel">
-      <div class="section-title">2. Copas de Clase (Manual)</div>
-      <label>Copa Clase A (.json)</label>
-      <input type="file" id="cupAFile" accept="application/json" style="margin-bottom:6px;" />
-      <label>Copa Clase B (.json)</label>
-      <input type="file" id="cupBFile" accept="application/json" />
-    </div>
+  <div class="section-title">2. Copas de Clase (Manual)</div>
+  <label style="display:flex; justify-content:space-between; align-items:center;">
+    <span>Copa Clase A (.json)</span>
+    <span id="statusCupA" style="color:var(--ok); font-weight:bold; display:none;">✓ Cargada</span>
+  </label>
+  <input type="file" id="cupAFile" accept="application/json" style="margin-bottom:10px;" />
+
+  <label style="display:flex; justify-content:space-between; align-items:center;">
+    <span>Copa Clase B (.json)</span>
+    <span id="statusCupB" style="color:var(--ok); font-weight:bold; display:none;">✓ Cargada</span>
+  </label>
+  <input type="file" id="cupBFile" accept="application/json" />
+</div>
 
     <div class="panel">
       <div class="section-title">3. Lista Final de Clasificados</div>
@@ -434,15 +441,65 @@ function renderClassSelector() {
   });
 }
 
+// Carga de Copas sin alert y con tick verde visual
 document.getElementById('cupAFile').addEventListener('change', async (e) => {
   const file = e.target.files[0]; if(!file) return;
-  try { rawCupAData = JSON.parse(await file.text()); alert('Copa Clase A cargada.'); } catch(err){ alert('JSON no válido.'); }
+  try { 
+    rawCupAData = JSON.parse(await file.text()); 
+    document.getElementById('statusCupA').style.display = 'inline';
+  } catch(err){ 
+    alert('JSON de Copa A no válido.'); 
+    document.getElementById('statusCupA').style.display = 'none';
+  }
 });
 
 document.getElementById('cupBFile').addEventListener('change', async (e) => {
   const file = e.target.files[0]; if(!file) return;
-  try { rawCupBData = JSON.parse(await file.text()); alert('Copa Clase B cargada.'); } catch(err){ alert('JSON no válido.'); }
+  try { 
+    rawCupBData = JSON.parse(await file.text()); 
+    document.getElementById('statusCupB').style.display = 'inline';
+  } catch(err){ 
+    alert('JSON de Copa B no válido.'); 
+    document.getElementById('statusCupB').style.display = 'none';
+  }
 });
+
+// Función imprescindible que faltaba para procesar las clasificaciones del tablero
+function recalcBoard(board) {
+  if (!board || !board.students) return [];
+  const map = {};
+
+  board.students.forEach(s => {
+    const sName = typeof s === 'string' ? s : (s.name || s.id);
+    map[sName] = { name: sName, pts: 0, v: 0, e: 0, d: 0, gf: 0, gc: 0 };
+  });
+
+  const matches = board.matches || [];
+  matches.forEach(m => {
+    if (m.result) {
+      const pA = m.a || m.player1 || m.home;
+      const pB = m.b || m.player2 || m.away;
+      if (!map[pA]) map[pA] = { name: pA, pts: 0, v: 0, e: 0, d: 0, gf: 0, gc: 0 };
+      if (!map[pB]) map[pB] = { name: pB, pts: 0, v: 0, e: 0, d: 0, gf: 0, gc: 0 };
+
+      const parts = m.result.split('-');
+      const gA = parseInt(parts[0], 10);
+      const gB = parseInt(parts[1], 10);
+
+      if (!isNaN(gA) && !isNaN(gB)) {
+        map[pA].gf += gA; map[pA].gc += gB;
+        map[pB].gf += gB; map[pB].gc += gA;
+        map[pA].pts += gA; map[pB].pts += gB;
+
+        if (gA > gB) { map[pA].v++; map[pB].d++; }
+        else if (gB > gA) { map[pB].v++; map[pA].d++; }
+        else { map[pA].e++; map[pB].e++; }
+      }
+    }
+  });
+
+  return Object.values(map).sort((x, y) => y.pts - x.pts || (y.gf - y.gc) - (x.gf - x.gc) || x.name.localeCompare(y.name));
+}
 
 document.getElementById('btnCompute').onclick = () => {
   if (!rawLigaData || !rawLigaData.classes) {
@@ -460,13 +517,10 @@ document.getElementById('btnCompute').onclick = () => {
   let finalQualified = [];
 
   rawLigaData.classes.filter(cls => selectedClassIds.includes(cls.id)).forEach((cls, idx) => {
-    // CORRECCIÓN 1: Buscar la Liga FINALIZADA (el último board de la clase o con nivel más alto)
     const classBoards = rawLigaData.boards.filter(b => b.classId === cls.id);
     if (classBoards.length === 0) return;
     
-    // Cogemos el último tablero registrado para esa clase (temporada/fase terminada)
     const lastBoard = classBoards[classBoards.length - 1];
-
     const ranked = recalcBoard(lastBoard);
     
     // TOP 3 de la Liga
@@ -475,9 +529,8 @@ document.getElementById('btnCompute').onclick = () => {
       if (!finalQualified.includes(student)) finalQualified.push(student);
     });
 
-    // CORRECCIÓN 2: Evaluar archivos de Copa cargados (Clase A y Clase B)
+    // Evaluar Copas cargadas
     const cupsToTest = [rawCupAData, rawCupBData].filter(Boolean);
-    
     cupsToTest.forEach(cupData => {
       const cupSlot = resolveCupSlot(cupData, top3Liga);
       if (cupSlot && !finalQualified.includes(cupSlot)) {
@@ -485,7 +538,7 @@ document.getElementById('btnCompute').onclick = () => {
       }
     });
 
-    // Si tras revisar la copa no se ha sumado un 4º integrante nuevo, pasa el 4º de la Liga
+    // Si la copa no aporta un clasificado nuevo, entra el 4º de la Liga
     if (finalQualified.length < (idx + 1) * 4 && ranked.length >= 4) {
       const fourthPlace = ranked[3].name;
       if (!finalQualified.includes(fourthPlace)) {
@@ -496,7 +549,7 @@ document.getElementById('btnCompute').onclick = () => {
 
   document.getElementById('qualifiedStudentsInput').value = finalQualified.join('\n');
 };
-
+  
 function resolveCupSlot(cupData, top3Liga) {
   if (!cupData) return null;
 
