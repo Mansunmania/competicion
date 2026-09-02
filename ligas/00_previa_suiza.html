@@ -625,7 +625,7 @@ function setupUndoHandler() {
       save(); updateGroupSelector(); render();
     };
   }
-  updateUndoButtonState();
+  updateUndoButton(); // <--- CORREGIDO: antes decía updateUndoButtonState()
 }
 
 function changeGoal(team, amt) {
