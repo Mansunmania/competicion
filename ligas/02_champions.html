@@ -516,33 +516,34 @@ document.getElementById('btnCompute').onclick = () => {
 
   let finalQualified = [];
 
-  rawLigaData.classes.filter(cls => selectedClassIds.includes(cls.id)).forEach((cls, idx) => {
+  // Mapeo de archivos de copa por clase elegida (Clase 1 -> Copa A, Clase 2 -> Copa B)
+  const cupMap = [rawCupAData, rawCupBData];
+
+  selectedClassIds.forEach((classId, idx) => {
+    const cls = rawLigaData.classes.find(c => c.id === classId);
+    if (!cls) return;
+
+    // Buscar tableros pertenecientes a esta clase
     const classBoards = rawLigaData.boards.filter(b => b.classId === cls.id);
     if (classBoards.length === 0) return;
     
-    const lastBoard = classBoards[classBoards.length - 1];
-    const ranked = recalcBoard(lastBoard);
+    // Seleccionar el tablero con el nivel más alto o el último registrado (temporada pasada/finalizada)
+    const targetBoard = classBoards.reduce((prev, current) => (prev.level > current.level) ? prev : current);
+
+    const ranked = recalcBoard(targetBoard);
     
-    // TOP 3 de la Liga
+    // 1. TOP 3 de la Liga Regular
     const top3Liga = ranked.slice(0, 3).map(r => r.name);
     top3Liga.forEach(student => {
       if (!finalQualified.includes(student)) finalQualified.push(student);
     });
 
-    // Evaluar Copas cargadas
-    const cupsToTest = [rawCupAData, rawCupBData].filter(Boolean);
-    cupsToTest.forEach(cupData => {
+    // 2. Asignar la plaza de Copa según la copa correspondiente a esta clase
+    const cupData = cupMap[idx];
+    if (cupData) {
       const cupSlot = resolveCupSlot(cupData, top3Liga);
       if (cupSlot && !finalQualified.includes(cupSlot)) {
         finalQualified.push(cupSlot);
-      }
-    });
-
-    // Si la copa no aporta un clasificado nuevo, entra el 4º de la Liga
-    if (finalQualified.length < (idx + 1) * 4 && ranked.length >= 4) {
-      const fourthPlace = ranked[3].name;
-      if (!finalQualified.includes(fourthPlace)) {
-        finalQualified.push(fourthPlace);
       }
     }
   });
@@ -551,42 +552,61 @@ document.getElementById('btnCompute').onclick = () => {
 };
   
 function resolveCupSlot(cupData, top3Liga) {
-  if (!cupData) return null;
+  if (!cupData || !cupData.matches || cupData.matches.length === 0) return null;
 
-  let winner = null;
-  let runnerUp = null;
+  // 1. Localizar la Final
+  const finalMatch = cupData.matches.find(m => 
+    m.round && (m.round.toString().toUpperCase().includes('FINAL') || m.round === 'F')
+  ) || cupData.matches[cupData.matches.length - 1];
 
-  // 1. Si la Copa guarda explícitamente el ganador/subcampeón en la raíz
-  if (cupData.winner || cupData.champion) winner = cupData.winner || cupData.champion;
-  if (cupData.runnerUp || cupData.subchampion) runnerUp = cupData.runnerUp || cupData.subchampion;
+  if (!finalMatch || !finalMatch.result) return null;
 
-  // 2. Si no, buscar en la lista de partidos
-  if (!winner && cupData.matches && cupData.matches.length > 0) {
-    // Buscar la final (por nombre de ronda o cogiendo el último partido registrado)
-    const finalMatch = cupData.matches.find(m => 
-      m.round && (m.round.toString().toUpperCase().includes('FINAL') || m.round === 'F')
-    ) || cupData.matches[cupData.matches.length - 1];
+  const parts = finalMatch.result.split('-');
+  const gA = parseInt(parts[0], 10);
+  const gB = parseInt(parts[1], 10);
+  if (isNaN(gA) || isNaN(gB)) return null;
 
-    if (finalMatch && finalMatch.result) {
-      const pA = finalMatch.a || finalMatch.player1 || finalMatch.home;
-      const pB = finalMatch.b || finalMatch.player2 || finalMatch.away;
-      const parts = finalMatch.result.split('-');
-      const gA = parseInt(parts[0], 10);
-      const gB = parseInt(parts[1], 10);
+  const pA = finalMatch.a || finalMatch.player1 || finalMatch.home;
+  const pB = finalMatch.b || finalMatch.player2 || finalMatch.away;
 
-      if (!isNaN(gA) && !isNaN(gB)) {
-        winner = gA > gB ? pA : pB;
-        runnerUp = gA > gB ? pB : pA;
-      }
-    }
-  }
+  const winner = gA > gB ? pA : pB;
+  const runnerUp = gA > gB ? pB : pA;
 
-  // Comprobar la plaza (Si Alicia ganó la copa y no está en el Top 3 de la Liga, entra Alicia)
-  if (winner && !top3Liga.includes(winner)) {
-    return winner;
-  }
-  if (runnerUp && !top3Liga.includes(runnerUp)) {
-    return runnerUp;
+  // Criterio 1: Campeón de Copa
+  if (winner && !top3Liga.includes(winner)) return winner;
+
+  // Criterio 2: Subcampeón de Copa
+  if (runnerUp && !top3Liga.includes(runnerUp)) return runnerUp;
+
+  // Criterio 3 y 4: Semifinalistas
+  const semiMatches = cupData.matches.filter(m => 
+    m.round && (m.round.toString().toUpperCase().includes('SEMI') || m.round === 'SF' || m.round === '2')
+  );
+
+  if (semiMatches.length > 0) {
+    let semiVsWinner = null;
+    let semiVsRunnerUp = null;
+
+    semiMatches.forEach(m => {
+      if (!m.result) return;
+      const mPA = m.a || m.player1 || m.home;
+      const mPB = m.b || m.player2 || m.away;
+      const mParts = m.result.split('-');
+      const mGA = parseInt(mParts[0], 10);
+      const mGB = parseInt(mParts[1], 10);
+      
+      const loser = mGA > mGB ? mPB : mPA;
+      const matchWinner = mGA > mGB ? mPA : mPB;
+
+      if (matchWinner === winner) semiVsWinner = loser;
+      if (matchWinner === runnerUp) semiVsRunnerUp = loser;
+    });
+
+    // Criterio 3: Semifinalista que perdió contra el Campeón
+    if (semiVsWinner && !top3Liga.includes(semiVsWinner)) return semiVsWinner;
+
+    // Criterio 4: Otro semifinalista (perdió contra el Subcampeón)
+    if (semiVsRunnerUp && !top3Liga.includes(semiVsRunnerUp)) return semiVsRunnerUp;
   }
 
   return null;
