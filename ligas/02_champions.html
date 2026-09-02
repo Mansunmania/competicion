@@ -508,19 +508,27 @@ function recalcBoard(board) {
 
 function resolveCupSlot(cupData, top3Liga) {
   const matches = cupData.matches || [];
+  // Busca la final
   const finalMatch = matches.find(m => m.round === 'FINAL' || m.id === 'final');
   
   if (!finalMatch || !finalMatch.result) return null;
+
+  // Extraer nombres soportando ambos formatos de propiedad (a/b o player1/player2)
+  const playerA = finalMatch.a || finalMatch.player1 || finalMatch.home;
+  const playerB = finalMatch.b || finalMatch.player2 || finalMatch.away;
 
   const parts = finalMatch.result.split('-');
   const gA = parseInt(parts[0], 10);
   const gB = parseInt(parts[1], 10);
 
-  const winner = gA > gB ? finalMatch.a : finalMatch.b;
-  const runnerUp = gA > gB ? finalMatch.b : finalMatch.a;
+  if (isNaN(gA) || isNaN(gB)) return null;
 
-  if (!top3Liga.includes(winner)) return winner;
-  if (!top3Liga.includes(runnerUp)) return runnerUp;
+  const winner = gA > gB ? playerA : playerB;
+  const runnerUp = gA > gB ? playerB : playerA;
+
+  // Asignar plaza al ganador o al subcampeón si el ganador ya está en el TOP 3
+  if (winner && !top3Liga.includes(winner)) return winner;
+  if (runnerUp && !top3Liga.includes(runnerUp)) return runnerUp;
 
   return null;
 }
@@ -771,11 +779,11 @@ function renderCurrentMatch() {
         
         <div class="video-container">
           <iframe 
-            src="https://www.youtube.com/embed/M1PeoghJUMI" 
-            title="Every UCL Champion and Trophy Lift This Century" 
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-            allowfullscreen>
-          </iframe>
+  src="https://www.youtube.com/embed/M1PeoghJUMI?autoplay=1&mute=1" 
+  title="Every UCL Champion and Trophy Lift This Century" 
+  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+  allowfullscreen>
+</iframe>
         </div>
       </div>
       <button id="btnUndoAction" class="btn undo" disabled>↩️ Deshacer Último Resultado</button>
