@@ -273,6 +273,7 @@ function markUnsaved() { isUnsaved = true; }
 function markSaved() { isUnsaved = false; }
 
 // --- SINTETIZADOR DE SONIDO (WEB AUDIO API) ---
+// --- SINTETIZADOR DE SONIDO (WEB AUDIO API) ---
 function playMatchSound(isVictory) {
   try {
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -332,6 +333,42 @@ function playMatchSound(isVictory) {
       osc.start(); osc.stop(ctx.currentTime + 0.8);
     }
   } catch (e) { console.warn("Audio no soportado o bloqueado por navegador", e); }
+}
+
+// NUEVA FUNCIÓN: Sonidos para sumar/restar goles
+function playGoalSound(type) {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    const now = ctx.currentTime;
+
+    if (type === 'up') {
+      // Tono agudo ascendente (+ gol)
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(440, now);
+      osc.frequency.exponentialRampToValueAtTime(880, now + 0.12);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+      osc.start(now);
+      osc.stop(now + 0.15);
+    } else {
+      // Tono grave descendente (- gol)
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(300, now);
+      osc.frequency.exponentialRampToValueAtTime(150, now + 0.12);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+      osc.start(now);
+      osc.stop(now + 0.15);
+    }
+  } catch (e) { console.warn("Audio bloqueado", e); }
 }
 
 // --- EFECTO DE CONFETI NATIVO ---
@@ -705,6 +742,10 @@ function updateGoalUI() {
 }
 
 function changeGoal(team, amount) {
+  // Dispara el sonido según si suma o resta
+  if (amount > 0) playGoalSound('up');
+  else if (amount < 0) playGoalSound('down');
+
   if(team === 'A') {
     currentGoalsA = Math.max(0, Math.min(3, currentGoalsA + amount));
   } else {
@@ -774,12 +815,13 @@ function applyResult(resultString){
   pushToHistory(); 
   m.result=resultString; board.currentMatchId=null; 
 
-  // Reproducir sonido según victoria o empate
-  const isVictory = currentGoalsA !== currentGoalsB;
-  playMatchSound(isVictory);
+  // Reproducir sonido según si hubo ganador o empate
+  const parts = resultString.split('-');
+  const isDraw = parts[0] === parts[1];
+  playMatchSound(!isDraw); // Reproduce 'victoria/celebración' si no hay empate, o 'empate' si igualan
 
   currentGoalsA = 0; currentGoalsB = 0;
-  markUnsaved(); save(); render();
+  save(); render();
 }
 
 document.getElementById('triggerPromotions').onclick=()=>{
