@@ -117,11 +117,16 @@
     }
     .champions-title { font-size: 12px; font-weight: bold; color: #15803d; text-transform: uppercase; margin-bottom: 6px; }
     .champions-list { font-size: 14px; font-weight: bold; color: #166534; }
+    
+    .audio-controls { margin-top: 14px; display: flex; justify-content: center; gap: 8px; }
   </style>
 </head>
 <body>
 
 <canvas id="confettiCanvas"></canvas>
+
+<!-- CONTENEDOR REPRODUCTOR DE MÚSICA (CELEBRACIÓN) -->
+<div id="youtubePlayerContainer" style="display:none;"></div>
 
 <!-- MODAL DE RESUMEN DE TEMPORADA -->
 <div class="modal-overlay" id="seasonModal">
@@ -147,6 +152,10 @@
     <div class="champions-section">
       <div class="champions-title">⭐ CLASIFICADOS PARA CHAMPIONS ⭐</div>
       <div class="champions-list" id="championsList">-</div>
+    </div>
+
+    <div class="audio-controls">
+      <button class="btn secondary mini" onclick="stopCelebrationAudio()">🔇 Pausar Himno</button>
     </div>
   </div>
 </div>
@@ -272,7 +281,19 @@ window.addEventListener('beforeunload', (e) => {
 function markUnsaved() { isUnsaved = true; }
 function markSaved() { isUnsaved = false; }
 
-// --- SINTETIZADOR DE SONIDO (WEB AUDIO API) ---
+// --- REPRODUCTOR AUDIO HIMNO CELEBRACIÓN ---
+let ytPlayer = null;
+
+function playCelebrationAudio() {
+  const container = document.getElementById('youtubePlayerContainer');
+  container.innerHTML = `<iframe id="ytAudioIframe" width="1" height="1" src="https://www.youtube.com/embed/WyhS4aWOezI?start=121&autoplay=1&enablejsapi=1" frameborder="0" allow="autoplay"></iframe>`;
+}
+
+function stopCelebrationAudio() {
+  const container = document.getElementById('youtubePlayerContainer');
+  container.innerHTML = '';
+}
+
 // --- SINTETIZADOR DE SONIDO (WEB AUDIO API) ---
 function playMatchSound(isVictory) {
   try {
@@ -281,7 +302,6 @@ function playMatchSound(isVictory) {
     const ctx = new AudioCtx();
 
     if (isVictory) {
-      // Sonido de victoria (secuencia triunfal de la copa)
       const bufferSize = ctx.sampleRate * 1.2;
       const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
       const output = buffer.getChannelData(0);
@@ -317,12 +337,10 @@ function playMatchSound(isVictory) {
         osc.start(ctx.currentTime + idx * 0.08); osc.stop(ctx.currentTime + idx * 0.08 + 0.5);
       });
     } else {
-      // Sonido de empate (tono de suspense / tensión)
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'sawtooth';
       
-      // Bajada dramática de frecuencia
       osc.frequency.setValueAtTime(180, ctx.currentTime);
       osc.frequency.exponentialRampToValueAtTime(90, ctx.currentTime + 0.8);
 
@@ -335,7 +353,6 @@ function playMatchSound(isVictory) {
   } catch (e) { console.warn("Audio no soportado o bloqueado por navegador", e); }
 }
 
-// --- SINTETIZADOR DE EFECTOS DE SONIDO (Web Audio API) ---
 function playSoundEffect(type) {
   try {
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -344,13 +361,12 @@ function playSoundEffect(type) {
     const now = ctx.currentTime;
 
     if (type === 'goal') {
-      // Cántico sintetizado "¡Goooool!" al sumar gol (+)
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       
       osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(220, now); // Nota La
-      osc.frequency.exponentialRampToValueAtTime(440, now + 0.3); // Sube una octava acelerando
+      osc.frequency.setValueAtTime(220, now);
+      osc.frequency.exponentialRampToValueAtTime(440, now + 0.3);
       
       gain.gain.setValueAtTime(0.01, now);
       gain.gain.linearRampToValueAtTime(0.3, now + 0.05);
@@ -363,7 +379,6 @@ function playSoundEffect(type) {
       osc.stop(now + 0.6);
 
     } else if (type === 'var') {
-      // Silbato corto del VAR al restar gol (-)
       const playWhistlePuff = (startTime) => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
@@ -428,7 +443,7 @@ function triggerConfetti() {
       if (p.y > canvas.height) p.y = -10;
     });
 
-    if (Date.now() - startTime < 6000) {
+    if (Date.now() - startTime < 8000) {
       confettiAnimId = requestAnimationFrame(animate);
     } else {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -449,6 +464,7 @@ function openSeasonModal(c1, c2, c3, champions) {
 
 function closeSeasonModal() {
   document.getElementById('seasonModal').classList.remove('open');
+  stopCelebrationAudio();
 }
 
 function updateBadge(type, label) {
@@ -761,7 +777,6 @@ function updateGoalUI() {
 }
 
 function changeGoal(team, amount) {
-  // Dispara el cántico de gol al sumar o el silbato de VAR al restar
   if (amount > 0) playSoundEffect('goal');
   else if (amount < 0) playSoundEffect('var');
 
@@ -834,10 +849,9 @@ function applyResult(resultString){
   pushToHistory(); 
   m.result=resultString; board.currentMatchId=null; 
 
-  // Reproducir sonido según si hubo ganador o empate
   const parts = resultString.split('-');
   const isDraw = parts[0] === parts[1];
-  playMatchSound(!isDraw); // Reproduce 'victoria/celebración' si no hay empate, o 'empate' si igualan
+  playMatchSound(!isDraw);
 
   currentGoalsA = 0; currentGoalsB = 0;
   save(); render();
@@ -851,7 +865,6 @@ document.getElementById('triggerPromotions').onclick=()=>{
     }
   }
 
-  // Extraer clasificaciones finales antes de modificar los grupos
   const standing1 = recalc(classBoards[0]).map(r => r.name); 
   const standing2 = recalc(classBoards[1]).map(r => r.name); 
   const standing3 = recalc(classBoards[2]).map(r => r.name); 
@@ -861,7 +874,8 @@ document.getElementById('triggerPromotions').onclick=()=>{
   const champSimpson = standing3[0] || 'N/A';
   const championsQualified = standing1.slice(0, 3);
 
-  // Lanzar Confeti y abrir Modal Resumen de Campeones
+  // Reproducir audio de celebración, lanzar Confeti y abrir Modal Resumen de Campeones
+  playCelebrationAudio();
   triggerConfetti();
   openSeasonModal(champShrek, champDonkey, champSimpson, championsQualified);
 
