@@ -335,40 +335,59 @@ function playMatchSound(isVictory) {
   } catch (e) { console.warn("Audio no soportado o bloqueado por navegador", e); }
 }
 
-// NUEVA FUNCIÓN: Sonidos para sumar/restar goles
-function playGoalSound(type) {
+// --- SINTETIZADOR DE EFECTOS DE SONIDO (Web Audio API) ---
+function playSoundEffect(type) {
   try {
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     if (!AudioCtx) return;
     const ctx = new AudioCtx();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-
     const now = ctx.currentTime;
 
-    if (type === 'up') {
-      // Tono agudo ascendente (+ gol)
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(440, now);
-      osc.frequency.exponentialRampToValueAtTime(880, now + 0.12);
-      gain.gain.setValueAtTime(0.2, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+    if (type === 'goal') {
+      // Cántico sintetizado "¡Goooool!" al sumar gol (+)
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(220, now); // Nota La
+      osc.frequency.exponentialRampToValueAtTime(440, now + 0.3); // Sube una octava acelerando
+      
+      gain.gain.setValueAtTime(0.01, now);
+      gain.gain.linearRampToValueAtTime(0.3, now + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
       osc.start(now);
-      osc.stop(now + 0.15);
-    } else {
-      // Tono grave descendente (- gol)
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(300, now);
-      osc.frequency.exponentialRampToValueAtTime(150, now + 0.12);
-      gain.gain.setValueAtTime(0.2, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
-      osc.start(now);
-      osc.stop(now + 0.15);
+      osc.stop(now + 0.6);
+
+    } else if (type === 'var') {
+      // Silbato corto del VAR al restar gol (-)
+      const playWhistlePuff = (startTime) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(2800, startTime);
+        osc.frequency.linearRampToValueAtTime(2600, startTime + 0.08);
+
+        gain.gain.setValueAtTime(0.01, startTime);
+        gain.gain.linearRampToValueAtTime(0.2, startTime + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.08);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start(startTime);
+        osc.stop(startTime + 0.08);
+      };
+
+      playWhistlePuff(now);
+      playWhistlePuff(now + 0.1);
     }
-  } catch (e) { console.warn("Audio bloqueado", e); }
+  } catch (e) { 
+    console.warn("Audio no soportado o bloqueado por el navegador", e); 
+  }
 }
 
 // --- EFECTO DE CONFETI NATIVO ---
@@ -742,9 +761,9 @@ function updateGoalUI() {
 }
 
 function changeGoal(team, amount) {
-  // Dispara el sonido según si suma o resta
-  if (amount > 0) playGoalSound('up');
-  else if (amount < 0) playGoalSound('down');
+  // Dispara el cántico de gol al sumar o el silbato de VAR al restar
+  if (amount > 0) playSoundEffect('goal');
+  else if (amount < 0) playSoundEffect('var');
 
   if(team === 'A') {
     currentGoalsA = Math.max(0, Math.min(3, currentGoalsA + amount));
