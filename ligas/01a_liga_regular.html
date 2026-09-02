@@ -19,7 +19,9 @@
     .status-bar {
       margin-bottom: 12px; padding: 10px 14px; background: #fff; border: 1px solid var(--line);
       border-radius: 10px; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 8px;
     }
+    .status-actions { display: flex; gap: 8px; }
     .badge { padding: 3px 8px; border-radius: 6px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
     .badge-drive { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
     .badge-local { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
@@ -89,8 +91,8 @@
     .modal-overlay.open { opacity: 1; pointer-events: auto; }
     .modal-box {
       background: #ffffff; border: 3px solid var(--gold); border-radius: 16px;
-      padding: 24px; width: 90%; max-width: 600px; text-align: center; position: relative;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      padding: 24px; width: 90%; max-width: 640px; text-align: center; position: relative;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3); max-height: 90vh; overflow-y: auto;
     }
     .modal-box h2 { margin: 0 0 16px 0; color: #1e293b; font-size: 22px; text-transform: uppercase; letter-spacing: 1px; }
     .close-modal {
@@ -98,35 +100,39 @@
       color: #64748b; font-size: 22px; cursor: pointer; padding: 0; height: auto;
     }
     
-    .winner-rank-box { margin-bottom: 20px; display: flex; flex-direction: column; gap: 12px; align-items: center; }
-    .w-card { width: 100%; border-radius: 10px; padding: 10px; border: 1px solid var(--line); background: #f8fafc; }
+    .video-wrapper {
+      position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;
+      border-radius: 12px; border: 1px solid var(--line); margin-bottom: 16px; background: #000;
+    }
+    .video-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
+
+    .winner-rank-box { margin-bottom: 16px; display: flex; flex-direction: column; gap: 10px; align-items: center; }
+    .w-card { width: 100%; border-radius: 10px; padding: 8px 10px; border: 1px solid var(--line); background: #f8fafc; }
     .w-shrek { border-color: var(--gold); background: #fffbeb; }
-    .w-shrek .w-title { font-size: 13px; color: var(--bronze); font-weight: bold; }
-    .w-shrek .w-name { font-size: 26px; color: #b45309; font-weight: 900; }
+    .w-shrek .w-title { font-size: 12px; color: var(--bronze); font-weight: bold; }
+    .w-shrek .w-name { font-size: 24px; color: #b45309; font-weight: 900; }
     
     .w-donkey { border-color: #cbd5e1; background: #f1f5f9; }
-    .w-donkey .w-title { font-size: 12px; color: #475569; font-weight: bold; }
-    .w-donkey .w-name { font-size: 20px; color: #1e293b; font-weight: 800; }
+    .w-donkey .w-title { font-size: 11px; color: #475569; font-weight: bold; }
+    .w-donkey .w-name { font-size: 18px; color: #1e293b; font-weight: 800; }
     
     .w-simpson { border-color: #e2e8f0; background: #fafafa; }
-    .w-simpson .w-title { font-size: 11px; color: #64748b; font-weight: bold; }
-    .w-simpson .w-name { font-size: 16px; color: #334155; font-weight: 700; }
+    .w-simpson .w-title { font-size: 10px; color: #64748b; font-weight: bold; }
+    .w-simpson .w-name { font-size: 15px; color: #334155; font-weight: 700; }
 
     .champions-section {
-      background: #f0fdf4; border: 1px dashed var(--ok); border-radius: 10px; padding: 12px; margin-top: 10px;
+      background: #f0fdf4; border: 1px dashed var(--ok); border-radius: 10px; padding: 10px; margin-top: 10px;
     }
-    .champions-title { font-size: 12px; font-weight: bold; color: #15803d; text-transform: uppercase; margin-bottom: 6px; }
+    .champions-title { font-size: 12px; font-weight: bold; color: #15803d; text-transform: uppercase; margin-bottom: 4px; }
     .champions-list { font-size: 14px; font-weight: bold; color: #166534; }
-    
-    .audio-controls { margin-top: 14px; display: flex; justify-content: center; gap: 8px; }
   </style>
 </head>
 <body>
 
 <canvas id="confettiCanvas"></canvas>
 
-<!-- CONTENEDOR REPRODUCTOR DE MÚSICA (CELEBRACIÓN) -->
-<div id="youtubePlayerContainer" style="display:none;"></div>
+<!-- INPUT OCULTO PARA CARGA RÁPIDA LOCAL -->
+<input type="file" id="fastLocalInput" accept="application/json" style="display:none;" />
 
 <!-- MODAL DE RESUMEN DE TEMPORADA -->
 <div class="modal-overlay" id="seasonModal">
@@ -134,6 +140,9 @@
     <button class="close-modal" onclick="closeSeasonModal()">✖</button>
     <h2>🏆 ¡TEMPORADA FINALIZADA! 🏆</h2>
     
+    <!-- CONTENEDOR DE VÍDEO EMBEBIDO -->
+    <div class="video-wrapper" id="videoContainer"></div>
+
     <div class="winner-rank-box">
       <div class="w-card w-shrek">
         <div class="w-title">🥇 CAMPEÓN/A SHREK Y FIONA</div>
@@ -153,10 +162,6 @@
       <div class="champions-title">⭐ CLASIFICADOS PARA CHAMPIONS ⭐</div>
       <div class="champions-list" id="championsList">-</div>
     </div>
-
-    <div class="audio-controls">
-      <button class="btn secondary mini" onclick="stopCelebrationAudio()">🔇 Pausar Himno</button>
-    </div>
   </div>
 </div>
 
@@ -169,7 +174,10 @@
 
   <div class="status-bar">
     <div>Estado de la Fuente de Datos: <span id="dataSourceBadge" class="badge badge-local">Cargando...</span></div>
-    <button class="btn secondary mini" id="reloadFromDriveBtn">🔄 Cargar de Drive</button>
+    <div class="status-actions">
+      <button class="btn secondary mini" id="loadManualLocalBtn">📁 Cargar JSON Local</button>
+      <button class="btn secondary mini" id="reloadFromDriveBtn">🔄 Cargar de Drive</button>
+    </div>
   </div>
 
   <div class="toolbar">
@@ -281,16 +289,14 @@ window.addEventListener('beforeunload', (e) => {
 function markUnsaved() { isUnsaved = true; }
 function markSaved() { isUnsaved = false; }
 
-// --- REPRODUCTOR AUDIO HIMNO CELEBRACIÓN ---
-let ytPlayer = null;
-
-function playCelebrationAudio() {
-  const container = document.getElementById('youtubePlayerContainer');
-  container.innerHTML = `<iframe id="ytAudioIframe" width="1" height="1" src="https://www.youtube.com/embed/WyhS4aWOezI?start=121&autoplay=1&enablejsapi=1" frameborder="0" allow="autoplay"></iframe>`;
+// --- REPRODUCTOR VÍDEO CELEBRACIÓN ---
+function playCelebrationVideo() {
+  const container = document.getElementById('videoContainer');
+  container.innerHTML = `<iframe src="https://www.youtube.com/embed/WyhS4aWOezI?start=121&autoplay=1" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
 }
 
-function stopCelebrationAudio() {
-  const container = document.getElementById('youtubePlayerContainer');
+function stopCelebrationVideo() {
+  const container = document.getElementById('videoContainer');
   container.innerHTML = '';
 }
 
@@ -372,11 +378,8 @@ function playSoundEffect(type) {
       gain.gain.linearRampToValueAtTime(0.3, now + 0.05);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
 
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-
-      osc.start(now);
-      osc.stop(now + 0.6);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(now); osc.stop(now + 0.6);
 
     } else if (type === 'var') {
       const playWhistlePuff = (startTime) => {
@@ -390,11 +393,8 @@ function playSoundEffect(type) {
         gain.gain.linearRampToValueAtTime(0.2, startTime + 0.01);
         gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.08);
 
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-
-        osc.start(startTime);
-        osc.stop(startTime + 0.08);
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.start(startTime); osc.stop(startTime + 0.08);
       };
 
       playWhistlePuff(now);
@@ -460,11 +460,12 @@ function openSeasonModal(c1, c2, c3, champions) {
   document.getElementById('winnerSimpson').textContent = c3 || '---';
   document.getElementById('championsList').textContent = champions.length ? champions.join(' • ') : '---';
   document.getElementById('seasonModal').classList.add('open');
+  playCelebrationVideo();
 }
 
 function closeSeasonModal() {
   document.getElementById('seasonModal').classList.remove('open');
-  stopCelebrationAudio();
+  stopCelebrationVideo();
 }
 
 function updateBadge(type, label) {
@@ -874,8 +875,7 @@ document.getElementById('triggerPromotions').onclick=()=>{
   const champSimpson = standing3[0] || 'N/A';
   const championsQualified = standing1.slice(0, 3);
 
-  // Reproducir audio de celebración, lanzar Confeti y abrir Modal Resumen de Campeones
-  playCelebrationAudio();
+  // Lanzar Confeti y abrir Modal Resumen con Vídeo de Campeones
   triggerConfetti();
   openSeasonModal(champShrek, champDonkey, champSimpson, championsQualified);
 
@@ -946,20 +946,47 @@ document.getElementById('exportData').onclick=()=>{
   markSaved();
 };
 
+// Carga directa de Drive
 document.getElementById('reloadFromDriveBtn').onclick=()=>{ initDataCascade(); };
 
-document.getElementById('importFile').addEventListener('change', async (e)=>{
-  const file=e.target.files[0]; if(!file) return; const text=await file.text();
-  try{
-    const data=JSON.parse(text);
-    if(data && Array.isArray(data.classes) && Array.isArray(data.boards)){
-      app=data; 
-      leagueHistory = []; 
-      app.activeClassId=app.classes[0]?.id||null; app.activeBoardId=currentClassBoards()[0]?.id||null;
-      markSaved(); save(); render(); alert('Datos recuperados.');
+// Carga manual del JSON local desde la barra de estado
+document.getElementById('loadManualLocalBtn').onclick=()=>{
+  document.getElementById('fastLocalInput').click();
+};
+
+function processJsonFile(file) {
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if(data && Array.isArray(data.classes) && Array.isArray(data.boards)){
+        app = data;
+        leagueHistory = [];
+        if(!app.activeClassId && app.classes.length > 0) app.activeClassId = app.classes[0].id;
+        if(!app.activeBoardId) app.activeBoardId = currentClassBoards()[0]?.id || null;
+        save();
+        markSaved();
+        updateBadge('local', '💾 Cargado (Archivo Manual)');
+        render();
+      } else {
+        alert('El archivo JSON no tiene la estructura válida de la liga.');
+      }
+    } catch(err) {
+      alert('Error al leer el archivo JSON.');
     }
-  }catch(err){ alert('Archivo no compatible.'); }
-  e.target.value='';
+  };
+  reader.readAsText(file);
+}
+
+document.getElementById('fastLocalInput').addEventListener('change', (e) => {
+  processJsonFile(e.target.files[0]);
+  e.target.value = '';
+});
+
+document.getElementById('importFile').addEventListener('change', (e) => {
+  processJsonFile(e.target.files[0]);
+  e.target.value = '';
 });
 
 initDataCascade();
