@@ -127,7 +127,7 @@
     </div>
     <div>
       <label>2. Seleccionar Clase / Aula</label>
-      <select id="classSelector" onchange="onClassChange()"><option value="">-- Carga la Liga primero --</option></select>
+      <select id="classSelector"><option value="">-- Carga la Liga primero --</option></select>
     </div>
     <div>
       <button class="btn-pri" id="btnBuildCopa">⚔️ Sorteo ATP Real</button>
@@ -365,9 +365,35 @@ function populateClassSelector() {
   });
 }
 
+// Variable para recordar la clase anterior por si el usuario cancela el cambio
+let lastSelectedClassId = "";
+
+// 1. Sustituyes la función onClassChange antigua por esta versión con control de cambios
 async function onClassChange() {
-  const classId = document.getElementById('classSelector').value;
-  if (!classId) return;
+  const select = document.getElementById('classSelector');
+  const classId = select.value;
+
+  // Control de confirmación si hay cambios pendientes sin guardar
+  if (isUnsaved) {
+    const confirmSwitch = confirm(
+      "⚠️ Tienes cambios en la Copa actual que NO has guardado en un archivo JSON.\n\n" +
+      "Si cambias de clase sin hacer clic en '💾 Guardar Copa Aula', podrías perder el progreso no respaldado.\n\n" +
+      "¿Deseas continuar y cambiar de clase de todos modos?"
+    );
+
+    if (!confirmSwitch) {
+      // Revertimos la selección al desplegable anterior y abortamos
+      select.value = lastSelectedClassId;
+      return;
+    }
+  }
+
+  if (!classId) {
+    lastSelectedClassId = "";
+    return;
+  }
+
+  lastSelectedClassId = classId;
 
   undoStack = [];
   updateUndoButtonState();
@@ -376,12 +402,12 @@ async function onClassChange() {
   document.getElementById('bracketLayout').innerHTML = '';
   document.getElementById('activeMatchContent').innerHTML = '⏳ Descargando Copa desde Drive...';
 
-  // 1. Obtener datos del aula seleccionada
+  // Obtener datos del aula seleccionada
   const targetClass = (rawLigaData.classes || rawLigaData.clases || []).find(c => c.id == classId);
   const className = targetClass ? (targetClass.name || targetClass.nombre) : classId;
   const safeClassName = className.replace(/\s+/g, '_');
 
-  // 2. Intentar buscar el archivo de Copa de esta clase en Drive (ej: 01b_copa_5B.json)
+  // Intentar buscar el archivo de Copa de esta clase en Drive
   const driveFilename = `01b_copa_${safeClassName}.json`;
   let driveCopaData = null;
 
@@ -391,10 +417,10 @@ async function onClassChange() {
     console.warn("No se encontró Copa en Drive para esta clase, buscando en LocalStorage...");
   }
 
-  // 3. Prioridad: 1º Drive -> 2º LocalStorage -> 3º Crear Copa vacía
+  // Carga según prioridad: Drive -> LocalStorage -> Nueva vacía
   if (driveCopaData && driveCopaData.slots) {
     copa = driveCopaData;
-    saveLocal(); // Actualiza la copia local por si te quedas sin internet
+    saveLocal();
     markSaved();
     render();
     document.getElementById('activeMatchContent').innerHTML = `☁️ Copa de ${copa.className} sincronizada desde Drive.`;
@@ -407,10 +433,68 @@ async function onClassChange() {
       document.getElementById('activeMatchContent').innerHTML = `💾 Copa cargada desde el almacenamiento local.`;
     } else {
       copa = { classId, className, size: 32, slots: {}, activeCell: null };
+      markSaved();
       document.getElementById('activeMatchContent').innerHTML = 'Haz clic en "⚔️ Sorteo ATP Real" para generar la Copa.';
     }
   }
 }
+
+// Vinculamos el evento change al desplegable
+document.getElementById('classSelector').addEventListener('change', onClassChange);
+
+
+// --- TODO LO DEMÁS SE MANTIENE EXACTAMENTE IGUAL A CONTINUACIÓN ---
+
+document.getElementById('jsonFile').addEventListener('change', async (e) => {
+  const file = e.target.files[0]; if(!file) return;
+  try {
+    rawLigaData = JSON.parse(await file.text());
+    populateClassSelector();
+    alert("¡Liga local cargada!");
+  } catch(err) { alert("Archivo JSON no válido."); }
+});
+
+document.getElementById('jsonCopaFile').addEventListener('change', async (e) => {
+  const file = e.target.files[0]; if(!file) return;
+  try {
+    const importedData = JSON.parse(await file.text());
+    if(importedData && importedData.slots && importedData.classId) {
+      copa = importedData;
+      undoStack = [];
+      document.getElementById('classSelector').value = copa.classId || '';
+      updateUndoButtonState();
+      saveLocal(); 
+      markSaved();
+      render();
+      alert(`Copa de "${copa.className}" cargada correctamente.`);
+    } else { alert("El archivo no corresponde a una Copa de aula válida."); }
+  } catch(err) { alert("Error al abrir la Copa."); }
+  e.target.value = '';
+});
+
+document.getElementById('btnBuildCopa').onclick = () => {
+  const classId = document.getElementById('classSelector').value;
+  if(!rawLigaData || !classId) { alert("Selecciona una clase primero."); return; }
+  
+  const targetClass = (rawLigaData.classes || rawLigaData.clases || []).find(c => c.id == classId);
+  const className = targetClass ? (targetClass.name || targetClass.nombre) : 'Clase';
+  
+  let studentsPool = extractOrderedStudents(classId);
+  if(studentsPool.length < 4) { alert("No hay suficientes alumnos en esta clase."); return; }
+  
+  let size = studentsPool.length <= 16 ? 16 : 32;
+  
+  undoStack = [];
+  updateUndoButtonState();
+
+  copa = { classId, className, size, slots: {}, activeCell: null };
+  initSlotsStructure(size);
+  buildOfficialATPTournament(studentsPool, size);
+  
+  markUnsaved();
+  saveLocal(); 
+  render();
+};
 
 document.getElementById('jsonFile').addEventListener('change', async (e) => {
   const file = e.target.files[0]; if(!file) return;
