@@ -120,7 +120,7 @@
   </div>
   <div style="display:flex; align-items:center; gap:10px;">
     <span class="status-tag" id="autosaveStatus">⏳ Cargando...</span>
-    <button class="btn secondary" onclick="initDataCascade()">🔄 Cargar de Drive</button>
+    <button class="btn secondary" onclick="handleManualLoadDrive()">🔄 Cargar de Drive</button>
     <button class="btn secondary" id="exportAll">📥 Exportar (JSON)</button>
     <button class="btn secondary" onclick="document.getElementById('importFile').click()">📤 Importar</button>
     <input id="importFile" type="file" accept="application/json" style="display:none" />
@@ -219,7 +219,6 @@
     <h2 class="summary-title">🏆 CUADRO DE HONOR 🏆</h2>
     
     <div class="summary-columns-container">
-      <!-- Columna 1: Shrek & Fiona -->
       <div class="summary-col col-shrek">
         <div class="col-overlay"></div>
         <div class="col-content">
@@ -228,7 +227,6 @@
         </div>
       </div>
 
-      <!-- Columna 2: Donkey -->
       <div class="summary-col col-donkey">
         <div class="col-overlay"></div>
         <div class="col-content">
@@ -237,7 +235,6 @@
         </div>
       </div>
 
-      <!-- Columna 3: Bart & Lisa -->
       <div class="summary-col col-bart">
         <div class="col-overlay"></div>
         <div class="col-content">
@@ -257,6 +254,8 @@ const DEFAULT_FILENAME = '00_previa_suiza.json';
 
 let historyStack = [];
 let currentA = 0, currentB = 0;
+let hasUnsavedChanges = false;
+
 let db = {
   activeGroup: "Clase 1",
   groups: {
@@ -293,6 +292,26 @@ function getActiveData() {
   return db.groups[db.activeGroup];
 }
 
+function checkUnsavedBeforeAction(actionName = "continuar") {
+  if (hasUnsavedChanges) {
+    return confirm(`Tienes cambios recientes sin exportar o guardar externamente. ¿Seguro que deseas ${actionName}?`);
+  }
+  return true;
+}
+
+// Control previo al cerrar/recargar la ventana
+window.addEventListener('beforeunload', (e) => {
+  if (hasUnsavedChanges) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+
+function handleManualLoadDrive() {
+  if (!checkUnsavedBeforeAction("cargar datos de Drive y reemplazar la sesión actual")) return;
+  initDataCascade();
+}
+
 async function initDataCascade() {
   setSyncStatus('⏳ Cargando...');
   if (APPS_SCRIPT_URL && APPS_SCRIPT_URL.startsWith("https://script.google.com")) {
@@ -300,7 +319,7 @@ async function initDataCascade() {
       const res = await fetch(`${APPS_SCRIPT_URL}?file=${DEFAULT_FILENAME}`, { method: 'GET', redirect: 'follow' });
       const result = await res.json();
       if (result.success && result.data && result.data.groups) {
-        db = result.data; saveLocal(); setSyncStatus('☁️ Sincronizado (Drive)'); finishLoad(); return;
+        db = result.data; saveLocal(); setSyncStatus('☁️ Sincronizado (Drive)'); hasUnsavedChanges = false; finishLoad(); return;
       }
     } catch (e) { console.warn("No se pudo conectar con Drive:", e); }
   }
@@ -331,7 +350,12 @@ async function initDataCascade() {
 
 function finishLoad() { getActiveData(); updateGroupSelector(); render(); }
 function saveLocal() { localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(db)); }
-function save() { const state = getActiveData(); state.updatedAt = Date.now(); saveLocal(); }
+function save() { 
+  const state = getActiveData(); 
+  state.updatedAt = Date.now(); 
+  saveLocal(); 
+  hasUnsavedChanges = true;
+}
 function setSyncStatus(text) { const el = document.getElementById('autosaveStatus'); if (el) el.textContent = text; }
 function pushHistory() { historyStack.push(JSON.stringify(db)); updateUndoButton(); }
 
@@ -506,7 +530,7 @@ function renderMatches() {
     div.onclick = () => {
       state.currentMatchId = m.id;
       currentA = 0; currentB = 0;
-      save(); renderMatchEditor();
+      saveLocal(); renderMatchEditor();
     };
 
     if (i < half) list1.appendChild(div);
@@ -600,7 +624,6 @@ function playSoundEffect(type) {
     const now = ctx.currentTime;
 
     if (type === 'goal') {
-      // Ovación/Grito de Gol (Ruido modulado + tono de clamor)
       const bufferSize = ctx.sampleRate * 1.2;
       const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
       const data = buffer.getChannelData(0);
@@ -630,7 +653,6 @@ function playSoundEffect(type) {
       noise.stop(now + 1.2);
 
     } else if (type === 'var') {
-      // Silbato de Árbitro / VAR
       const osc1 = ctx.createOscillator();
       const osc2 = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -648,7 +670,6 @@ function playSoundEffect(type) {
       osc1.stop(now + 0.35); osc2.stop(now + 0.35);
 
     } else if (type === 'victory') {
-      // Fanfarria de Victoria
       const notes = [261.63, 329.63, 392.00, 523.25];
       notes.forEach((freq, index) => {
         const osc = ctx.createOscillator();
@@ -663,7 +684,6 @@ function playSoundEffect(type) {
       });
 
     } else if (type === 'draw') {
-      // Tono de Empate
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'sine';
@@ -677,7 +697,6 @@ function playSoundEffect(type) {
   } catch (e) { console.warn("Audio Context error:", e); }
 }
 
-// CÁLCULO Y REPARTO DE TERCIOS DE CLASIFICACIÓN
 function triggerLeagueFinalSummary(standingsArray) {
   const total = standingsArray.length;
   if (total === 0) return;
@@ -766,7 +785,16 @@ document.getElementById('deleteGroupBtn').onclick = () => {
   }
 };
 
-document.getElementById('groupSelect').onchange = (e) => { db.activeGroup = e.target.value; save(); render(); };
+document.getElementById('groupSelect').onchange = (e) => {
+  const targetGroup = e.target.value;
+  if (!checkUnsavedBeforeAction("cambiar de competición")) {
+    e.target.value = db.activeGroup;
+    return;
+  }
+  db.activeGroup = targetGroup;
+  saveLocal(); 
+  render();
+};
 
 document.getElementById('saveStudents').onclick = () => {
   const state = getActiveData();
@@ -792,6 +820,7 @@ document.getElementById('generateMatches').onclick = () => {
 document.getElementById('exportAll').onclick = () => {
   const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = DEFAULT_FILENAME; a.click();
+  hasUnsavedChanges = false;
 };
 
 document.getElementById('importFile').addEventListener('change', async (e) => {
@@ -801,7 +830,7 @@ document.getElementById('importFile').addEventListener('change', async (e) => {
     const data = JSON.parse(await file.text());
     pushHistory();
     if (data.groups) {
-      db = data; saveLocal(); setSyncStatus('📂 Archivo local'); updateGroupSelector(); render();
+      db = data; saveLocal(); setSyncStatus('📂 Archivo local'); hasUnsavedChanges = false; updateGroupSelector(); render();
       alert('Todas las competiciones han sido importadas con éxito.');
     } else alert('El archivo cargado no tiene una estructura multiclase válida.');
   } catch(err) { alert('Archivo JSON no válido.'); }
