@@ -515,30 +515,29 @@ document.getElementById('btnCompute').onclick = () => {
   }
 
   let finalQualified = [];
-
-  // Mapeo de archivos de copa por clase elegida (Clase 1 -> Copa A, Clase 2 -> Copa B)
   const cupMap = [rawCupAData, rawCupBData];
 
   selectedClassIds.forEach((classId, idx) => {
     const cls = rawLigaData.classes.find(c => c.id === classId);
     if (!cls) return;
 
-    // Buscar tableros pertenecientes a esta clase
+    // 1. Filtrar tableros de esta clase
     const classBoards = rawLigaData.boards.filter(b => b.classId === cls.id);
     if (classBoards.length === 0) return;
     
-    // Seleccionar el tablero con el nivel más alto o el último registrado (temporada pasada/finalizada)
-    const targetBoard = classBoards.reduce((prev, current) => (prev.level > current.level) ? prev : current);
+    // 2. FORZAR Primera División (Level 0) o en su defecto el primer tablero registrado de la clase
+    const topDivisionBoard = classBoards.find(b => b.level === 0) || classBoards[0];
 
-    const ranked = recalcBoard(targetBoard);
+    // Recalcular la clasificación de la liga regular
+    const ranked = recalcBoard(topDivisionBoard);
     
-    // 1. TOP 3 de la Liga Regular
+    // Extraer los 3 primeros de la Liga
     const top3Liga = ranked.slice(0, 3).map(r => r.name);
     top3Liga.forEach(student => {
       if (!finalQualified.includes(student)) finalQualified.push(student);
     });
 
-    // 2. Asignar la plaza de Copa según la copa correspondiente a esta clase
+    // 3. Procesar la plaza reservada para la Copa
     const cupData = cupMap[idx];
     if (cupData) {
       const cupSlot = resolveCupSlot(cupData, top3Liga);
