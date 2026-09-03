@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Flashcards - Sistema Integrado</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --text: #f8fafc;
+      --accent: #38bdf8;
+      --accent-hover: #0284c7;
+      --border: #334155;
+      --muted: #94a3b8;
+    }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+    header {
+      padding: 1rem;
+      background: #020617;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    select, input, button {
+      background: var(--card-bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 0.5rem 0.75rem;
+      border-radius: 0.375rem;
+      font-size: 0.9rem;
+    }
+    button {
+      background: var(--accent);
+      color: #000;
+      font-weight: bold;
+      cursor: pointer;
+      border: none;
+    }
+    button:hover { background: var(--accent-hover); color: #fff; }
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 1rem;
+      padding: 1rem;
+      overflow: hidden;
+    }
+    .viewer-panel {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: var(--card-bg);
+      border-radius: 0.5rem;
+      padding: 2rem;
+      border: 1px solid var(--border);
+      position: relative;
+    }
+    .card-content {
+      text-align: center;
+      max-width: 800px;
+    }
+    .card-context { font-size: 1.1rem; color: var(--muted); margin-bottom: 0.5rem; }
+    .card-q { font-size: 1.8rem; font-weight: bold; margin-bottom: 1.5rem; }
+    .card-a { font-size: 1.4rem; color: #4ade80; display: none; margin-top: 1rem; }
+    .card-media img { max-width: 100%; max-height: 300px; border-radius: 0.5rem; margin-top: 1rem; }
+    .editor-panel {
+      background: var(--card-bg);
+      border-radius: 0.5rem;
+      padding: 1rem;
+      border: 1px solid var(--border);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .form-group { display: flex; flex-direction: column; gap: 0.25rem; }
+    .form-group label { font-size: 0.8rem; color: var(--muted); }
+    .status-bar {
+      position: absolute;
+      top: 1rem;
+      left: 1rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <select id="filterSubj"><option value="">Todas las Asignaturas</option></select>
+    <select id="filterLvl"><option value="">Todos los Niveles</option></select>
+    <select id="filterCourse"><option value="">Todos los Cursos</option></select>
+    <span id="cardCounter">0 / 0</span>
+    <span id="statusNotice" style="margin-left: auto; font-size: 0.85rem; color: var(--accent);">Cargando datos...</span>
+  </header>
+
+  <main>
+    <!-- Visualizador Principal -->
+    <section class="viewer-panel">
+      <div class="status-bar" id="originNotice">Fuente: Google Sheets</div>
+      <div class="card-content">
+        <div class="card-context" id="displayContext"></div>
+        <div class="card-q" id="displayQ">Selecciona una tarjeta o aplica un filtro</div>
+        <div class="card-media" id="displayMedia"></div>
+        <div class="card-a" id="displayA"></div>
+      </div>
+    </section>
+
+    <!-- Panel de Edición/Creación -->
+    <section class="editor-panel">
+      <h3>Gestionar Tarjeta</h3>
+      <div class="form-group">
+        <label>Contexto</label>
+        <input type="text" id="editQContext" />
+      </div>
+      <div class="form-group">
+        <label>Pregunta</label>
+        <input type="text" id="editQ" />
+      </div>
+      <div class="form-group">
+        <label>Respuesta</label>
+        <input type="text" id="editA" />
+      </div>
+      <div class="form-group">
+        <label>Asignatura</label>
+        <input type="text" id="editSubj" />
+      </div>
+      <div class="form-group">
+        <label>Nivel</label>
+        <input type="text" id="editLvl" />
+      </div>
+      <div class="form-group">
+        <label>Curso</label>
+        <input type="text" id="editCourse" />
+      </div>
+      <div class="form-group">
+        <label>Temas (separados por coma)</label>
+        <input type="text" id="editTopic" />
+      </div>
+      <div class="form-group">
+        <label>Imagen (URL o Base64)</label>
+        <input type="text" id="editMedia" />
+        <input type="file" id="imgFileInput" accept="image/*" style="margin-top:0.25rem;" />
+      </div>
+      
+      <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+        <button id="updateBtn" style="flex:1;">Guardar Cambios</button>
+        <button id="addBtn" style="flex:1; background:#22c55e; color:#000;">Crear Nueva</button>
+        <button id="delBtn" style="background:#ef4444; color:#fff;">Borrar</button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxmsFEuwrNg7QV3lEB9V2BuH8RkfpOOnrwEPZdVQ8dRbAaEbJkqRGVIOGwTprSPHUO5Hg/exec';
+
+    let deck = [];
+    let filtered = [];
+    let index = 0;
+    let showAnswer = false;
+
+    // Inicialización
+    async function loadData() {
+      try {
+        const res = await fetch(APPS_SCRIPT_URL);
+        deck = await res.json();
+        document.getElementById('statusNotice').innerText = "✅ Datos cargados de Google Sheets";
+        populateFilters();
+        applyFilters();
+      } catch (err) {
+        console.error(err);
+        document.getElementById('statusNotice').innerText = "❌ Error al cargar datos";
+      }
+    }
+
+    function populateFilters() {
+      const subjs = [...new Set(deck.map(c => c.subj).filter(Boolean))];
+      const lvls = [...new Set(deck.map(c => c.lvl).filter(Boolean))];
+      const courses = [...new Set(deck.map(c => c.course).filter(Boolean))];
+
+      fillSelect('filterSubj', subjs);
+      fillSelect('filterLvl', lvls);
+      fillSelect('filterCourse', courses);
+    }
+
+    function fillSelect(id, values) {
+      const select = document.getElementById(id);
+      select.innerHTML = `<option value="">Todos/as</option>` + 
+        values.map(v => `<option value="${v}">${v}</option>`).join('');
+    }
+
+    function applyFilters() {
+      const s = document.getElementById('filterSubj').value;
+      const l = document.getElementById('filterLvl').value;
+      const c = document.getElementById('filterCourse').value;
+
+      filtered = deck.filter(item => {
+        return (!s || item.subj === s) &&
+               (!l || item.lvl === l) &&
+               (!c || item.course === c);
+      });
+
+      index = 0;
+      showAnswer = false;
+      renderCard();
+    }
+
+    function renderCard() {
+      if (!filtered.length) {
+        document.getElementById('displayQ').innerText = "No hay tarjetas que coincidan con los filtros.";
+        document.getElementById('displayContext').innerText = "";
+        document.getElementById('displayA').style.display = "none";
+        document.getElementById('displayMedia').innerHTML = "";
+        document.getElementById('cardCounter').innerText = "0 / 0";
+        return;
+      }
+
+      const card = filtered[index];
+      document.getElementById('displayContext').innerText = card.qContext || "";
+      document.getElementById('displayQ').innerText = card.q || "";
+      
+      const aEl = document.getElementById('displayA');
+      aEl.innerText = card.a || "";
+      aEl.style.display = showAnswer ? "block" : "none";
+
+      const mediaEl = document.getElementById('displayMedia');
+      if (card.media) {
+        mediaEl.innerHTML = `<img src="${card.media}" alt="Media" />`;
+      } else {
+        mediaEl.innerHTML = "";
+      }
+
+      document.getElementById('cardCounter').innerText = `${index + 1} / ${filtered.length}`;
+      loadEditorForm(card);
+    }
+
+    function loadEditorForm(card) {
+      document.getElementById('editQContext').value = card.qContext || "";
+      document.getElementById('editQ').value = card.q || "";
+      document.getElementById('editA').value = card.a || "";
+      document.getElementById('editSubj').value = card.subj || "";
+      document.getElementById('editLvl').value = card.lvl || "";
+      document.getElementById('editCourse').value = card.course || "";
+      document.getElementById('editTopic').value = card.topic || card.topics || "";
+      document.getElementById('editMedia').value = card.media || "";
+    }
+
+    // Navegación
+    function nextCard() {
+      if (index < filtered.length - 1) { index++; showAnswer = false; renderCard(); }
+    }
+    function prevCard() {
+      if (index > 0) { index--; showAnswer = false; renderCard(); }
+    }
+    function toggleAnswer() {
+      showAnswer = !showAnswer;
+      renderCard();
+    }
+
+    // Eventos de teclado (compatible con mando a distancia)
+    document.addEventListener('keydown', (e) => {
+      if (['input', 'textarea'].includes(document.activeElement.tagName.toLowerCase())) return;
+      
+      if (e.key === 'ArrowRight' || e.key === 'PageDown') nextCard();
+      if (e.key === 'ArrowLeft' || e.key === 'PageUp') prevCard();
+      if (e.key === 'ArrowDown' || e.key === ' ' || e.key === 'Enter') toggleAnswer();
+    });
+
+    // Eventos de Filtros
+    document.getElementById('filterSubj').onchange = applyFilters;
+    document.getElementById('filterLvl').onchange = applyFilters;
+    document.getElementById('filterCourse').onchange = applyFilters;
+
+    // Carga de imágenes locales convertidas a Base64
+    document.getElementById('imgFileInput').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        document.getElementById('editMedia').value = evt.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // Guardado mediante POST a Apps Script
+    async function syncToSheets() {
+      document.getElementById('statusNotice').innerText = "⏳ Sincronizando...";
+      try {
+        const res = await fetch(APPS_SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            action: 'OVERWRITE_ALL',
+            data: deck
+          })
+        });
+        document.getElementById('statusNotice').innerText = "☁️ Guardado en Sheets";
+      } catch (err) {
+        console.error(err);
+        document.getElementById('statusNotice').innerText = "⚠️ Error al guardar en Sheets";
+      }
+    }
+
+    // Botones de acción
+    document.getElementById('updateBtn').onclick = () => {
+      if (!filtered.length) return;
+      const c = filtered[index];
+      c.qContext = document.getElementById('editQContext').value;
+      c.q = document.getElementById('editQ').value;
+      c.a = document.getElementById('editA').value;
+      c.subj = document.getElementById('editSubj').value;
+      c.lvl = document.getElementById('editLvl').value;
+      c.course = document.getElementById('editCourse').value;
+      c.topic = document.getElementById('editTopic').value;
+      c.media = document.getElementById('editMedia').value;
+
+      renderCard();
+      syncToSheets();
+    };
+
+    document.getElementById('addBtn').onclick = () => {
+      const newCard = {
+        qContext: document.getElementById('editQContext').value,
+        q: document.getElementById('editQ').value,
+        a: document.getElementById('editA').value,
+        subj: document.getElementById('editSubj').value,
+        lvl: document.getElementById('editLvl').value,
+        course: document.getElementById('editCourse').value,
+        topic: document.getElementById('editTopic').value,
+        media: document.getElementById('editMedia').value
+      };
+      deck.push(newCard);
+      populateFilters();
+      applyFilters();
+      syncToSheets();
+    };
+
+    document.getElementById('delBtn').onclick = () => {
+      if (!filtered.length || !confirm("¿Eliminar tarjeta actual?")) return;
+      const target = filtered[index];
+      const globalIdx = deck.indexOf(target);
+      if (globalIdx > -1) {
+        deck.splice(globalIdx, 1);
+        populateFilters();
+        applyFilters();
+        syncToSheets();
+      }
+    };
+
+    // Carga inicial
+    loadData();
+  </script>
+</body>
+</html>
