@@ -457,10 +457,10 @@
 <!-- VISTA MANDO REMOTO MÓVIL -->
 <div id="remoteView" class="remote-layout">
   <div class="remote-lvl-row">
-  <button class="btn-remote-lvl" onclick="sendRemoteCmd('SET_LVL_Fácil')">Fácil</button>
-  <button class="btn-remote-lvl" onclick="sendRemoteCmd('SET_LVL_Medio')">Medio</button>
-  <button class="btn-remote-lvl" onclick="sendRemoteCmd('SET_LVL_Difícil')">Difícil</button>
-</div>
+    <button class="btn-remote-lvl" onclick="sendRemoteCmd('SET_LVL_Fácil')">Fácil</button>
+    <button class="btn-remote-lvl" onclick="sendRemoteCmd('SET_LVL_Medio')">Medio</button>
+    <button class="btn-remote-lvl" onclick="sendRemoteCmd('SET_LVL_Difícil')">Difícil</button>
+  </div>
   <div class="remote-card-info">
     <div style="font-size: 11px; text-transform: uppercase; color: #94a3b8; font-weight: 700; margin-bottom: 2px;">Pregunta Activa</div>
     <div id="remoteQuestionText" style="font-size: 14px; color: #f8fafc; font-weight: 500; margin-bottom: 10px; line-height: 1.3;">-</div>
@@ -623,7 +623,17 @@ function saveTopics() {
   localStorage.setItem(STORAGE_TOPICS_KEY, JSON.stringify(customTopics)); 
 }
 
-5004
+function loadDeck() {
+  const rawDeck = localStorage.getItem(STORAGE_KEY);
+  let origenCargado = "Memoria local del navegador";
+
+  if (rawDeck) {
+    try {
+      procesarMazo(JSON.parse(rawDeck));
+    } catch(e) {
+      deck = [];
+    }
+  }
 
   const rawTopics = localStorage.getItem(STORAGE_TOPICS_KEY);
   if (rawTopics) {
@@ -863,8 +873,9 @@ document.getElementById('addTopicBtn').onclick = (e) => {
 function setCourse(val) { filterCourse = val; applyFilters(); }
 function setSubj(val) { 
   filterSubj = val; 
-  loadDeck(); // Vuelve a cargar el JSON correspondiente al pulsar el botón de asignatura
-}function setLvl(val) { filterLvl = val; applyFilters(); }
+  applyFilters();
+}
+function setLvl(val) { filterLvl = val; applyFilters(); }
 
 function updateVisualFilterButtons() {
   document.querySelectorAll('[id^="btnSubj-"]').forEach(b => b.classList.remove('active'));
@@ -1294,12 +1305,14 @@ document.getElementById('addBtn').onclick = () => {
 };
 
 document.getElementById('exportBtn').onclick = () => {
+  const fileName = filterSubj === 'ALL' ? 'preguntas_Todas.json' : `preguntas_${filterSubj}.json`;
   const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(deck, null, 2));
   const downloadAnchor = document.createElement('a');
   downloadAnchor.setAttribute("href", dataStr);
-  downloadAnchor.setAttribute("download", "preguntas.json");
+  downloadAnchor.setAttribute("download", fileName);
   document.body.appendChild(downloadAnchor);
-  downloadAnchor.click(); downloadAnchor.remove();
+  downloadAnchor.click(); 
+  downloadAnchor.remove();
 };
 
 document.getElementById('importFile').onchange = (e) => {
@@ -1390,19 +1403,19 @@ if (remoteTargetId) {
     conn.on('open', () => {
       syncRemoteData();
     });
-   conn.on('data', (cmd) => {
-  const cardEl = document.getElementById('cardElement');
-  if (cmd === 'NEXT') navCard(null, 1);
-  if (cmd === 'PREV') navCard(null, -1);
-  if (cmd === 'FLIP') handleCardClick(cardEl);
-  if (cmd === 'TOGGLE_ZOOM') toggleImageZoom();
-  if (cmd === 'TOGGLE_MAX_VIDEO') toggleMaxVideo();
-  
-  // COMANDOS DE DIFICULTAD DESDE EL MANDO
-  if (cmd === 'SET_LVL_Fácil') setLvl('Fácil');
-  if (cmd === 'SET_LVL_Medio') setLvl('Medio');
-  if (cmd === 'SET_LVL_Difícil') setLvl('Difícil');
-});
+    conn.on('data', (cmd) => {
+      const cardEl = document.getElementById('cardElement');
+      if (cmd === 'NEXT') navCard(null, 1);
+      if (cmd === 'PREV') navCard(null, -1);
+      if (cmd === 'FLIP') handleCardClick(cardEl);
+      if (cmd === 'TOGGLE_ZOOM') toggleImageZoom();
+      if (cmd === 'TOGGLE_MAX_VIDEO') toggleMaxVideo();
+      
+      // COMANDOS DE DIFICULTAD DESDE EL MANDO
+      if (cmd === 'SET_LVL_Fácil') setLvl('Fácil');
+      if (cmd === 'SET_LVL_Medio') setLvl('Medio');
+      if (cmd === 'SET_LVL_Difícil') setLvl('Difícil');
+    });
   });
 }
 
@@ -1410,7 +1423,6 @@ function openQRModal() {
   const modal = document.getElementById('qrModal');
   if (modal) {
     modal.classList.add('open');
-    // Asegurar que si Peer ya tiene ID pero el contenedor está vacío, se re-dibuje
     if (peer && peer.id && document.getElementById("qrcode").children.length === 0) {
       const remoteUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}?remote=${peer.id}`;
       new QRCode(document.getElementById("qrcode"), { text: remoteUrl, width: 200, height: 200 });
