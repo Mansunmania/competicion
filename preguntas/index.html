@@ -120,6 +120,7 @@
     .card-img-preview { max-height: 140px; border-radius: 8px; border: 1px solid var(--line); cursor: pointer; transition: transform 0.2s; object-fit: contain; }
     .card-img-preview:hover { transform: scale(1.04); }
 
+    /* ESTILOS DE VÍDEO CON SOPORTE PARA MAXIMIZADO Y MINIATURA */
     .yt-container {
       width: 100%; max-width: 320px; height: 180px; margin-top: 10px; border-radius: 12px; 
       overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.3); position: relative; 
@@ -456,10 +457,10 @@
 <!-- VISTA MANDO REMOTO MÓVIL -->
 <div id="remoteView" class="remote-layout">
   <div class="remote-lvl-row">
-    <button class="btn-remote-lvl" onclick="sendRemoteCmd('SET_LVL_Fácil')">Fácil</button>
-    <button class="btn-remote-lvl" onclick="sendRemoteCmd('SET_LVL_Medio')">Medio</button>
-    <button class="btn-remote-lvl" onclick="sendRemoteCmd('SET_LVL_Difícil')">Difícil</button>
-  </div>
+  <button class="btn-remote-lvl" onclick="sendRemoteCmd('SET_LVL_Fácil')">Fácil</button>
+  <button class="btn-remote-lvl" onclick="sendRemoteCmd('SET_LVL_Medio')">Medio</button>
+  <button class="btn-remote-lvl" onclick="sendRemoteCmd('SET_LVL_Difícil')">Difícil</button>
+</div>
   <div class="remote-card-info">
     <div style="font-size: 11px; text-transform: uppercase; color: #94a3b8; font-weight: 700; margin-bottom: 2px;">Pregunta Activa</div>
     <div id="remoteQuestionText" style="font-size: 14px; color: #f8fafc; font-weight: 500; margin-bottom: 10px; line-height: 1.3;">-</div>
@@ -490,35 +491,6 @@
 <script>
 const STORAGE_KEY = 'classroom_cards_deck_v4';
 const STORAGE_TOPICS_KEY = 'classroom_cards_topics_v4';
-
-  const ASIGNATURAS_CONFIG = {
-  todas: {
-    archivo: "preguntas.json",
-    etiqueta: "Todas las asignaturas"
-  },
-  lengua: {
-    archivo: "preguntas_lengua.json",
-    etiqueta: "Lengua Castellana"
-  },
-  ingles: {
-    archivo: "preguntas_ingles.json",
-    etiqueta: "Inglés"
-  },
-  matematicas: {
-    archivo: "preguntas_matematicas.json",
-    etiqueta: "Matemáticas"
-  },
-  sociales: {
-    archivo: "preguntas_sociales.json",
-    etiqueta: "Sociales"
-  },
-  naturales: {
-    archivo: "preguntas_naturales.json",
-    etiqueta: "Naturales"
-  }
-};
-
-let asignaturaActual = "todas";
 
 const CELEBRATION_GIFS = {
   "Fácil": { url: "https://media.tenor.com/YyKNQ-UFO8gAAAAM/the-simpsons-lisa-simpson.gif", caption: "¡Lisa aprueba tu respuesta! ⭐" },
@@ -651,13 +623,11 @@ function saveTopics() {
   localStorage.setItem(STORAGE_TOPICS_KEY, JSON.stringify(customTopics)); 
 }
 
-/* CARGA AUTOMÁTICA DESDE GOOGLE DRIVE, LOCALSTORAGE O GITHUB */
 async function loadDeck() {
   const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxmsFEuwrNg7QV3lEB9V2BuH8RkfpOOnrwEPZdVQ8dRbAaEbJkqRGVIOGwTprSPHUO5Hg/exec';
   let origenCargado = "";
   let cargadoConExito = false;
 
-  // 1. Intenta cargar desde Google Drive (Apps Script)
   try {
     const resDrive = await fetch(APPS_SCRIPT_URL, { redirect: 'follow' });
     if (!resDrive.ok) throw new Error(`Status: ${resDrive.status}`);
@@ -671,7 +641,6 @@ async function loadDeck() {
     console.warn("Fallo al cargar desde Drive via Apps Script:", errDrive);
   }
 
-  // 2. Si falla Drive, intenta cargar desde LocalStorage
   if (!cargadoConExito) {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) { 
@@ -686,7 +655,6 @@ async function loadDeck() {
     }
   }
 
-  // 3. Si falla LocalStorage, intenta cargar preguntas.json desde GitHub/servidor
   if (!cargadoConExito) {
     try {
       const resLocal = await fetch('preguntas.json?v=' + new Date().getTime());
@@ -712,18 +680,6 @@ async function loadDeck() {
 
   mostrarAvisoOrigen(origenCargado);
   applyFilters();
-}
-  
-  function exportarJSONLocal() {
-  const config = ASIGNATURAS_CONFIG[asignaturaActual];
-  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(datosPreguntas, null, 2));
-  
-  const downloadAnchor = document.createElement('a');
-  downloadAnchor.setAttribute("href", dataStr);
-  downloadAnchor.setAttribute("download", config.archivo); // Nombre dinámico
-  document.body.appendChild(downloadAnchor);
-  downloadAnchor.click();
-  downloadAnchor.remove();
 }
 
 function procesarMazo(datos) {
@@ -990,6 +946,7 @@ function openMediaLink(e, url) {
   window.open(url, '_blank'); 
 }
 
+/* COMPRESIÓN DE IMÁGENES AL SUBIR */
 function handleImageUpload(inputElement, targetInputId) {
   const file = inputElement.files[0];
   if (!file) return;
@@ -1066,6 +1023,7 @@ function parseYouTubeUrl(urlStr) {
     } else if (url.hostname.includes('youtube.com')) {
       id = url.searchParams.get('v');
       
+      // Captura formatos /embed/ y /shorts/
       if (!id) {
         if (url.pathname.startsWith('/embed/')) {
           id = url.pathname.split('/')[2];
@@ -1475,18 +1433,19 @@ if (remoteTargetId) {
     conn.on('open', () => {
       syncRemoteData();
     });
-    conn.on('data', (cmd) => {
-      const cardEl = document.getElementById('cardElement');
-      if (cmd === 'NEXT') navCard(null, 1);
-      if (cmd === 'PREV') navCard(null, -1);
-      if (cmd === 'FLIP') handleCardClick(cardEl);
-      if (cmd === 'TOGGLE_ZOOM') toggleImageZoom();
-      if (cmd === 'TOGGLE_MAX_VIDEO') toggleMaxVideo();
-      
-      if (cmd === 'SET_LVL_Fácil') setLvl('Fácil');
-      if (cmd === 'SET_LVL_Medio') setLvl('Medio');
-      if (cmd === 'SET_LVL_Difícil') setLvl('Difícil');
-    });
+   conn.on('data', (cmd) => {
+  const cardEl = document.getElementById('cardElement');
+  if (cmd === 'NEXT') navCard(null, 1);
+  if (cmd === 'PREV') navCard(null, -1);
+  if (cmd === 'FLIP') handleCardClick(cardEl);
+  if (cmd === 'TOGGLE_ZOOM') toggleImageZoom();
+  if (cmd === 'TOGGLE_MAX_VIDEO') toggleMaxVideo();
+  
+  // COMANDOS DE DIFICULTAD DESDE EL MANDO
+  if (cmd === 'SET_LVL_Fácil') setLvl('Fácil');
+  if (cmd === 'SET_LVL_Medio') setLvl('Medio');
+  if (cmd === 'SET_LVL_Difícil') setLvl('Difícil');
+});
   });
 }
 
@@ -1494,6 +1453,7 @@ function openQRModal() {
   const modal = document.getElementById('qrModal');
   if (modal) {
     modal.classList.add('open');
+    // Asegurar que si Peer ya tiene ID pero el contenedor está vacío, se re-dibuje
     if (peer && peer.id && document.getElementById("qrcode").children.length === 0) {
       const remoteUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}?remote=${peer.id}`;
       new QRCode(document.getElementById("qrcode"), { text: remoteUrl, width: 200, height: 200 });
@@ -1508,7 +1468,6 @@ function closeQRModal() {
   }
 }
 
-/* EJECUTA LA CARGA AUTOMÁTICA AL INICIAR */
 loadDeck();
 </script>
 </body>
