@@ -623,52 +623,7 @@ function saveTopics() {
   localStorage.setItem(STORAGE_TOPICS_KEY, JSON.stringify(customTopics)); 
 }
 
-async function loadDeck() {
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxmsFEuwrNg7QV3lEB9V2BuH8RkfpOOnrwEPZdVQ8dRbAaEbJkqRGVIOGwTprSPHUO5Hg/exec';
-  let origenCargado = "";
-  let cargadoConExito = false;
-
-  try {
-    const resDrive = await fetch(APPS_SCRIPT_URL, { redirect: 'follow' });
-    if (!resDrive.ok) throw new Error(`Status: ${resDrive.status}`);
-    const dataDrive = await resDrive.json();
-    if (Array.isArray(dataDrive) && dataDrive.length > 0) {
-      procesarMazo(dataDrive);
-      origenCargado = "☁️ Google Drive";
-      cargadoConExito = true;
-    }
-  } catch (errDrive) {
-    console.warn("Fallo al cargar desde Drive via Apps Script:", errDrive);
-  }
-
-  if (!cargadoConExito) {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) { 
-      try { 
-        let parsed = JSON.parse(raw); 
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          procesarMazo(parsed);
-          origenCargado = "💾 Memoria Local (LocalStorage)";
-          cargadoConExito = true;
-        }
-      } catch(e) {} 
-    }
-  }
-
-  if (!cargadoConExito) {
-    try {
-      const resLocal = await fetch('preguntas.json?v=' + new Date().getTime());
-      if (!resLocal.ok) throw new Error('No se encontró preguntas.json local');
-      const dataLocal = await resLocal.json();
-      if (Array.isArray(dataLocal) && dataLocal.length > 0) {
-        procesarMazo(dataLocal);
-        origenCargado = "📁 GitHub (preguntas.json)";
-        cargadoConExito = true;
-      }
-    } catch (errLocal) {
-      console.warn("Fallo al cargar preguntas.json desde GitHub/local:", errLocal);
-    }
-  }
+5004
 
   const rawTopics = localStorage.getItem(STORAGE_TOPICS_KEY);
   if (rawTopics) {
@@ -906,8 +861,10 @@ document.getElementById('addTopicBtn').onclick = (e) => {
 };
 
 function setCourse(val) { filterCourse = val; applyFilters(); }
-function setSubj(val) { filterSubj = val; applyFilters(); }
-function setLvl(val) { filterLvl = val; applyFilters(); }
+function setSubj(val) { 
+  filterSubj = val; 
+  loadDeck(); // Vuelve a cargar el JSON correspondiente al pulsar el botón de asignatura
+}function setLvl(val) { filterLvl = val; applyFilters(); }
 
 function updateVisualFilterButtons() {
   document.querySelectorAll('[id^="btnSubj-"]').forEach(b => b.classList.remove('active'));
