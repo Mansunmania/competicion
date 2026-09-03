@@ -120,7 +120,6 @@
     .card-img-preview { max-height: 140px; border-radius: 8px; border: 1px solid var(--line); cursor: pointer; transition: transform 0.2s; object-fit: contain; }
     .card-img-preview:hover { transform: scale(1.04); }
 
-    /* ESTILOS DE VÍDEO CON SOPORTE PARA MAXIMIZADO Y MINIATURA */
     .yt-container {
       width: 100%; max-width: 320px; height: 180px; margin-top: 10px; border-radius: 12px; 
       overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.3); position: relative; 
@@ -623,45 +622,55 @@ function saveTopics() {
   localStorage.setItem(STORAGE_TOPICS_KEY, JSON.stringify(customTopics)); 
 }
 
-  function loadDeck() {
-  const rawDeck = localStorage.getItem(STORAGE_KEY);
-  let origenCargado = "Memoria local del navegador";
+/* CARGA AUTOMÁTICA DESDE GOOGLE DRIVE, LOCALSTORAGE O GITHUB */
+async function loadDeck() {
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxmsFEuwrNg7QV3lEB9V2BuH8RkfpOOnrwEPZdVQ8dRbAaEbJkqRGVIOGwTprSPHUO5Hg/exec';
+  let origenCargado = "";
+  let cargadoConExito = false;
 
-  if (rawDeck && JSON.parse(rawDeck).length > 0) {
-    try {
-      procesarMazo(JSON.parse(rawDeck));
-    } catch(e) {
-      deck = [];
+  // 1. Intenta cargar desde Google Drive
+  try {
+    const resDrive = await fetch(APPS_SCRIPT_URL, { redirect: 'follow' });
+    if (!resDrive.ok) throw new Error(`Status: ${resDrive.status}`);
+    const dataDrive = await resDrive.json();
+    if (Array.isArray(dataDrive) && dataDrive.length > 0) {
+      procesarMazo(dataDrive);
+      origenCargado = "☁️ Google Drive";
+      cargadoConExito = true;
     }
-  } else {
-    // Mazo por defecto cuando localStorage está vacío
-    origenCargado = "Mazo de demostración inicial";
-    const defaultDeck = [
-      {
-        qContext: "Gramática",
-        q: "¿Cuál es el sujeto en 'El perro corre rápido'?",
-        a: "El perro",
-        subj: "Lengua",
-        lvl: "Fácil",
-        course: "5º",
-        topics: ["Sintaxis"],
-        topic: "Sintaxis",
-        media: ""
-      },
-      {
-        qContext: "Vocabulario",
-        q: "Traduce al inglés: 'Manzana'",
-        a: "Apple",
-        subj: "Inglés",
-        lvl: "Fácil",
-        course: "5º",
-        topics: ["Vocabulary"],
-        topic: "Vocabulary",
-        media: ""
+  } catch (errDrive) {
+    console.warn("Fallo al cargar desde Drive via Apps Script:", errDrive);
+  }
+
+  // 2. Si falla Drive, intenta cargar desde LocalStorage
+  if (!cargadoConExito) {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) { 
+      try { 
+        let parsed = JSON.parse(raw); 
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          procesarMazo(parsed);
+          origenCargado = "💾 Memoria Local (LocalStorage)";
+          cargadoConExito = true;
+        }
+      } catch(e) {} 
+    }
+  }
+
+  // 3. Si falla LocalStorage, intenta cargar preguntas.json de GitHub/servidor
+  if (!cargadoConExito) {
+    try {
+      const resLocal = await fetch('preguntas.json?v=' + new Date().getTime());
+      if (!resLocal.ok) throw new Error('No se encontró preguntas.json local');
+      const dataLocal = await resLocal.json();
+      if (Array.isArray(dataLocal) && dataLocal.length > 0) {
+        procesarMazo(dataLocal);
+        origenCargado = "📁 GitHub (preguntas.json)";
+        cargadoConExito = true;
       }
-    ];
-    procesarMazo(defaultDeck);
-    saveDeck();
+    } catch (errLocal) {
+      console.warn("Fallo al cargar preguntas.json desde GitHub/local:", errLocal);
+    }
   }
 
   const rawTopics = localStorage.getItem(STORAGE_TOPICS_KEY);
@@ -900,10 +909,7 @@ document.getElementById('addTopicBtn').onclick = (e) => {
 };
 
 function setCourse(val) { filterCourse = val; applyFilters(); }
-function setSubj(val) { 
-  filterSubj = val; 
-  applyFilters();
-}
+function setSubj(val) { filterSubj = val; applyFilters(); }
 function setLvl(val) { filterLvl = val; applyFilters(); }
 
 function updateVisualFilterButtons() {
@@ -943,7 +949,6 @@ function openMediaLink(e, url) {
   window.open(url, '_blank'); 
 }
 
-/* COMPRESIÓN DE IMÁGENES AL SUBIR */
 function handleImageUpload(inputElement, targetInputId) {
   const file = inputElement.files[0];
   if (!file) return;
@@ -1020,7 +1025,6 @@ function parseYouTubeUrl(urlStr) {
     } else if (url.hostname.includes('youtube.com')) {
       id = url.searchParams.get('v');
       
-      // Captura formatos /embed/ y /shorts/
       if (!id) {
         if (url.pathname.startsWith('/embed/')) {
           id = url.pathname.split('/')[2];
@@ -1334,14 +1338,12 @@ document.getElementById('addBtn').onclick = () => {
 };
 
 document.getElementById('exportBtn').onclick = () => {
-  const fileName = filterSubj === 'ALL' ? 'preguntas_Todas.json' : `preguntas_${filterSubj}.json`;
   const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(deck, null, 2));
   const downloadAnchor = document.createElement('a');
   downloadAnchor.setAttribute("href", dataStr);
-  downloadAnchor.setAttribute("download", fileName);
+  downloadAnchor.setAttribute("download", "preguntas.json");
   document.body.appendChild(downloadAnchor);
-  downloadAnchor.click(); 
-  downloadAnchor.remove();
+  downloadAnchor.click(); downloadAnchor.remove();
 };
 
 document.getElementById('importFile').onchange = (e) => {
@@ -1440,7 +1442,6 @@ if (remoteTargetId) {
       if (cmd === 'TOGGLE_ZOOM') toggleImageZoom();
       if (cmd === 'TOGGLE_MAX_VIDEO') toggleMaxVideo();
       
-      // COMANDOS DE DIFICULTAD DESDE EL MANDO
       if (cmd === 'SET_LVL_Fácil') setLvl('Fácil');
       if (cmd === 'SET_LVL_Medio') setLvl('Medio');
       if (cmd === 'SET_LVL_Difícil') setLvl('Difícil');
@@ -1466,6 +1467,7 @@ function closeQRModal() {
   }
 }
 
+/* EJECUTA LA CARGA AUTOMÁTICA AL INICIAR */
 loadDeck();
 </script>
 </body>
