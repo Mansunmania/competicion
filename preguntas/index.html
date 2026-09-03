@@ -491,6 +491,35 @@
 const STORAGE_KEY = 'classroom_cards_deck_v4';
 const STORAGE_TOPICS_KEY = 'classroom_cards_topics_v4';
 
+  const ASIGNATURAS_CONFIG = {
+  todas: {
+    archivo: "preguntas.json",
+    etiqueta: "Todas las asignaturas"
+  },
+  lengua: {
+    archivo: "preguntas_lengua.json",
+    etiqueta: "Lengua Castellana"
+  },
+  ingles: {
+    archivo: "preguntas_ingles.json",
+    etiqueta: "Inglés"
+  },
+  matematicas: {
+    archivo: "preguntas_matematicas.json",
+    etiqueta: "Matemáticas"
+  },
+  sociales: {
+    archivo: "preguntas_sociales.json",
+    etiqueta: "Sociales"
+  },
+  naturales: {
+    archivo: "preguntas_naturales.json",
+    etiqueta: "Naturales"
+  }
+};
+
+let asignaturaActual = "todas";
+
 const CELEBRATION_GIFS = {
   "Fácil": { url: "https://media.tenor.com/YyKNQ-UFO8gAAAAM/the-simpsons-lisa-simpson.gif", caption: "¡Lisa aprueba tu respuesta! ⭐" },
   "Medio": { url: "https://media.tenor.com/EvNCyjP1IxQAAAAM/feliz-alegre.gif", caption: "¡Donkey aprueba tu respuesta! 🐴" },
@@ -622,6 +651,18 @@ function saveTopics() {
   localStorage.setItem(STORAGE_TOPICS_KEY, JSON.stringify(customTopics)); 
 }
 
+  // Al iniciar la página
+async function alIniciarPagina() {
+  await autenticarGoogle();
+  await cargarPreguntasPorAsignatura("todas");
+}
+
+// Al cambiar la opción en el select
+document.getElementById("selectAsignatura").addEventListener("change", (e) => {
+  asignaturaActual = e.target.value;
+  cargarPreguntasPorAsignatura(asignaturaActual);
+});
+
 /* CARGA AUTOMÁTICA DESDE GOOGLE DRIVE, LOCALSTORAGE O GITHUB */
 async function loadDeck() {
   const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxmsFEuwrNg7QV3lEB9V2BuH8RkfpOOnrwEPZdVQ8dRbAaEbJkqRGVIOGwTprSPHUO5Hg/exec';
@@ -683,6 +724,18 @@ async function loadDeck() {
 
   mostrarAvisoOrigen(origenCargado);
   applyFilters();
+}
+
+  function exportarJSONLocal() {
+  const config = ASIGNATURAS_CONFIG[asignaturaActual];
+  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(datosPreguntas, null, 2));
+  
+  const downloadAnchor = document.createElement('a');
+  downloadAnchor.setAttribute("href", dataStr);
+  downloadAnchor.setAttribute("download", config.archivo); // Nombre dinámico
+  document.body.appendChild(downloadAnchor);
+  downloadAnchor.click();
+  downloadAnchor.remove();
 }
 
 function procesarMazo(datos) {
