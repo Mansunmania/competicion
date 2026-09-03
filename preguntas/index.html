@@ -623,7 +623,7 @@ function saveTopics() {
   localStorage.setItem(STORAGE_TOPICS_KEY, JSON.stringify(customTopics)); 
 }
 
-function loadDeck() {
+async function loadDeck() {
   const rawDeck = localStorage.getItem(STORAGE_KEY);
   let origenCargado = "Memoria local del navegador";
 
@@ -632,6 +632,19 @@ function loadDeck() {
       procesarMazo(JSON.parse(rawDeck));
     } catch(e) {
       deck = [];
+    }
+  } else {
+    // Si localStorage está vacío, descarga el JSON del mismo repositorio GitHub
+    try {
+      const response = await fetch('./preguntas_Todas.json');
+      if (response.ok) {
+        const jsonDatos = await response.json();
+        procesarMazo(jsonDatos);
+        saveDeck(); // Guarda las preguntas descargadas en localStorage
+        origenCargado = "Archivo preguntas_Todas.json (GitHub)";
+      }
+    } catch (error) {
+      console.error("No se pudo cargar el archivo JSON automático:", error);
     }
   }
 
