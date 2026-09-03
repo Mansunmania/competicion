@@ -651,25 +651,13 @@ function saveTopics() {
   localStorage.setItem(STORAGE_TOPICS_KEY, JSON.stringify(customTopics)); 
 }
 
-  // Al iniciar la página
-async function alIniciarPagina() {
-  await autenticarGoogle();
-  await cargarPreguntasPorAsignatura("todas");
-}
-
-// Al cambiar la opción en el select
-document.getElementById("selectAsignatura").addEventListener("change", (e) => {
-  asignaturaActual = e.target.value;
-  cargarPreguntasPorAsignatura(asignaturaActual);
-});
-
 /* CARGA AUTOMÁTICA DESDE GOOGLE DRIVE, LOCALSTORAGE O GITHUB */
 async function loadDeck() {
   const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxmsFEuwrNg7QV3lEB9V2BuH8RkfpOOnrwEPZdVQ8dRbAaEbJkqRGVIOGwTprSPHUO5Hg/exec';
   let origenCargado = "";
   let cargadoConExito = false;
 
-  // 1. Intenta cargar desde Google Drive
+  // 1. Intenta cargar desde Google Drive (Apps Script)
   try {
     const resDrive = await fetch(APPS_SCRIPT_URL, { redirect: 'follow' });
     if (!resDrive.ok) throw new Error(`Status: ${resDrive.status}`);
@@ -698,7 +686,7 @@ async function loadDeck() {
     }
   }
 
-  // 3. Si falla LocalStorage, intenta cargar preguntas.json de GitHub/servidor
+  // 3. Si falla LocalStorage, intenta cargar preguntas.json desde GitHub/servidor
   if (!cargadoConExito) {
     try {
       const resLocal = await fetch('preguntas.json?v=' + new Date().getTime());
@@ -725,7 +713,7 @@ async function loadDeck() {
   mostrarAvisoOrigen(origenCargado);
   applyFilters();
 }
-
+  
   function exportarJSONLocal() {
   const config = ASIGNATURAS_CONFIG[asignaturaActual];
   const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(datosPreguntas, null, 2));
