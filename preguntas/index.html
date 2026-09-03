@@ -985,8 +985,17 @@ function handleImageUpload(inputElement, targetInputId) {
 
 function isImageUrl(urlStr) {
   if (!urlStr) return false;
-  if (urlStr.startsWith('data:image/')) return true;
-  return /\.(jpeg|jpg|gif|png|webp|svg)($|\?)/i.test(urlStr.trim());
+  
+  const cleanUrl = urlStr.trim();
+  
+  // 1. Acepta imágenes en formato Base64 de la subida local
+  if (cleanUrl.startsWith('data:image/')) return true;
+  
+  // 2. Acepta enlaces directos de Google Drive (lh3.googleusercontent.com)
+  if (cleanUrl.includes('lh3.googleusercontent.com')) return true;
+  
+  // 3. Acepta URLs estándar que terminen en extensión de imagen
+  return /\.(jpeg|jpg|gif|png|webp|svg)($|\?)/i.test(cleanUrl);
 }
 
 function openImgModal(src) {
