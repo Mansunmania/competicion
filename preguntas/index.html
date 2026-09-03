@@ -995,7 +995,7 @@ function isImageUrl(urlStr) {
   if (cleanUrl.includes('lh3.googleusercontent.com')) return true;
   
   // 3. Acepta URLs estándar que terminen en extensión de imagen
-  return /\.(jpeg|jpg|gif|png|webp|jfif|svg)($|\?)/i.test(cleanUrl);
+return /\.(jpeg|jpg|jfif|gif|png|webp|svg)($|\?)/i.test(cleanUrl);
 }
 
 function openImgModal(src) {
