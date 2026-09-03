@@ -2,226 +2,1473 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Flashcards - Carga por Asignatura</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mazo Flippity Completo - Proyector Classroom</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playwrite+DE+Grund:wght@100..400&display=swap" rel="stylesheet">
+  
+  <!-- PeerJS para Control Remoto WebRTC y QRCode.js -->
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
   <style>
     :root {
-      --bg: #0f172a;
-      --card-bg: #1e293b;
-      --text: #f8fafc;
-      --accent: #38bdf8;
-      --border: #334155;
-      --muted: #94a3b8;
+      --bg: #f0f4f8; --card: #ffffff; --ink: #1e293b; --muted: #64748b; --line: #cbd5e1;
+      --pri: #2563eb; --ok: #16a34a; --bad: #dc2626; --warn: #ea580c; --purple: #8b5cf6; --yt: #e11d48;
+      --font-playwrite: 'Playwrite DE Grund', cursive, sans-serif;
     }
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, sans-serif;
-      background-color: var(--bg);
-      color: var(--text);
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      overflow: hidden;
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--ink); padding: 20px; }
+    .layout { max-width: 1000px; margin: 0 auto; display: grid; grid-template-columns: 1fr; gap: 20px; }
+    
+    .editor-box { background: var(--card); padding: 16px; border-radius: 12px; border: 1px solid var(--line); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+    .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 10px; align-items: end; }
+    label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
+    input, select, textarea, button { font: inherit; font-size: 14px; }
+    input, select, textarea { width: 100%; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); }
+    textarea { resize: vertical; }
+    
+    button { padding: 8px 16px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; transition: transform 0.1s, background 0.1s; }
+    .btn-pri { background: var(--pri); color: #fff; } .btn-pri:hover { background: #1d4ed8; }
+    .btn-ok { background: var(--ok); color: #fff; } .btn-ok:hover { background: #15803d; }
+    .btn-bad { background: var(--bad); color: #fff; } .btn-bad:hover { background: #b91c1c; }
+    .btn-warn { background: var(--warn); color: #fff; } .btn-warn:hover { background: #c2410c; }
+    .btn-flat { background: #e2e8f0; color: var(--ink); } .btn-flat:hover { background: #cbd5e1; }
+    .btn-media { background: #ffe4e6; color: var(--yt); border: 1px solid #fecdd3; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
+    .btn-media:hover { background: #fecdd3; transform: scale(1.03); }
+
+    .filters { display: flex; flex-wrap: wrap; gap: 10px; background: var(--card); padding: 12px; border-radius: 12px; border: 1px solid var(--line); }
+    .filter-btn { background: #e2e8f0; color: var(--ink); padding: 6px 12px; font-size: 13px; border-radius: 8px; }
+    .filter-btn.active { background: var(--pri); color: #fff; }
+    
+    .btn-topic { background: #f3e8ff; color: #6b21a8; border: 1px solid #e9d5ff; padding: 6px 12px; font-size: 13px; border-radius: 20px; transition: all 0.2s; user-select: none; }
+    .btn-topic:hover { background: #e9d5ff; }
+    .btn-topic.selected { background: var(--purple); color: #fff; border-color: var(--purple); font-weight: bold; transform: scale(1.03); }
+    
+    .btn-special { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; padding: 6px 12px; font-size: 13px; border-radius: 20px; }
+    .btn-special.selected { background: #d97706; color: #fff; border-color: #d97706; font-weight: bold; }
+    
+    .filter-group { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; align-items: center; }
+
+    .confirmation-bar {
+      width: 100%; background: #f8fafc; border: 1px solid #cbd5e1; border-left: 4px solid var(--purple);
+      border-radius: 8px; padding: 10px 14px; margin-top: 10px; display: flex; flex-wrap: wrap;
+      justify-content: space-between; align-items: center; gap: 10px; animation: fadeIn 0.2s ease-in-out;
     }
-    header {
-      padding: 1rem;
-      background: #020617;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      gap: 1rem;
-      align-items: center;
+    .selected-pills-preview { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .pill-preview { background: #e9d5ff; color: #6b21a8; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 12px; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+    .flashcard-wrapper { display: flex; flex-direction: column; align-items: center; gap: 16px; margin: 15px auto; width: 100%; }
+    .flashcard { width: 100%; max-width: 750px; height: 420px; perspective: 1000px; cursor: pointer; position: relative; transition: all 0.3s ease; }
+    
+    .flashcard.fullscreen {
+      position: fixed; top: 15px; left: 15px; width: calc(100vw - 30px) !important;
+      height: calc(100vh - 30px) !important; max-width: none !important; z-index: 1000;
+      box-shadow: 0 0 0 100vw rgba(15, 23, 42, 0.88);
     }
-    select, button {
-      background: var(--card-bg);
-      color: var(--text);
-      border: 1px solid var(--border);
-      padding: 0.5rem 0.75rem;
-      border-radius: 0.375rem;
-      font-size: 0.9rem;
+
+    .btn-fullscreen {
+      position: absolute; bottom: 12px; right: 16px; z-index: 30; background: rgba(226, 232, 240, 0.9);
+      color: var(--ink); border: 1px solid var(--line); padding: 6px 12px; border-radius: 8px;
+      font-size: 12px; font-weight: bold; backdrop-filter: blur(4px);
     }
-    main {
-      flex: 1;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 2rem;
+    .btn-fullscreen:hover { background: #cbd5e1; }
+
+    .fs-nav-btn {
+      display: none; position: absolute; top: 50%; transform: translateY(-50%); z-index: 35;
+      background: rgba(255, 255, 255, 0.9); color: var(--ink); border: 2px solid var(--line);
+      border-radius: 50%; width: 52px; height: 52px; font-size: 22px; align-items: center;
+      justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
     }
-    .viewer-panel {
-      background: var(--card-bg);
-      border-radius: 0.75rem;
-      padding: 3rem;
-      border: 1px solid var(--border);
-      text-align: center;
-      max-width: 800px;
-      width: 100%;
-      box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3);
+    .fs-nav-btn:hover { background: #ffffff; transform: translateY(-50%) scale(1.1); }
+    .fs-nav-prev { left: 15px; }
+    .fs-nav-next { right: 15px; }
+    .flashcard.fullscreen .fs-nav-btn { display: flex; }
+    
+    .card-inner { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 0.4s, opacity 0.15s; }
+    .flashcard.flipped .card-inner { transform: rotateY(180deg); }
+    
+    .card-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 20px; padding: 30px 45px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; box-shadow: 0 12px 20px -3px rgba(0,0,0,0.08), 0 4px 8px -4px rgba(0,0,0,0.05); border: 2.5px solid; overflow-y: auto; }
+    .card-front { background: #ffffff; color: var(--ink); border-color: var(--line); }
+    .card-back { background: #1e293b; color: #ffffff; border-color: #334155; transform: rotateY(180deg); }
+    
+    .card-meta { position: absolute; top: 14px; left: 16px; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; padding: 3px 10px; border-radius: 6px; }
+    .card-topic-meta { position: absolute; top: 14px; right: 16px; font-size: 12px; font-weight: 800; text-transform: uppercase; padding: 3px 10px; border-radius: 6px; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .meta-front { background: #f1f5f9; color: var(--muted); }
+    .meta-back { background: #334155; color: #94a3b8; }
+    .topic-front { background: #f3e8ff; color: #6b21a8; }
+    .topic-back { background: #581c87; color: #e9d5ff; }
+    
+    .card-text-container { display: flex; flex-direction: column; gap: 12px; align-items: center; width: 100%; max-width: 95%; }
+    
+    .card-context-front { font-size: 26px; font-weight: 500; color: var(--muted); font-style: italic; line-height: 1.3; }
+    .card-text-front { font-family: var(--font-playwrite); font-size: 34px; font-weight: 400; line-height: 1.5; word-wrap: break-word; width: 100%; color: #0f172a; }
+
+    .card-context-back { font-size: 15px; font-weight: 500; color: #94a3b8; font-style: italic; line-height: 1.2; margin-bottom: 2px; }
+    .card-text-back-prompt { font-family: var(--font-playwrite); font-size: 20px; font-weight: 400; line-height: 1.3; color: #e2e8f0; }
+    .card-text-back-answer { border-top: 1px dashed #475569; margin-top: 8px; padding-top: 14px; color: #38bdf8; font-size: 32px; font-weight: 700; width: 100%; }
+
+    .flashcard.fullscreen .card-context-front { font-size: 32px; }
+    .flashcard.fullscreen .card-text-front { font-size: 42px; }
+    .flashcard.fullscreen .card-text-back-answer { font-size: 40px; }
+
+    .card-media-anchor { position: absolute; bottom: 14px; left: 16px; z-index: 20; display: flex; gap: 8px; align-items: center; }
+
+    .card-img-preview { max-height: 140px; border-radius: 8px; border: 1px solid var(--line); cursor: pointer; transition: transform 0.2s; object-fit: contain; }
+    .card-img-preview:hover { transform: scale(1.04); }
+
+    /* ESTILOS DE VÍDEO CON SOPORTE PARA MAXIMIZADO Y MINIATURA */
+    .yt-container {
+      width: 100%; max-width: 320px; height: 180px; margin-top: 10px; border-radius: 12px; 
+      overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.3); position: relative; 
+      transition: all 0.3s ease; background: #000;
     }
-    .card-context { font-size: 1.1rem; color: var(--muted); margin-bottom: 0.75rem; }
-    .card-q { font-size: 2rem; font-weight: bold; margin-bottom: 1.5rem; line-height: 1.3; }
-    .card-a { font-size: 1.5rem; color: #4ade80; display: none; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px dashed var(--border); }
-    .card-media img { max-width: 100%; max-height: 350px; border-radius: 0.5rem; margin-top: 1rem; }
-    #statusNotice { margin-left: auto; font-size: 0.85rem; color: var(--accent); }
+    .yt-container.maximized {
+      position: fixed !important; top: 50% !important; left: 50% !important; 
+      transform: translate(-50%, -50%) !important; width: 90vw !important; 
+      height: 85vh !important; max-width: none !important; z-index: 2500 !important; 
+      box-shadow: 0 0 0 100vw rgba(15, 23, 42, 0.9) !important;
+    }
+    .yt-container.minimized {
+      position: fixed !important; top: 50% !important; left: 50% !important; 
+      transform: translate(-50%, -50%) !important; width: 90vw !important; 
+      height: 85vh !important; max-width: none !important; z-index: 2500 !important; 
+      box-shadow: 0 0 0 100vw rgba(15, 23, 42, 0.9) !important;
+    }
+
+    .success-actions { margin-top: 15px; width: 100%; display: flex; justify-content: center; z-index: 10; }
+    .btn-celebrate { background: var(--ok); color: white; font-size: 16px; padding: 10px 24px; border-radius: 50px; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 10px rgba(22, 163, 74, 0.4); }
+    .btn-celebrate:hover { background: #15803d; transform: scale(1.05); }
+
+    .gif-modal, .img-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.88); display: flex; justify-content: center; align-items: center; z-index: 2000; opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
+    .gif-modal.open, .img-modal.open { opacity: 1; pointer-events: auto; }
+    .gif-content { background: #fff; padding: 12px; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); max-width: 90%; max-height: 80%; display: flex; flex-direction: column; align-items: center; animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    .gif-content img { max-width: 100%; max-height: 420px; border-radius: 12px; object-fit: contain; background: #f8fafc; }
+    .gif-caption { margin-top: 10px; font-weight: 700; font-size: 16px; color: var(--ink); text-transform: uppercase; }
+
+    .img-modal-content { max-width: 92vw; max-height: 92vh; position: relative; display: flex; flex-direction: column; align-items: center; }
+    .img-modal-content img { max-width: 100%; max-height: 85vh; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); object-fit: contain; }
+    .img-modal-close { position: absolute; top: -40px; right: 0; color: white; font-size: 24px; background: none; border: none; cursor: pointer; }
+
+    @keyframes popIn { 0% { transform: scale(0.7); } 100% { transform: scale(1); } }
+
+    .controls { display: flex; justify-content: center; align-items: center; gap: 14px; width: 100%; max-width: 750px; }
+    .counter { font-size: 15px; font-weight: 700; color: var(--muted); min-width: 80px; text-align: center; }
+
+    .edit-zone { background: #f8fafc; border: 2px dashed var(--line); padding: 14px; border-radius: 12px; margin-top: 10px; }
+    
+    .notion-dropdown { position: relative; width: 100%; }
+    .notion-input-wrapper { position: relative; display: flex; align-items: center; }
+    .notion-input-wrapper::after { content: '▾'; position: absolute; right: 12px; color: var(--muted); pointer-events: none; font-size: 12px; }
+    .notion-menu { 
+      position: absolute; top: 100%; left: 0; width: 100%; background: #ffffff; 
+      border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); 
+      z-index: 100; max-height: 200px; overflow-y: auto; display: none; margin-top: 4px; padding: 4px;
+    }
+    .notion-menu.open { display: block; }
+    .notion-item { 
+      padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px; 
+      color: var(--ink); display: flex; justify-content: space-between; align-items: center;
+    }
+    .notion-item:hover { background: #f1f5f9; }
+
+    /* MODAL QR MANDO */
+    #qrModal { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.8); z-index: 3000; display: none; justify-content: center; align-items: center; }
+    #qrModal.open { display: flex; }
+    .qr-box { background: white; padding: 24px; border-radius: 16px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+
+    /* MANDO MÓVIL */
+    .remote-layout { display: none; flex-direction: column; gap: 10px; width: 100%; max-width: 400px; height: 92vh; margin: 0 auto; justify-content: center; padding: 10px; }
+    .remote-card-info { background: #0f172a; border: 1px solid #334155; padding: 14px; border-radius: 16px; text-align: left; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); }
+    .btn-remote { flex: 1; border: none; border-radius: 16px; font-size: 1.3rem; font-weight: bold; color: white; background: var(--pri); touch-action: manipulation; }
+    .btn-remote-flip { background: var(--ok); }
+    .btn-remote-img { background: var(--purple); max-height: 50px; font-size: 1.1rem; }
+    .btn-remote-yt { background: var(--yt); max-height: 50px; font-size: 1.1rem; }
+    .img-upload-input { font-size: 11px; padding: 4px; }
+    .remote-lvl-row { display: flex; gap: 6px; width: 100%; }
+    .btn-remote-lvl { flex: 1; padding: 10px 4px; font-size: 0.85rem; font-weight: bold; border-radius: 10px; border: none; background: #334155; color: white; cursor: pointer; }
+    .btn-remote-lvl.active { background: var(--pri); }
   </style>
 </head>
 <body>
 
-  <header>
-    <label for="subjectSelect">📚 Asignatura:</label>
-    <select id="subjectSelect">
-      <option value="">-- Selecciona Asignatura --</option>
-    </select>
+<!-- CONTENEDOR VISTA PROYECTOR / PC -->
+<div id="appView" class="layout">
 
-    <select id="filterLvl" disabled><option value="">Todos los Niveles</option></select>
-    <select id="filterCourse" disabled><option value="">Todos los Cursos</option></select>
+  <div class="filters">
+    <div style="font-weight:700; font-size:13px; color:var(--muted); width:100%; margin-bottom:4px;">Curso / Nivel:</div>
+    <div class="filter-group" id="courseFilterGroup"></div>
 
-    <span id="cardCounter">0 / 0</span>
-    <span id="statusNotice">Cargando índice...</span>
-  </header>
+    <div style="font-weight:700; font-size:13px; color:var(--muted); width:100%; margin-top:8px; margin-bottom:4px;">Asignatura:</div>
+    <div class="filter-group">
+      <button class="filter-btn active" id="btnSubj-ALL" onclick="setSubj('ALL')">Todas</button>
+      <button class="filter-btn" id="btnSubj-Lengua" onclick="setSubj('Lengua')">Lengua 🇪🇸</button>
+      <button class="filter-btn" id="btnSubj-Inglés" onclick="setSubj('Inglés')">Inglés 🇬🇧</button>
+      <button class="filter-btn" id="btnSubj-Matemáticas" onclick="setSubj('Matemáticas')">Matemáticas 📐</button>
+      <button class="filter-btn" id="btnSubj-Sociales" onclick="setSubj('Sociales')">Sociales 🌍</button>
+      <button class="filter-btn" id="btnSubj-Naturales" onclick="setSubj('Naturales')">Naturales 🌿</button>
+    </div>
 
-  <main>
-    <section class="viewer-panel">
-      <div class="card-context" id="displayContext"></div>
-      <div class="card-q" id="displayQ">Selecciona una asignatura para empezar</div>
-      <div class="card-media" id="displayMedia"></div>
-      <div class="card-a" id="displayA"></div>
-    </section>
-  </main>
+    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-top: 8px; margin-bottom: 4px; border-top: 1px dashed var(--line); padding-top: 8px;">
+      <div style="font-weight:700; font-size:13px; color:var(--muted); display:flex; align-items:center; gap:8px;">
+        <span>Temas de Estudio (Tags):</span>
+        <button id="btnSelectAllTopics" class="btn-flat" style="padding: 2px 8px; font-size: 11px;" onclick="toggleSelectAllTopics()">Seleccionar todos</button>
+      </div>
+      <div style="display: flex; gap: 4px; align-items: center;">
+        <input id="newTopicInput" placeholder="Añadir nuevo tema..." style="padding: 4px 8px; font-size: 12px; width: 160px;" />
+        <button class="btn-ok" id="addTopicBtn" style="padding: 4px 10px; font-size: 12px;">➕ Crear</button>
+      </div>
+    </div>
+    
+    <div class="filter-group" id="topicFilterGroup"></div>
+    
+    <div id="topicConfirmZone" class="confirmation-bar" style="display: none;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:12px; font-weight:700; color:var(--muted);">Selección actual:</span>
+        <div id="topicPillsPreview" class="selected-pills-preview"></div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn-flat" onclick="clearTopicSelection()" style="padding: 6px 12px; font-size: 12px;">🧹 Ver todo</button>
+        <button class="btn-pri" id="btnApplyTopics" onclick="confirmTopicSelection()" style="padding: 6px 16px; font-size: 13px;">
+          ✅ Confirmar selección (<span id="selectedTopicsCount">0</span>)
+        </button>
+      </div>
+    </div>
 
-  <script>
-    let subjectsIndex = [];
-    let deck = [];
-    let filtered = [];
-    let index = 0;
-    let showAnswer = false;
+    <div style="font-weight:700; font-size:13px; color:var(--muted); width:100%; margin-top:8px; margin-bottom:4px;">Dificultad / Nivel de Liga:</div>
+    <div class="filter-group">
+      <button class="filter-btn active" id="btnLvl-ALL" onclick="setLvl('ALL')">Todos los niveles</button>
+      <button class="filter-btn" id="btnLvl-Fácil" onclick="setLvl('Fácil')">Fácil (Bart & Lisa Simpson)</button>
+      <button class="filter-btn" id="btnLvl-Medio" onclick="setLvl('Medio')">Medio (Donkey)</button>
+      <button class="filter-btn" id="btnLvl-Difícil" onclick="setLvl('Difícil')">Difícil (Shrek)</button>
+    </div>
+  </div>
 
-    // 1. Cargar solo el índice al arrancar (Casi instantáneo)
-    async function init() {
-      try {
-        const res = await fetch('index.json');
-        subjectsIndex = await res.json();
-        
-        const select = document.getElementById('subjectSelect');
-        select.innerHTML = '<option value="">-- Selecciona Asignatura --</option>' +
-          subjectsIndex.map(s => `<option value="${s.file}">${s.name}</option>`).join('');
-
-        document.getElementById('statusNotice').innerText = "⚡ Listo (Selecciona asignatura)";
-      } catch (err) {
-        console.error(err);
-        document.getElementById('statusNotice').innerText = "❌ Error al cargar index.json";
-      }
-    }
-
-    // 2. Cargar el JSON de la asignatura elegida bajo demanda
-    document.getElementById('subjectSelect').addEventListener('change', async (e) => {
-      const filePath = e.target.value;
-      if (!filePath) {
-        deck = [];
-        applyFilters();
-        return;
-      }
-
-      document.getElementById('statusNotice').innerText = "⏳ Cargando asignatura...";
-      document.getElementById('displayQ').innerText = "Cargando tarjetas...";
-
-      try {
-        const res = await fetch(filePath);
-        deck = await res.json();
-        
-        document.getElementById('statusNotice').innerText = `✅ Cargadas ${deck.length} tarjetas`;
-        
-        populateSubFilters();
-        applyFilters();
-      } catch (err) {
-        console.error(err);
-        document.getElementById('statusNotice').innerText = "❌ Error al cargar la asignatura";
-      }
-    });
-
-    function populateSubFilters() {
-      const lvls = [...new Set(deck.map(c => c.lvl).filter(Boolean))];
-      const courses = [...new Set(deck.map(c => c.course).filter(Boolean))];
-
-      fillSelect('filterLvl', lvls, "Todos los Niveles");
-      fillSelect('filterCourse', courses, "Todos los Cursos");
-
-      document.getElementById('filterLvl').disabled = false;
-      document.getElementById('filterCourse').disabled = false;
-    }
-
-    function fillSelect(id, values, defaultText) {
-      const select = document.getElementById(id);
-      select.innerHTML = `<option value="">${defaultText}</option>` + 
-        values.map(v => `<option value="${v}">${v}</option>`).join('');
-    }
-
-    function applyFilters() {
-      const l = document.getElementById('filterLvl').value;
-      const c = document.getElementById('filterCourse').value;
-
-      filtered = deck.filter(item => {
-        return (!l || item.lvl === l) && (!c || item.course === c);
-      });
-
-      index = 0;
-      showAnswer = false;
-      renderCard();
-    }
-
-    function renderCard() {
-      if (!filtered.length) {
-        document.getElementById('displayQ').innerText = deck.length 
-          ? "No hay tarjetas con este filtro" 
-          : "Selecciona una asignatura";
-        document.getElementById('displayContext').innerText = "";
-        document.getElementById('displayA').style.display = "none";
-        document.getElementById('displayMedia').innerHTML = "";
-        document.getElementById('cardCounter').innerText = "0 / 0";
-        return;
-      }
-
-      const card = filtered[index];
-      document.getElementById('displayContext').innerText = card.qContext || "";
-      document.getElementById('displayQ').innerText = card.q || "";
+  <div class="flashcard-wrapper">
+    <div class="flashcard" id="cardElement" onclick="handleCardClick(this)">
+      <button class="btn-fullscreen" id="btnToggleFullscreen" onclick="toggleFullscreen(event)">🖥️ Pantalla Completa</button>
       
-      const aEl = document.getElementById('displayA');
-      aEl.innerText = card.a || "";
-      aEl.style.display = showAnswer ? "block" : "none";
+      <button class="fs-nav-btn fs-nav-prev" onclick="navCard(event, -1)" title="Anterior">⬅️</button>
+      <button class="fs-nav-btn fs-nav-next" onclick="navCard(event, 1)" title="Siguiente">➡️</button>
 
-      const mediaEl = document.getElementById('displayMedia');
-      if (card.media) {
-        mediaEl.innerHTML = `<img src="${card.media}" alt="Media" />`;
+      <div class="card-inner" id="cardInnerElement">
+        <div class="card-face card-front">
+          <div class="card-meta meta-front" id="metaFront">---</div>
+          <div class="card-topic-meta topic-front" id="topicFront">Sin tema</div>
+          <div class="card-text-container">
+            <div class="card-context-front" id="qContextFront"></div>
+            <div class="card-text-front" id="textFront">Cargando preguntas...</div>
+          </div>
+          <div class="card-media-anchor" id="mediaAnchorFront"></div>
+        </div>
+        <div class="card-face card-back">
+          <div class="card-meta meta-back" id="metaBack">RESPUESTA</div>
+          <div class="card-topic-meta topic-back" id="topicBack">Sin tema</div>
+          <div class="card-text-container">
+            <div class="card-context-back" id="qContextBack"></div>
+            <div class="card-text-back-prompt" id="textFrontBack">---</div>
+            <div class="card-text-back-answer" id="textBack">---</div>
+          </div>
+          <div class="card-media-anchor" id="mediaAnchorBack"></div>
+          <div class="success-actions">
+            <button class="btn-celebrate" id="celebrateBtn">👍 ¡Correcto!</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn-flat" id="prevBtn" onclick="navCard(event, -1)">⬅️ Anterior</button>
+      <div class="counter" id="cardCounter">0 / 0</div>
+      <button class="btn-flat" id="nextBtn" onclick="navCard(event, 1)">Siguiente ➡️</button>
+      <button class="btn-warn" id="shuffleBtn">🎯 Aleatorio</button>
+      <button class="btn-pri" style="background:#8b5cf6;" onclick="openQRModal()">📱 Mando Móvil</button>
+    </div>
+  </div>
+
+  <div class="gif-modal" id="gifModal" onclick="closeGifModal()">
+    <div class="gif-content" onclick="event.stopPropagation()">
+      <img id="gifViewer" src="" alt="Celebración" />
+      <div class="gif-caption" id="gifCaption">¡Puntos ganados!</div>
+    </div>
+  </div>
+
+  <!-- VISOR DE IMAGEN MAXIMIZADA -->
+  <div class="img-modal" id="imgModal" onclick="closeImgModal()">
+    <div class="img-modal-content" onclick="event.stopPropagation()">
+      <button class="img-modal-close" onclick="closeImgModal()">✖</button>
+      <img id="imgModalViewer" src="" alt="Imagen ampliada" />
+    </div>
+  </div>
+
+  <div class="edit-zone" id="editZoneContainer">
+    <div style="font-weight: 800; font-size: 12px; text-transform: uppercase; color: var(--warn); margin-bottom: 8px; display: flex; justify-content: space-between;">
+      <span>✏️ Modificar esta tarjeta en tiempo real</span>
+      <span style="color:var(--muted)" id="editTargetIndex">ID: -</span>
+    </div>
+    <div class="row">
+      <div>
+        <label>Instrucción / Contexto</label>
+        <input type="text" id="editQContext" placeholder="Opcional..." />
+      </div>
+      <div>
+        <label>Enunciado Principal</label>
+        <input type="text" id="editQ" />
+      </div>
+      <div style="grid-column: span 2">
+        <label>Solución oculta</label>
+        <input type="text" id="editA" />
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Asignatura</label>
+        <select id="editSubj">
+          <option value="Lengua">Lengua</option>
+          <option value="Inglés">Inglés</option>
+          <option value="Matemáticas">Matemáticas</option>
+          <option value="Sociales">Sociales</option>
+          <option value="Naturales">Naturales</option>
+        </select>
+      </div>
+      <div>
+        <label>Temas / Tags</label>
+        <div class="notion-dropdown">
+          <div class="notion-input-wrapper">
+            <input type="text" id="editTopic" autocomplete="off" />
+          </div>
+          <div class="notion-menu" id="menuEditTopic"></div>
+        </div>
+      </div>
+      <div>
+        <label>Dificultad</label>
+        <select id="editLvl">
+          <option value="Fácil">Fácil (Bart & Lisa Simpson)</option>
+          <option value="Medio">Medio (Donkey)</option>
+          <option value="Difícil">Difícil (Shrek)</option>
+        </select>
+      </div>
+      <div>
+        <label>Curso</label>
+        <div class="notion-dropdown" id="dropdownEdit">
+          <div class="notion-input-wrapper">
+            <input type="text" id="editCourse" autocomplete="off"/>
+          </div>
+          <div class="notion-menu" id="menuEdit"></div>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div style="grid-column: span 2">
+        <label>Enlace / URL Imagen / Vídeo YT</label>
+        <input type="text" id="editMedia" placeholder="https://... o sube una imagen abajo" />
+      </div>
+      <div>
+        <label>Subir/Auto-comprimir Imagen</label>
+        <input type="file" id="editImgFile" accept="image/*" class="img-upload-input" onchange="handleImageUpload(this, 'editMedia')" />
+      </div>
+      <div style="display:flex; gap:6px;">
+        <button class="btn-ok" id="updateBtn" style="flex:1">💾 Guardar Cambios</button>
+        <button class="btn-bad" id="delBtn" style="padding:8px 12px;">🗑️ Borrar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="editor-box">
+    <div style="font-weight:700; margin-bottom:10px; color:var(--ink);">✨ Añadir Nueva Tarjeta al Mazo</div>
+    <div class="row">
+      <div>
+        <label>Instrucción / Contexto</label>
+        <input type="text" id="addQContext" placeholder="Opcional..." />
+      </div>
+      <div>
+        <label>Enunciado Principal</label>
+        <input type="text" id="addQ" />
+      </div>
+      <div style="grid-column: span 2">
+        <label>Solución oculta</label>
+        <input type="text" id="addA" />
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Asignatura</label>
+        <select id="addSubj">
+          <option value="Lengua">Lengua</option>
+          <option value="Inglés">Inglés</option>
+          <option value="Matemáticas">Matemáticas</option>
+          <option value="Sociales">Sociales</option>
+          <option value="Naturales">Naturales</option>
+        </select>
+      </div>
+      <div>
+        <label>Temas / Tags</label>
+        <div class="notion-dropdown">
+          <div class="notion-input-wrapper">
+            <input type="text" id="addTopic" autocomplete="off" />
+          </div>
+          <div class="notion-menu" id="menuAddTopic"></div>
+        </div>
+      </div>
+      <div>
+        <label>Dificultad</label>
+        <select id="addLvl">
+          <option value="Fácil">Fácil (Bart & Lisa Simpson)</option>
+          <option value="Medio">Medio (Donkey)</option>
+          <option value="Difícil">Difícil (Shrek)</option>
+        </select>
+      </div>
+      <div>
+        <label>Curso</label>
+        <div class="notion-dropdown" id="dropdownAdd">
+          <div class="notion-input-wrapper">
+            <input type="text" id="addCourse" autocomplete="off"/>
+          </div>
+          <div class="notion-menu" id="menuAdd"></div>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div style="grid-column: span 2">
+        <label>Enlace / URL Imagen / Vídeo YT</label>
+        <input type="text" id="addMedia" placeholder="https://... o sube una imagen" />
+      </div>
+      <div>
+        <label>Subir/Auto-comprimir Imagen</label>
+        <input type="file" id="addImgFile" accept="image/*" class="img-upload-input" onchange="handleImageUpload(this, 'addMedia')" />
+      </div>
+      <button class="btn-pri" id="addBtn">➕ Crear Tarjeta</button>
+    </div>
+
+    <div style="margin-top:15px; padding-top:12px; border-top:1px dashed var(--line); display:flex; justify-content:space-between; align-items:center;">
+      <button class="btn-flat" id="exportBtn" style="font-size:12px;">📥 Exportar Mazo (.json)</button>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <label style="margin:0; font-size:11px;">Cargar banco:</label>
+        <input type="file" id="importFile" accept="application/json" style="font-size:11px; width:180px; padding:4px;" />
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- VISTA MANDO REMOTO MÓVIL -->
+<div id="remoteView" class="remote-layout">
+  <div class="remote-lvl-row">
+  <button class="btn-remote-lvl" onclick="sendRemoteCmd('SET_LVL_Fácil')">Fácil</button>
+  <button class="btn-remote-lvl" onclick="sendRemoteCmd('SET_LVL_Medio')">Medio</button>
+  <button class="btn-remote-lvl" onclick="sendRemoteCmd('SET_LVL_Difícil')">Difícil</button>
+</div>
+  <div class="remote-card-info">
+    <div style="font-size: 11px; text-transform: uppercase; color: #94a3b8; font-weight: 700; margin-bottom: 2px;">Pregunta Activa</div>
+    <div id="remoteQuestionText" style="font-size: 14px; color: #f8fafc; font-weight: 500; margin-bottom: 10px; line-height: 1.3;">-</div>
+    
+    <div style="border-top: 1px dashed #334155; padding-top: 8px;">
+      <div style="font-size: 11px; text-transform: uppercase; color: #38bdf8; font-weight: 700; margin-bottom: 2px;">💡 Solución (Vista Profesor)</div>
+      <div id="remoteAnswerText" style="font-size: 17px; font-weight: 700; color: #4ade80; line-height: 1.3;">-</div>
+    </div>
+  </div>
+
+  <button class="btn-remote" onclick="sendRemoteCmd('PREV')">⬅️ Anterior</button>
+  <button class="btn-remote btn-remote-flip" onclick="sendRemoteCmd('FLIP')">🔄 Girar / Respuesta</button>
+  <button class="btn-remote" onclick="sendRemoteCmd('NEXT')">Siguiente ➡️</button>
+  <button class="btn-remote btn-remote-img" id="btnRemoteImgZoom" onclick="sendRemoteCmd('TOGGLE_ZOOM')" style="display:none;">🔍 Ampliar / Cerrar Imagen</button>
+  <button class="btn-remote btn-remote-yt" id="btnRemoteYtMax" onclick="sendRemoteCmd('TOGGLE_MAX_VIDEO')" style="display:none;">🖥️ Pantalla Completa Vídeo</button>
+</div>
+
+<!-- MODAL QR -->
+<div id="qrModal" onclick="closeQRModal()">
+  <div class="qr-box" onclick="event.stopPropagation()">
+    <h3 style="margin:0; color:var(--ink);">📱 Mando a distancia</h3>
+    <div id="qrcode"></div>
+    <p style="margin:0; font-size:12px; color:var(--muted);">Escanea el QR con tu móvil para controlar la app</p>
+    <button class="btn-flat" onclick="closeQRModal()">Cerrar</button>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'classroom_cards_deck_v4';
+const STORAGE_TOPICS_KEY = 'classroom_cards_topics_v4';
+
+const CELEBRATION_GIFS = {
+  "Fácil": { url: "https://media.tenor.com/YyKNQ-UFO8gAAAAM/the-simpsons-lisa-simpson.gif", caption: "¡Lisa aprueba tu respuesta! ⭐" },
+  "Medio": { url: "https://media.tenor.com/EvNCyjP1IxQAAAAM/feliz-alegre.gif", caption: "¡Donkey aprueba tu respuesta! 🐴" },
+  "Difícil": { url: "https://media.tenor.com/m4k271sucqgAAAAM/shrek-and-fiona-shrek.gif", caption: "¡Brillante! ¡Nivel Shrek y Fiona dominado! 👹" }
+};
+
+let deck = [];
+let filterCourse = 'ALL';
+let filterSubj = 'ALL';
+let filterLvl = 'ALL';
+let selectedTopics = []; 
+let confirmedTopics = []; 
+let customTopics = [];
+let filtered = [];
+let index = 0;
+let filterMemory = {};
+
+const BASE_COURSES = ["5º", "6º"];
+
+/* SÍNTESIS DE AUDIO REALISTA CON WEB AUDIO API */
+let audioCtx = null;
+
+function initAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+}
+
+function playCardSlide() {
+  initAudio();
+  const bufferSize = audioCtx.sampleRate * 0.12;
+  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+
+  for (let i = 0; i < bufferSize; i++) {
+    data[i] = Math.random() * 2 - 1;
+  }
+
+  const noise = audioCtx.createBufferSource();
+  noise.buffer = buffer;
+
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.frequency.setValueAtTime(800, audioCtx.currentTime);
+  filter.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.12);
+  filter.Q.value = 1.2;
+
+  const gain = audioCtx.createGain();
+  gain.gain.setValueAtTime(0.01, audioCtx.currentTime);
+  gain.gain.linearRampToValueAtTime(0.35, audioCtx.currentTime + 0.03);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
+
+  noise.connect(filter);
+  filter.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  noise.start();
+}
+
+function playArpa() {
+  initAudio();
+  const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51]; 
+
+  notes.forEach((freq, i) => {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    const startTime = audioCtx.currentTime + (i * 0.04);
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, startTime);
+
+    gain.gain.setValueAtTime(0.15, startTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.3);
+
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    osc.start(startTime);
+    osc.stop(startTime + 0.3);
+  });
+}
+
+document.addEventListener('click', () => initAudio(), { once: true });
+
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+}
+
+function parseInputItems(inputStr) {
+  if (!inputStr) return [];
+  return inputStr.split(',').map(t => t.trim()).filter(Boolean);
+}
+
+function getCardTopics(card) {
+  if (Array.isArray(card.topics)) return card.topics.map(t => t.trim()).filter(Boolean);
+  if (Array.isArray(card.topic)) return card.topic.map(t => t.trim()).filter(Boolean);
+  if (typeof card.topic === 'string' && card.topic.trim() !== "") {
+    return card.topic.split(',').map(t => t.trim()).filter(Boolean);
+  }
+  return [];
+}
+
+function getCardCourses(card) {
+  if (!card.course || card.course.trim() === "") return [];
+  return card.course.split(',').map(c => c.trim()).filter(Boolean);
+}
+
+function getAllAvailableTopics() {
+  const allTopics = new Set(customTopics);
+  deck.forEach(c => getCardTopics(c).forEach(t => allTopics.add(t)));
+  return Array.from(allTopics).sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+}
+
+function getAllAvailableCourses() {
+  const allCourses = new Set(BASE_COURSES);
+  deck.forEach(c => getCardCourses(c).forEach(crs => allCourses.add(crs)));
+  return Array.from(allCourses).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+}
+
+function saveDeck() { localStorage.setItem(STORAGE_KEY, JSON.stringify(deck)); }
+function saveTopics() { 
+  customTopics.sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+  localStorage.setItem(STORAGE_TOPICS_KEY, JSON.stringify(customTopics)); 
+}
+
+async function loadDeck() {
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxmsFEuwrNg7QV3lEB9V2BuH8RkfpOOnrwEPZdVQ8dRbAaEbJkqRGVIOGwTprSPHUO5Hg/exec';
+  let origenCargado = "";
+  let cargadoConExito = false;
+
+  try {
+    const resDrive = await fetch(APPS_SCRIPT_URL, { redirect: 'follow' });
+    if (!resDrive.ok) throw new Error(`Status: ${resDrive.status}`);
+    const dataDrive = await resDrive.json();
+    if (Array.isArray(dataDrive) && dataDrive.length > 0) {
+      procesarMazo(dataDrive);
+      origenCargado = "☁️ Google Drive";
+      cargadoConExito = true;
+    }
+  } catch (errDrive) {
+    console.warn("Fallo al cargar desde Drive via Apps Script:", errDrive);
+  }
+
+  if (!cargadoConExito) {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) { 
+      try { 
+        let parsed = JSON.parse(raw); 
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          procesarMazo(parsed);
+          origenCargado = "💾 Memoria Local (LocalStorage)";
+          cargadoConExito = true;
+        }
+      } catch(e) {} 
+    }
+  }
+
+  if (!cargadoConExito) {
+    try {
+      const resLocal = await fetch('preguntas.json?v=' + new Date().getTime());
+      if (!resLocal.ok) throw new Error('No se encontró preguntas.json local');
+      const dataLocal = await resLocal.json();
+      if (Array.isArray(dataLocal) && dataLocal.length > 0) {
+        procesarMazo(dataLocal);
+        origenCargado = "📁 GitHub (preguntas.json)";
+        cargadoConExito = true;
+      }
+    } catch (errLocal) {
+      console.warn("Fallo al cargar preguntas.json desde GitHub/local:", errLocal);
+    }
+  }
+
+  const rawTopics = localStorage.getItem(STORAGE_TOPICS_KEY);
+  if (rawTopics) {
+    try { 
+      customTopics = JSON.parse(rawTopics); 
+      customTopics.sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+    } catch(e) {}
+  }
+
+  mostrarAvisoOrigen(origenCargado);
+  applyFilters();
+}
+
+function procesarMazo(datos) {
+  deck = datos.map(c => {
+    if (c.course === "Ambos (General)") c.course = "";
+    c.qContext = c.qContext || "";
+    c.topics = getCardTopics(c);
+    c.topic = c.topics.join(', ');
+    c.media = c.media || "";
+    return c;
+  });
+
+  deck.forEach(c => {
+    c.topics.forEach(t => {
+      if (!customTopics.includes(t)) customTopics.push(t);
+    });
+  });
+}
+
+function mostrarAvisoOrigen(texto) {
+  let badge = document.getElementById('data-source-badge');
+  if (!badge) {
+    badge = document.createElement('div');
+    badge.id = 'data-source-badge';
+    badge.style.cssText = 'position:fixed; bottom:10px; right:10px; background:#1e293b; color:#94a3b8; border:1px solid #334155; padding:4px 10px; border-radius:20px; font-size:11px; z-index:9999; pointer-events:none; opacity:0.85;';
+    document.body.appendChild(badge);
+  }
+  badge.textContent = `Fuente: ${texto || 'Desconocida'}`;
+}
+
+function toggleFullscreen(e) {
+  if (e) e.stopPropagation();
+  const cardEl = document.getElementById('cardElement');
+  const btn = document.getElementById('btnToggleFullscreen');
+  
+  cardEl.classList.toggle('fullscreen');
+  if (cardEl.classList.contains('fullscreen')) {
+    btn.textContent = '❌ Salir Fullscreen';
+  } else {
+    btn.textContent = '🖥️ Pantalla Completa';
+  }
+}
+
+function navCard(e, dir) {
+  if (e) e.stopPropagation();
+  if (!filtered.length) return;
+  playCardSlide();
+  index = (index + dir + filtered.length) % filtered.length;
+  updateView();
+}
+
+document.addEventListener('keydown', (e) => {
+  const cardEl = document.getElementById('cardElement');
+  const isFs = cardEl.classList.contains('fullscreen');
+  const isEditingText = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName) || 
+                        document.activeElement.isContentEditable;
+  
+  if (!isFs || isEditingText) return;
+
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+    e.preventDefault();
+    navCard(null, 1);
+  } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    navCard(null, -1);
+  } else if (e.key === 'Escape') {
+    toggleFullscreen(null);
+  } else if (e.key === ' ' || e.key === 'Enter') {
+    e.preventDefault();
+    handleCardClick(cardEl);
+  }
+});
+
+function setupMultiAutocomplete(inputId, menuId, getAvailableItems) {
+  const input = document.getElementById(inputId);
+  const menu = document.getElementById(menuId);
+
+  function renderMenu() {
+    const fullText = input.value;
+    const parts = fullText.split(',');
+    const lastPart = parts[parts.length - 1];
+    const currentTerm = lastPart.trim().toLowerCase();
+
+    const existingItems = parts.slice(0, parts.length - 1).map(p => p.trim().toLowerCase());
+    const available = getAvailableItems().filter(item => !existingItems.includes(item.toLowerCase()));
+    
+    const matches = currentTerm === "" 
+      ? available 
+      : available.filter(item => item.toLowerCase().includes(currentTerm));
+
+    if (matches.length === 0) {
+      menu.classList.remove('open');
+      return;
+    }
+
+    let html = "";
+    matches.forEach(item => {
+      html += `<div class="notion-item" data-val="${item}">📌 ${item}</div>`;
+    });
+    menu.innerHTML = html;
+
+    menu.querySelectorAll('.notion-item[data-val]').forEach(el => {
+      el.onmousedown = (e) => {
+        e.preventDefault();
+        const selected = el.getAttribute('data-val');
+        const currentParts = input.value.split(',').map(p => p.trim());
+        currentParts[currentParts.length - 1] = selected;
+        const cleaned = currentParts.filter(Boolean);
+        input.value = cleaned.join(', ') + ', ';
+        renderMenu();
+        input.focus();
+      };
+    });
+  }
+
+  input.onfocus = () => { renderMenu(); menu.classList.add('open'); };
+  input.onblur = () => { setTimeout(() => menu.classList.remove('open'), 150); };
+  input.oninput = () => { renderMenu(); menu.classList.add('open'); };
+}
+
+function renderCourseFilterButtons() {
+  const container = document.getElementById('courseFilterGroup');
+  const activeCourses = new Set(BASE_COURSES);
+  deck.forEach(card => getCardCourses(card).forEach(c => activeCourses.add(c)));
+
+  const sortedActive = Array.from(activeCourses).sort((a, b) => 
+    a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'})
+  );
+
+  let html = `<button class="filter-btn ${filterCourse === 'ALL' ? 'active' : ''}" onclick="setCourse('ALL')">Todos los cursos</button>`;
+  sortedActive.forEach(c => {
+    html += `<button class="filter-btn ${filterCourse === c ? 'active' : ''}" onclick="setCourse('${c}')">${c}</button>`;
+  });
+  container.innerHTML = html;
+}
+
+function matchesCourseFilter(card, selectedCourseFilter) {
+  if (selectedCourseFilter === 'ALL') return true;
+  const cardCourses = getCardCourses(card);
+  if (cardCourses.length === 0) return true;
+  return cardCourses.includes(selectedCourseFilter);
+}
+
+function renderTopicControls() {
+  const topicsVisibles = new Set();
+  let hayPreguntasSinTema = false;
+
+  deck.forEach(card => {
+    if (matchesCourseFilter(card, filterCourse) && (filterSubj === 'ALL' || card.subj === filterSubj)) {
+      const cardTopics = getCardTopics(card);
+      if (cardTopics.length > 0) cardTopics.forEach(t => topicsVisibles.add(t));
+      else hayPreguntasSinTema = true;
+    }
+  });
+
+  const container = document.getElementById('topicFilterGroup');
+  let html = "";
+  
+  if (hayPreguntasSinTema) {
+    const isSelected = selectedTopics.includes('NONE');
+    html += `<button class="btn-special ${isSelected ? 'selected' : ''}" onclick="toggleTopicSelection('NONE')">${isSelected ? '✓ ' : ''}🔍 Sin tema asignado</button>`;
+  }
+  
+  Array.from(topicsVisibles).sort((a,b) => a.localeCompare(b,'es',{sensitivity:'base'})).forEach(t => {
+    const isSelected = selectedTopics.includes(t);
+    html += `<button class="btn-topic ${isSelected ? 'selected' : ''}" onclick="toggleTopicSelection('${t.replace(/'/g, "\\'")}')">${isSelected ? '✓ ' : ''}${t}</button>`;
+  });
+
+  container.innerHTML = html;
+  updateTopicConfirmZone();
+}
+
+function toggleTopicSelection(topic) {
+  if (selectedTopics.includes(topic)) {
+    selectedTopics = selectedTopics.filter(t => t !== topic);
+  } else {
+    selectedTopics.push(topic);
+  }
+  if (selectedTopics.length === 0) { confirmedTopics = []; applyFilters(); }
+  else renderTopicControls();
+}
+
+function clearTopicSelection() { selectedTopics = []; confirmedTopics = []; applyFilters(); }
+
+function toggleSelectAllTopics() {
+  const visibleTopics = [];
+  deck.forEach(card => {
+    if (matchesCourseFilter(card, filterCourse) && (filterSubj === 'ALL' || card.subj === filterSubj)) {
+      getCardTopics(card).forEach(t => { if(!visibleTopics.includes(t)) visibleTopics.push(t); });
+    }
+  });
+
+  if (selectedTopics.length === visibleTopics.length) {
+    selectedTopics = []; confirmedTopics = []; applyFilters();
+  } else {
+    selectedTopics = [...visibleTopics]; renderTopicControls();
+  }
+}
+
+function updateTopicConfirmZone() {
+  const confirmZone = document.getElementById('topicConfirmZone');
+  const pillsPreview = document.getElementById('topicPillsPreview');
+  const countSpan = document.getElementById('selectedTopicsCount');
+
+  if (selectedTopics.length === 0) { confirmZone.style.display = 'none'; return; }
+
+  confirmZone.style.display = 'flex';
+  countSpan.textContent = selectedTopics.length;
+
+  let html = "";
+  selectedTopics.forEach(t => html += `<span class="pill-preview">${(t === 'NONE') ? 'Sin tema' : t}</span>`);
+  pillsPreview.innerHTML = html;
+}
+
+function confirmTopicSelection() { confirmedTopics = [...selectedTopics]; applyFilters(); }
+
+document.getElementById('addTopicBtn').onclick = (e) => {
+  e.preventDefault();
+  const input = document.getElementById('newTopicInput');
+  const name = input.value.trim();
+  if(!name) return;
+  if(customTopics.includes(name)) { alert("Este tema ya existe."); return; }
+  customTopics.push(name); saveTopics(); input.value = ''; applyFilters();
+};
+
+function setCourse(val) { filterCourse = val; applyFilters(); }
+function setSubj(val) { filterSubj = val; applyFilters(); }
+function setLvl(val) { filterLvl = val; applyFilters(); }
+
+function updateVisualFilterButtons() {
+  document.querySelectorAll('[id^="btnSubj-"]').forEach(b => b.classList.remove('active'));
+  const activeSubjBtn = document.getElementById(`btnSubj-${filterSubj}`);
+  if (activeSubjBtn) activeSubjBtn.classList.add('active');
+
+  document.querySelectorAll('[id^="btnLvl-"]').forEach(b => b.classList.remove('active'));
+  const activeLvlBtn = document.getElementById(`btnLvl-${filterLvl}`);
+  if (activeLvlBtn) activeLvlBtn.classList.add('active');
+  
+  renderCourseFilterButtons(); renderTopicControls(); 
+}
+
+function applyFilters() {
+  updateVisualFilterButtons();
+  filtered = deck.filter(card => {
+    const matchCourse = matchesCourseFilter(card, filterCourse);
+    const matchSubj = (filterSubj === 'ALL' || card.subj === filterSubj);
+    const matchLvl = (filterLvl === 'ALL' || card.lvl === filterLvl);
+    
+    let matchTopic = true;
+    if (confirmedTopics.length > 0) {
+      const cardTopics = getCardTopics(card);
+      matchTopic = confirmedTopics.some(t => (t === 'NONE') ? cardTopics.length === 0 : cardTopics.includes(t));
+    }
+    return matchCourse && matchSubj && matchLvl && matchTopic;
+  });
+
+  const memoryKey = `${filterCourse}|${filterSubj}|${filterLvl}|${confirmedTopics.join(',')}`;
+  index = (filterMemory[memoryKey] !== undefined && filterMemory[memoryKey] < filtered.length) ? filterMemory[memoryKey] : 0;
+  updateView();
+}
+
+function openMediaLink(e, url) { 
+  e.stopPropagation(); 
+  window.open(url, '_blank'); 
+}
+
+/* COMPRESIÓN DE IMÁGENES AL SUBIR */
+function handleImageUpload(inputElement, targetInputId) {
+  const file = inputElement.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let width = img.width;
+      let height = img.height;
+      const maxDim = 1200;
+
+      if (width > maxDim || height > maxDim) {
+        if (width > height) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      
+      const compressedBase64 = canvas.toDataURL('image/jpeg', 0.75);
+      document.getElementById(targetInputId).value = compressedBase64;
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function isImageUrl(urlStr) {
+  if (!urlStr) return false;
+  if (urlStr.startsWith('data:image/')) return true;
+  return /\.(jpeg|jpg|gif|png|webp|svg)($|\?)/i.test(urlStr.trim());
+}
+
+function openImgModal(src) {
+  const viewer = document.getElementById('imgModalViewer');
+  viewer.src = src;
+  document.getElementById('imgModal').classList.add('open');
+}
+
+function closeImgModal() {
+  document.getElementById('imgModal').classList.remove('open');
+}
+
+function toggleImageZoom() {
+  const modal = document.getElementById('imgModal');
+  if (modal.classList.contains('open')) {
+    closeImgModal();
+  } else if (filtered.length) {
+    const mediaUrl = (filtered[index].media || '').trim();
+    if (isImageUrl(mediaUrl)) {
+      openImgModal(mediaUrl);
+    }
+  }
+}
+
+function parseYouTubeUrl(urlStr) {
+  if (!urlStr) return null;
+
+  try {
+    const url = new URL(urlStr.trim());
+    let id = null;
+
+    if (url.hostname === 'youtu.be') {
+      id = url.pathname.slice(1);
+    } else if (url.hostname.includes('youtube.com')) {
+      id = url.searchParams.get('v');
+      
+      // Captura formatos /embed/ y /shorts/
+      if (!id) {
+        if (url.pathname.startsWith('/embed/')) {
+          id = url.pathname.split('/')[2];
+        } else if (url.pathname.startsWith('/shorts/')) {
+          id = url.pathname.split('/')[2];
+        }
+      }
+    }
+
+    if (!id) return null;
+    id = id.split('?')[0].split('&')[0];
+
+    const timeParam = url.searchParams.get('t') || url.searchParams.get('start');
+    let startSeconds = 0;
+
+    if (timeParam) {
+      const cleaned = timeParam.toLowerCase().replace('s', '');
+      if (cleaned.includes('m')) {
+        const parts = cleaned.split('m');
+        const mins = parseInt(parts[0], 10) || 0;
+        const secs = parseInt(parts[1], 10) || 0;
+        startSeconds = (mins * 60) + secs;
       } else {
-        mediaEl.innerHTML = "";
+        startSeconds = parseInt(cleaned, 10) || 0;
       }
-
-      document.getElementById('cardCounter').innerText = `${index + 1} / ${filtered.length}`;
     }
 
-    // Navegación con Mando / Teclado
-    function nextCard() {
-      if (index < filtered.length - 1) { index++; showAnswer = false; renderCard(); }
-    }
-    function prevCard() {
-      if (index > 0) { index--; showAnswer = false; renderCard(); }
-    }
-    function toggleAnswer() {
-      showAnswer = !showAnswer;
-      renderCard();
-    }
+    return { id, startSeconds };
+  } catch (e) {
+    return null;
+  }
+}
 
-    document.addEventListener('keydown', (e) => {
-      if (['input', 'select', 'textarea'].includes(document.activeElement.tagName.toLowerCase())) return;
-      
-      if (e.key === 'ArrowRight' || e.key === 'PageDown') nextCard();
-      if (e.key === 'ArrowLeft' || e.key === 'PageUp') prevCard();
-      if (e.key === 'ArrowDown' || e.key === ' ' || e.key === 'Enter') toggleAnswer();
+function syncRemoteData() {
+  if (conn && conn.open && filtered.length > 0) {
+    const currentCard = filtered[index];
+    const mediaUrl = (currentCard.media || '').trim();
+    const ytData = parseYouTubeUrl(mediaUrl);
+    
+    conn.send({
+      type: 'CARD_SYNC',
+      question: currentCard.q || '',
+      answer: currentCard.a || '',
+      hasImage: isImageUrl(mediaUrl),
+      hasYt: !!ytData
     });
+  }
+}
+  
+function updateView() {
+  const cardEl = document.getElementById('cardElement');
+  const innerEl = document.getElementById('cardInnerElement');
+  const wasFlipped = cardEl.classList.contains('flipped');
+  
+  if (wasFlipped && innerEl) innerEl.style.opacity = '0';
+  cardEl.classList.remove('flipped');
 
-    document.getElementById('filterLvl').onchange = applyFilters;
-    document.getElementById('filterCourse').onchange = applyFilters;
+  const counterEl = document.getElementById('cardCounter');
+  const txtF = document.getElementById('textFront');
+  const ctxF = document.getElementById('qContextFront');
+  const ctxB = document.getElementById('qContextBack');
+  const txtFB = document.getElementById('textFrontBack');
+  const txtB = document.getElementById('textBack');
+  const metaF = document.getElementById('metaFront');
+  const topF = document.getElementById('topicFront');
+  const topB = document.getElementById('topicBack');
+  const mediaFront = document.getElementById('mediaAnchorFront');
+  const mediaBack = document.getElementById('mediaAnchorBack');
 
-    // Arrancar la app
-    init();
-  </script>
+  if (!filtered.length) {
+    txtF.textContent = "No hay tarjetas con este filtro.";
+    ctxF.textContent = ""; ctxB.textContent = ""; txtFB.textContent = "---"; txtB.textContent = "---";
+    metaF.textContent = "VACÍO"; topF.textContent = "-"; topB.textContent = "-";
+    counterEl.textContent = "0 / 0"; mediaFront.innerHTML = ""; mediaBack.innerHTML = "";
+    if (innerEl) innerEl.style.opacity = '1';
+    syncRemoteData();
+    return;
+  }
+
+  setTimeout(() => {
+    counterEl.textContent = `${index + 1} / ${filtered.length}`;
+    const currentCard = filtered[index];
+    
+    ctxF.textContent = currentCard.qContext || '';
+    ctxB.textContent = currentCard.qContext ? `(${currentCard.qContext})` : '';
+    txtF.textContent = currentCard.q;
+    txtFB.textContent = currentCard.q;
+    txtB.textContent = currentCard.a;
+    
+    const cardCourses = getCardCourses(currentCard);
+    const courseLabel = cardCourses.length > 0 ? cardCourses.join(', ') : "Todos";
+    metaF.textContent = `[${courseLabel}] ${currentCard.subj} • ${currentCard.lvl}`;
+    
+    const cardTopics = getCardTopics(currentCard);
+    const topicLabel = cardTopics.length > 0 ? `📌 ${cardTopics.join(', ')}` : "🔍 Sin tema";
+    topF.textContent = topicLabel; topB.textContent = topicLabel;
+
+    mediaFront.innerHTML = "";
+    mediaBack.innerHTML = "";
+    mediaBack.dataset.hasYt = "false";
+
+    if (currentCard.media && currentCard.media.trim() !== "") {
+      const mediaUrl = currentCard.media.trim();
+      const ytData = parseYouTubeUrl(mediaUrl);
+
+      if (ytData) {
+        mediaBack.dataset.ytId = ytData.id;
+        mediaBack.dataset.ytStart = ytData.startSeconds;
+        mediaBack.dataset.hasYt = "true";
+      } else if (isImageUrl(mediaUrl)) {
+        const imgBtn = `<img src="${mediaUrl}" class="card-img-preview" onclick="event.stopPropagation(); openImgModal('${mediaUrl.replace(/'/g, "\\'")}')" title="Clic para maximizar" />`;
+        mediaFront.innerHTML = imgBtn;
+        mediaBack.innerHTML = imgBtn;
+      } else {
+        mediaBack.innerHTML = `<button class="btn-media" onclick="openMediaLink(event, '${mediaUrl.replace(/'/g, "\\'")}')">🔗 Abrir Enlace Web</button>`;
+      }
+    }
+    
+    document.getElementById('editQContext').value = currentCard.qContext || '';
+    document.getElementById('editQ').value = currentCard.q;
+    document.getElementById('editA').value = currentCard.a;
+    document.getElementById('editSubj').value = currentCard.subj;
+    document.getElementById('editLvl').value = currentCard.lvl;
+    document.getElementById('editCourse').value = cardCourses.join(', ');
+    document.getElementById('editTopic').value = cardTopics.join(', ');
+    document.getElementById('editMedia').value = currentCard.media || '';
+    
+    document.getElementById('editTargetIndex').textContent = `Nº Global: ${deck.indexOf(currentCard) + 1}`;
+    filterMemory[`${filterCourse}|${filterSubj}|${filterLvl}|${confirmedTopics.join(',')}`] = index;
+
+    if (innerEl) innerEl.style.opacity = '1';
+    syncRemoteData();
+  }, wasFlipped ? 130 : 0);
+}
+
+function handleCardClick(cardElement) {
+  cardElement.classList.toggle('flipped');
+  const isFlipped = cardElement.classList.contains('flipped');
+  const mediaBack = document.getElementById('mediaAnchorBack');
+
+  if (isFlipped) {
+    playArpa();
+
+    if (mediaBack && mediaBack.dataset.hasYt === "true") {
+      const id = mediaBack.dataset.ytId;
+      const start = mediaBack.dataset.ytStart;
+      const embedUrl = `https://www.youtube-nocookie.com/embed/${id}?start=${start}&autoplay=1&rel=0`;
+
+      mediaBack.innerHTML = `
+        <div id="ytVideoContainer" class="yt-container" onclick="event.stopPropagation()">
+          <div style="position: absolute; top: 6px; right: 6px; z-index: 50; display: flex; gap: 6px;">
+            <button id="btnMaxVideo" onclick="toggleMaxVideo(event)" style="background: rgba(37,99,235,0.85); color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 2px 8px; font-size: 11px; cursor: pointer;" title="Pantalla Completa">🖥️ Fullscreen</button>
+            <button id="btnMinVideo" onclick="toggleMinVideo(event)" style="background: rgba(15,23,42,0.85); color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 2px 8px; font-size: 11px; cursor: pointer;" title="Minimizar / Restaurar">👁️ Miniatura</button>
+            <button onclick="closeVideo(event)" style="background: rgba(220,38,38,0.85); color: #fff; border: none; border-radius: 6px; padding: 2px 8px; font-size: 11px; cursor: pointer;" title="Cerrar vídeo">❌</button>
+          </div>
+          <iframe 
+            id="ytIframe"
+            width="100%" 
+            height="100%" 
+            src="${embedUrl}" 
+            title="YouTube video" 
+            frameborder="0" 
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+            allowfullscreen>
+          </iframe>
+        </div>`;
+    }
+
+    if (filtered.length) {
+      const currentCard = filtered[index];
+      if (currentCard.subj === 'Inglés') {
+        const palabraLimpia = currentCard.a.trim();
+        if (palabraLimpia.split(/\s+/).length <= 3) {
+          setTimeout(() => speakBritish(palabraLimpia), 250);
+        }
+      }
+    }
+  } else {
+    playCardSlide();
+    if (mediaBack && mediaBack.dataset.hasYt === "true") {
+      mediaBack.innerHTML = "";
+    }
+  }
+}
+
+function ensureVideoLoaded() {
+  const cardEl = document.getElementById('cardElement');
+  if (!cardEl.classList.contains('flipped')) {
+    handleCardClick(cardEl);
+  }
+}
+
+function toggleMaxVideo(e) {
+  if (e) e.stopPropagation();
+  ensureVideoLoaded();
+  const container = document.getElementById('ytVideoContainer');
+  const btnMax = document.getElementById('btnMaxVideo');
+  if (!container) return;
+
+  const isMax = container.classList.contains('maximized');
+  container.classList.remove('minimized');
+
+  if (!isMax) {
+    container.classList.add('maximized');
+    if (btnMax) btnMax.textContent = '❌ Restaurar';
+  } else {
+    container.classList.remove('maximized');
+    if (btnMax) btnMax.textContent = '🖥️ Fullscreen';
+  }
+}
+
+function toggleMinVideo(e) {
+  if (e) e.stopPropagation();
+  ensureVideoLoaded();
+  const container = document.getElementById('ytVideoContainer');
+  const btnMin = document.getElementById('btnMinVideo');
+  if (!container) return;
+
+  const isMin = container.classList.contains('minimized');
+  container.classList.remove('maximized');
+
+  if (!isMin) {
+    container.classList.add('minimized');
+    if (btnMin) btnMin.textContent = '🎬 Restaurar';
+  } else {
+    container.classList.remove('minimized');
+    if (btnMin) btnMin.textContent = '👁️ Miniatura';
+  }
+}
+
+function closeVideo(e) {
+  if (e) e.stopPropagation();
+  const mediaBack = document.getElementById('mediaAnchorBack');
+  if (mediaBack) mediaBack.innerHTML = "";
+}
+
+document.getElementById('celebrateBtn').onclick = (e) => {
+  e.stopPropagation(); 
+  if (!filtered.length) return;
+  const currentCard = filtered[index];
+  const gifData = CELEBRATION_GIFS[currentCard.lvl || "Fácil"];
+  if (gifData) {
+    const viewer = document.getElementById('gifViewer');
+    viewer.src = ""; viewer.src = gifData.url;
+    document.getElementById('gifCaption').textContent = gifData.caption;
+    document.getElementById('gifModal').classList.add('open');
+  }
+};
+
+function closeGifModal() { document.getElementById('gifModal').classList.remove('open'); }
+
+function speakBritish(text) {
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  const ukVoice = window.speechSynthesis.getVoices().find(v => v.lang === 'en-GB' || v.lang === 'en_GB');
+  if (ukVoice) utterance.voice = ukVoice;
+  utterance.lang = 'en-GB';
+  window.speechSynthesis.speak(utterance);
+}
+
+document.getElementById('shuffleBtn').onclick = () => {
+  if (!filtered.length) return;
+  playCardSlide();
+  shuffleArray(filtered); index = 0; updateView();
+};
+
+document.getElementById('updateBtn').onclick = () => {
+  if (!filtered.length) return;
+  const currentCard = filtered[index];
+  currentCard.qContext = document.getElementById('editQContext').value.trim();
+  currentCard.q = document.getElementById('editQ').value.trim();
+  currentCard.a = document.getElementById('editA').value.trim();
+  currentCard.subj = document.getElementById('editSubj').value;
+  currentCard.lvl = document.getElementById('editLvl').value;
+  currentCard.course = document.getElementById('editCourse').value.trim();
+  currentCard.topics = parseInputItems(document.getElementById('editTopic').value);
+  currentCard.topic = currentCard.topics.join(', ');
+  currentCard.media = document.getElementById('editMedia').value.trim();
+  saveDeck(); applyFilters();
+};
+
+document.getElementById('delBtn').onclick = () => {
+  if (!filtered.length || !confirm("¿Seguro que deseas eliminar esta tarjeta?")) return;
+  const globalIndex = deck.indexOf(filtered[index]);
+  if (globalIndex > -1) { deck.splice(globalIndex, 1); saveDeck(); applyFilters(); }
+};
+
+document.getElementById('addBtn').onclick = () => {
+  const q = document.getElementById('addQ').value.trim();
+  const a = document.getElementById('addA').value.trim();
+  if (!q || !a) { alert("Completa al menos la pregunta y la respuesta."); return; }
+
+  const topics = parseInputItems(document.getElementById('addTopic').value);
+  deck.push({
+    qContext: document.getElementById('addQContext').value.trim(),
+    q, a,
+    subj: document.getElementById('addSubj').value,
+    lvl: document.getElementById('addLvl').value,
+    course: document.getElementById('addCourse').value.trim(),
+    topics: topics, topic: topics.join(', '),
+    media: document.getElementById('addMedia').value.trim()
+  });
+
+  saveDeck();
+  document.getElementById('addQContext').value = '';
+  document.getElementById('addQ').value = '';
+  document.getElementById('addA').value = '';
+  document.getElementById('addMedia').value = '';
+  document.getElementById('addImgFile').value = '';
+  applyFilters();
+};
+
+document.getElementById('exportBtn').onclick = () => {
+  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(deck, null, 2));
+  const downloadAnchor = document.createElement('a');
+  downloadAnchor.setAttribute("href", dataStr);
+  downloadAnchor.setAttribute("download", "preguntas.json");
+  document.body.appendChild(downloadAnchor);
+  downloadAnchor.click(); downloadAnchor.remove();
+};
+
+document.getElementById('importFile').onchange = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    try {
+      const importedData = JSON.parse(evt.target.result);
+      if (Array.isArray(importedData)) { 
+        procesarMazo(importedData); 
+        saveDeck();
+        mostrarAvisoOrigen("📁 Archivo importado manualmente");
+        applyFilters(); 
+        alert("¡Mazo importado con éxito!"); 
+      }
+    } catch(err) { alert("Archivo JSON no válido."); }
+  };
+  reader.readAsText(file);
+};
+
+setupMultiAutocomplete('addCourse', 'menuAdd', getAllAvailableCourses);
+setupMultiAutocomplete('editCourse', 'menuEdit', getAllAvailableCourses);
+setupMultiAutocomplete('addTopic', 'menuAddTopic', getAllAvailableTopics);
+setupMultiAutocomplete('editTopic', 'menuEditTopic', getAllAvailableTopics);
+
+/* LÓGICA DE CONTROL REMOTO CON PEERJS */
+let peer = null, conn = null;
+const urlParams = new URLSearchParams(window.location.search);
+const remoteTargetId = urlParams.get('remote');
+
+function sendRemoteCmd(cmd) {
+  if (conn) conn.send(cmd);
+  if (navigator.vibrate) navigator.vibrate(40);
+}
+
+if (remoteTargetId) {
+  document.getElementById('appView').style.display = 'none';
+  document.getElementById('remoteView').style.display = 'flex';
+  peer = new Peer({
+    config: {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'turn:openrelay.metered.ca:80', username: 'openrelay', credential: 'openrelay' },
+        { urls: 'turn:openrelay.metered.ca:443', username: 'openrelay', credential: 'openrelay' }
+      ]
+    }
+  });
+  
+  peer.on('open', () => { 
+    conn = peer.connect(remoteTargetId);
+    conn.on('data', (data) => {
+      if (data && data.type === 'CARD_SYNC') {
+        document.getElementById('remoteQuestionText').textContent = data.question || 'Sin pregunta';
+        document.getElementById('remoteAnswerText').textContent = data.answer || 'Sin respuesta';
+        
+        const imgBtn = document.getElementById('btnRemoteImgZoom');
+        if (imgBtn) imgBtn.style.display = data.hasImage ? 'block' : 'none';
+
+        const ytMaxBtn = document.getElementById('btnRemoteYtMax');
+        if (ytMaxBtn) ytMaxBtn.style.display = data.hasYt ? 'block' : 'none';
+      }
+    });
+  });
+
+} else {
+  peer = new Peer({
+    config: {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'turn:openrelay.metered.ca:80', username: 'openrelay', credential: 'openrelay' },
+        { urls: 'turn:openrelay.metered.ca:443', username: 'openrelay', credential: 'openrelay' }
+      ]
+    }
+  });
+  
+  peer.on('open', (id) => {
+    const remoteUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}?remote=${id}`;
+    const qrContainer = document.getElementById("qrcode");
+    qrContainer.innerHTML = "";
+    new QRCode(qrContainer, { text: remoteUrl, width: 200, height: 200 });
+  });
+
+  peer.on('connection', (c) => {
+    conn = c;
+    conn.on('open', () => {
+      syncRemoteData();
+    });
+   conn.on('data', (cmd) => {
+  const cardEl = document.getElementById('cardElement');
+  if (cmd === 'NEXT') navCard(null, 1);
+  if (cmd === 'PREV') navCard(null, -1);
+  if (cmd === 'FLIP') handleCardClick(cardEl);
+  if (cmd === 'TOGGLE_ZOOM') toggleImageZoom();
+  if (cmd === 'TOGGLE_MAX_VIDEO') toggleMaxVideo();
+  
+  // COMANDOS DE DIFICULTAD DESDE EL MANDO
+  if (cmd === 'SET_LVL_Fácil') setLvl('Fácil');
+  if (cmd === 'SET_LVL_Medio') setLvl('Medio');
+  if (cmd === 'SET_LVL_Difícil') setLvl('Difícil');
+});
+  });
+}
+
+function openQRModal() { 
+  const modal = document.getElementById('qrModal');
+  if (modal) {
+    modal.classList.add('open');
+    // Asegurar que si Peer ya tiene ID pero el contenedor está vacío, se re-dibuje
+    if (peer && peer.id && document.getElementById("qrcode").children.length === 0) {
+      const remoteUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}?remote=${peer.id}`;
+      new QRCode(document.getElementById("qrcode"), { text: remoteUrl, width: 200, height: 200 });
+    }
+  }
+}
+
+function closeQRModal() { 
+  const modal = document.getElementById('qrModal');
+  if (modal) {
+    modal.classList.remove('open');
+  }
+}
+
+loadDeck();
+</script>
 </body>
 </html>
