@@ -1,0 +1,5 @@
+[
+  { "id": "lengua", "name": "Lengua Castellana", "file": "data/lengua.json" },
+  { "id": "matematicas", "name": "Matemáticas", "file": "data/matematicas.json" },
+  { "id": "ciencias", "name": "Ciencias Naturales", "file": "data/ciencias.json" }
+]
