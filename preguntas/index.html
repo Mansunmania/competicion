@@ -623,29 +623,45 @@ function saveTopics() {
   localStorage.setItem(STORAGE_TOPICS_KEY, JSON.stringify(customTopics)); 
 }
 
-async function loadDeck() {
+  function loadDeck() {
   const rawDeck = localStorage.getItem(STORAGE_KEY);
   let origenCargado = "Memoria local del navegador";
 
-  if (rawDeck) {
+  if (rawDeck && JSON.parse(rawDeck).length > 0) {
     try {
       procesarMazo(JSON.parse(rawDeck));
     } catch(e) {
       deck = [];
     }
   } else {
-    // Si localStorage está vacío, descarga el JSON del mismo repositorio GitHub
-    try {
-      const response = await fetch('./preguntas_Todas.json');
-      if (response.ok) {
-        const jsonDatos = await response.json();
-        procesarMazo(jsonDatos);
-        saveDeck(); // Guarda las preguntas descargadas en localStorage
-        origenCargado = "Archivo preguntas_Todas.json (GitHub)";
+    // Mazo por defecto cuando localStorage está vacío
+    origenCargado = "Mazo de demostración inicial";
+    const defaultDeck = [
+      {
+        qContext: "Gramática",
+        q: "¿Cuál es el sujeto en 'El perro corre rápido'?",
+        a: "El perro",
+        subj: "Lengua",
+        lvl: "Fácil",
+        course: "5º",
+        topics: ["Sintaxis"],
+        topic: "Sintaxis",
+        media: ""
+      },
+      {
+        qContext: "Vocabulario",
+        q: "Traduce al inglés: 'Manzana'",
+        a: "Apple",
+        subj: "Inglés",
+        lvl: "Fácil",
+        course: "5º",
+        topics: ["Vocabulary"],
+        topic: "Vocabulary",
+        media: ""
       }
-    } catch (error) {
-      console.error("No se pudo cargar el archivo JSON automático:", error);
-    }
+    ];
+    procesarMazo(defaultDeck);
+    saveDeck();
   }
 
   const rawTopics = localStorage.getItem(STORAGE_TOPICS_KEY);
