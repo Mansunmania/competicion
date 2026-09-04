@@ -130,7 +130,7 @@
     .yt-container.maximized {
       position: fixed !important; top: 50% !important; left: 50% !important; 
       transform: translate(-50%, -50%) !important; width: 90vw !important; 
-      height: 85vh !important; max-width: none !important; z-index: 3000 !important; 
+      height: 85vh !important; max-width: none !important; z-index: 2500 !important; 
       box-shadow: 0 0 0 100vw rgba(15, 23, 42, 0.9) !important;
     }
     .yt-container.minimized {
@@ -1084,8 +1084,6 @@ function syncRemoteData() {
 }
   
 function updateView() {
-  const oldYt = document.getElementById('ytVideoContainer');
-if (oldYt) oldYt.remove();
   const cardEl = document.getElementById('cardElement');
   const innerEl = document.getElementById('cardInnerElement');
   const wasFlipped = cardEl.classList.contains('flipped');
@@ -1134,31 +1132,25 @@ if (oldYt) oldYt.remove();
     topF.textContent = topicLabel; topB.textContent = topicLabel;
 
     mediaFront.innerHTML = "";
-mediaBack.innerHTML = "";
-mediaBack.dataset.hasYt = "false";
+    mediaBack.innerHTML = "";
+    mediaBack.dataset.hasYt = "false";
 
-if (currentCard.media && currentCard.media.trim() !== "") {
-  // Separar si el usuario introdujo varias URLs separadas por coma
-  const urls = currentCard.media.split(',').map(u => u.trim());
+    if (currentCard.media && currentCard.media.trim() !== "") {
+      const mediaUrl = currentCard.media.trim();
+      const ytData = parseYouTubeUrl(mediaUrl);
 
-  urls.forEach(urlStr => {
-    const ytData = parseYouTubeUrl(urlStr);
-    
-    if (ytData) {
-      // Si es un vídeo de YouTube, lo configuramos para el reverso
-      mediaBack.dataset.ytId = ytData.id;
-      mediaBack.dataset.ytStart = ytData.startSeconds;
-      mediaBack.dataset.hasYt = "true";
-    } else if (isImageUrl(urlStr)) {
-      // Si es una imagen, la colocamos en el anverso
-      const imgBtn = `<img src="${urlStr}" class="card-img-preview" onclick="event.stopPropagation(); openImgModal('${urlStr.replace(/'/g, "\\'")}')" title="Clic para maximizar" />`;
-      mediaFront.innerHTML = imgBtn;
-    } else {
-      // Si es un enlace web convencional, mostramos el botón en el reverso
-      mediaBack.innerHTML += `<button class="btn-media" onclick="openMediaLink(event, '${urlStr.replace(/'/g, "\\'")}')">🔗 Abrir Enlace Web</button>`;
+      if (ytData) {
+        mediaBack.dataset.ytId = ytData.id;
+        mediaBack.dataset.ytStart = ytData.startSeconds;
+        mediaBack.dataset.hasYt = "true";
+      } else if (isImageUrl(mediaUrl)) {
+        const imgBtn = `<img src="${mediaUrl}" class="card-img-preview" onclick="event.stopPropagation(); openImgModal('${mediaUrl.replace(/'/g, "\\'")}')" title="Clic para maximizar" />`;
+        mediaFront.innerHTML = imgBtn;
+        mediaBack.innerHTML = imgBtn;
+      } else {
+        mediaBack.innerHTML = `<button class="btn-media" onclick="openMediaLink(event, '${mediaUrl.replace(/'/g, "\\'")}')">🔗 Abrir Enlace Web</button>`;
+      }
     }
-  });
-}
     
     document.getElementById('editQContext').value = currentCard.qContext || '';
     document.getElementById('editQ').value = currentCard.q;
@@ -1239,33 +1231,18 @@ function toggleMaxVideo(e) {
   ensureVideoLoaded();
   const container = document.getElementById('ytVideoContainer');
   const btnMax = document.getElementById('btnMaxVideo');
-  const mediaBack = document.getElementById('mediaAnchorBack');
   if (!container) return;
 
   const isMax = container.classList.contains('maximized');
   container.classList.remove('minimized');
 
   if (!isMax) {
-    // Lo movemos al body para romper el contexto 3D de la tarjeta
-    document.body.appendChild(container);
     container.classList.add('maximized');
     if (btnMax) btnMax.textContent = '❌ Restaurar';
   } else {
-    // Lo devolvemos a su sitio dentro del reverso de la tarjeta
-    if (mediaBack) mediaBack.appendChild(container);
     container.classList.remove('maximized');
     if (btnMax) btnMax.textContent = '🖥️ Fullscreen';
   }
-}
-
-function closeVideo(e) {
-  if (e) e.stopPropagation();
-  const container = document.getElementById('ytVideoContainer');
-  if (container) {
-    container.remove(); // Elimina el contenedor del DOM tanto si está en la tarjeta como en el body
-  }
-  const mediaBack = document.getElementById('mediaAnchorBack');
-  if (mediaBack) mediaBack.innerHTML = "";
 }
 
 function toggleMinVideo(e) {
@@ -1285,6 +1262,12 @@ function toggleMinVideo(e) {
     container.classList.remove('minimized');
     if (btnMin) btnMin.textContent = '👁️ Miniatura';
   }
+}
+
+function closeVideo(e) {
+  if (e) e.stopPropagation();
+  const mediaBack = document.getElementById('mediaAnchorBack');
+  if (mediaBack) mediaBack.innerHTML = "";
 }
 
 document.getElementById('celebrateBtn').onclick = (e) => {
