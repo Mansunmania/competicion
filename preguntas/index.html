@@ -1132,25 +1132,31 @@ function updateView() {
     topF.textContent = topicLabel; topB.textContent = topicLabel;
 
     mediaFront.innerHTML = "";
-    mediaBack.innerHTML = "";
-    mediaBack.dataset.hasYt = "false";
+mediaBack.innerHTML = "";
+mediaBack.dataset.hasYt = "false";
 
-    if (currentCard.media && currentCard.media.trim() !== "") {
-      const mediaUrl = currentCard.media.trim();
-      const ytData = parseYouTubeUrl(mediaUrl);
+if (currentCard.media && currentCard.media.trim() !== "") {
+  // Separar si el usuario introdujo varias URLs separadas por coma
+  const urls = currentCard.media.split(',').map(u => u.trim());
 
-      if (ytData) {
-        mediaBack.dataset.ytId = ytData.id;
-        mediaBack.dataset.ytStart = ytData.startSeconds;
-        mediaBack.dataset.hasYt = "true";
-      } else if (isImageUrl(mediaUrl)) {
-        const imgBtn = `<img src="${mediaUrl}" class="card-img-preview" onclick="event.stopPropagation(); openImgModal('${mediaUrl.replace(/'/g, "\\'")}')" title="Clic para maximizar" />`;
-        mediaFront.innerHTML = imgBtn;
-        mediaBack.innerHTML = imgBtn;
-      } else {
-        mediaBack.innerHTML = `<button class="btn-media" onclick="openMediaLink(event, '${mediaUrl.replace(/'/g, "\\'")}')">🔗 Abrir Enlace Web</button>`;
-      }
+  urls.forEach(urlStr => {
+    const ytData = parseYouTubeUrl(urlStr);
+    
+    if (ytData) {
+      // Si es un vídeo de YouTube, lo configuramos para el reverso
+      mediaBack.dataset.ytId = ytData.id;
+      mediaBack.dataset.ytStart = ytData.startSeconds;
+      mediaBack.dataset.hasYt = "true";
+    } else if (isImageUrl(urlStr)) {
+      // Si es una imagen, la colocamos en el anverso
+      const imgBtn = `<img src="${urlStr}" class="card-img-preview" onclick="event.stopPropagation(); openImgModal('${urlStr.replace(/'/g, "\\'")}')" title="Clic para maximizar" />`;
+      mediaFront.innerHTML = imgBtn;
+    } else {
+      // Si es un enlace web convencional, mostramos el botón en el reverso
+      mediaBack.innerHTML += `<button class="btn-media" onclick="openMediaLink(event, '${urlStr.replace(/'/g, "\\'")}')">🔗 Abrir Enlace Web</button>`;
     }
+  });
+}
     
     document.getElementById('editQContext').value = currentCard.qContext || '';
     document.getElementById('editQ').value = currentCard.q;
