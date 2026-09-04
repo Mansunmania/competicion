@@ -1084,6 +1084,8 @@ function syncRemoteData() {
 }
   
 function updateView() {
+  const oldYt = document.getElementById('ytVideoContainer');
+if (oldYt) oldYt.remove();
   const cardEl = document.getElementById('cardElement');
   const innerEl = document.getElementById('cardInnerElement');
   const wasFlipped = cardEl.classList.contains('flipped');
@@ -1237,18 +1239,33 @@ function toggleMaxVideo(e) {
   ensureVideoLoaded();
   const container = document.getElementById('ytVideoContainer');
   const btnMax = document.getElementById('btnMaxVideo');
+  const mediaBack = document.getElementById('mediaAnchorBack');
   if (!container) return;
 
   const isMax = container.classList.contains('maximized');
   container.classList.remove('minimized');
 
   if (!isMax) {
+    // Lo movemos al body para romper el contexto 3D de la tarjeta
+    document.body.appendChild(container);
     container.classList.add('maximized');
     if (btnMax) btnMax.textContent = '❌ Restaurar';
   } else {
+    // Lo devolvemos a su sitio dentro del reverso de la tarjeta
+    if (mediaBack) mediaBack.appendChild(container);
     container.classList.remove('maximized');
     if (btnMax) btnMax.textContent = '🖥️ Fullscreen';
   }
+}
+
+function closeVideo(e) {
+  if (e) e.stopPropagation();
+  const container = document.getElementById('ytVideoContainer');
+  if (container) {
+    container.remove(); // Elimina el contenedor del DOM tanto si está en la tarjeta como en el body
+  }
+  const mediaBack = document.getElementById('mediaAnchorBack');
+  if (mediaBack) mediaBack.innerHTML = "";
 }
 
 function toggleMinVideo(e) {
@@ -1268,12 +1285,6 @@ function toggleMinVideo(e) {
     container.classList.remove('minimized');
     if (btnMin) btnMin.textContent = '👁️ Miniatura';
   }
-}
-
-function closeVideo(e) {
-  if (e) e.stopPropagation();
-  const mediaBack = document.getElementById('mediaAnchorBack');
-  if (mediaBack) mediaBack.innerHTML = "";
 }
 
 document.getElementById('celebrateBtn').onclick = (e) => {
