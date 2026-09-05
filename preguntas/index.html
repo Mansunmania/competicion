@@ -122,17 +122,47 @@
     .card-img-preview:hover { transform: scale(1.04); }
 
     /* ESTILOS DE VÍDEO CON SOPORTE PARA MAXIMIZADO Y MINIATURA */
-    .yt-container {
-      width: 100%; max-width: 320px; height: 180px; margin-top: 10px; border-radius: 12px; 
-      overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.3); position: relative; 
-      transition: all 0.3s ease; background: #000;
-    }
-    .yt-container.maximized {
-      position: fixed !important; top: 50% !important; left: 50% !important; 
-      transform: translate(-50%, -50%) !important; width: 90vw !important; 
-      height: 85vh !important; max-width: none !important; z-index: 2500 !important; 
-      box-shadow: 0 0 0 100vw rgba(15, 23, 42, 0.9) !important;
-    }
+    /* Prevenir que los clics en los botones del vídeo volteen la tarjeta */
+.yt-container, .yt-controls, #btnMaxVideo {
+  pointer-events: auto;
+}
+
+/* Estado del vídeo dentro de la tarjeta */
+.yt-container {
+  width: 100%;
+  max-width: 320px;
+  height: 180px;
+  margin-top: 10px;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  z-index: 5;
+}
+
+/* Cuando el vídeo está maximizado */
+.yt-container.maximized {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  width: 92vw !important;
+  height: 80vh !important;
+  max-width: none !important;
+  z-index: 999999 !important;
+  box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.85) !important;
+}
+
+/* Regla especial para romper la limitación 3D del contenedor de la tarjeta mientras el vídeo está abierto */
+.flashcard.has-maximized-video {
+  transform-style: flat !important;
+  z-index: 99999 !important;
+}
+
+.flashcard.has-maximized-video .card-back {
+  z-index: 99999 !important;
+  overflow: visible !important;
+}
     .yt-container.minimized {
       position: fixed !important; top: 50% !important; left: 50% !important; 
       transform: translate(-50%, -50%) !important; width: 90vw !important; 
@@ -1233,10 +1263,15 @@ function ensureVideoLoaded() {
 }
 
 function toggleMaxVideo(e) {
-  if (e) e.stopPropagation();
-  ensureVideoLoaded();
+  if (e) {
+    e.stopPropagation();
+    e.preventDefault();
+  }
+  
   const container = document.getElementById('ytVideoContainer');
   const btnMax = document.getElementById('btnMaxVideo');
+  const flashcard = document.getElementById('flashcard'); // o el id de tu tarjeta
+  
   if (!container) return;
 
   const isMax = container.classList.contains('maximized');
@@ -1244,11 +1279,25 @@ function toggleMaxVideo(e) {
 
   if (!isMax) {
     container.classList.add('maximized');
+    // Elevamos la tarjeta completa para superar cualquier barrera 3D
+    if (flashcard) flashcard.classList.add('has-maximized-video');
     if (btnMax) btnMax.textContent = '❌ Restaurar';
   } else {
     container.classList.remove('maximized');
+    if (flashcard) flashcard.classList.remove('has-maximized-video');
     if (btnMax) btnMax.textContent = '🖥️ Fullscreen';
   }
+}
+
+function closeVideo(e) {
+  if (e) {
+    e.stopPropagation();
+    e.preventDefault();
+  }
+  const container = document.getElementById('ytVideoContainer');
+  const flashcard = document.getElementById('flashcard');
+  if (flashcard) flashcard.classList.remove('has-maximized-video');
+  if (container) container.remove();
 }
 
 function toggleMinVideo(e) {
@@ -1268,12 +1317,6 @@ function toggleMinVideo(e) {
     container.classList.remove('minimized');
     if (btnMin) btnMin.textContent = '👁️ Miniatura';
   }
-}
-
-function closeVideo(e) {
-  if (e) e.stopPropagation();
-  const mediaBack = document.getElementById('mediaAnchorBack');
-  if (mediaBack) mediaBack.innerHTML = "";
 }
 
 document.getElementById('celebrateBtn').onclick = (e) => {
