@@ -1198,9 +1198,10 @@ function handleCardClick(cardElement) {
       const start = mediaBack.dataset.ytStart;
       const embedUrl = `https://www.youtube-nocookie.com/embed/${id}?start=${start}&autoplay=1&rel=0`;
 
+// CÓDIGO CORREGIDO:
 mediaBack.innerHTML = `
   <div id="ytVideoContainer" class="yt-container" onclick="event.stopPropagation()">
-    <div style="position: absolute; top: 6px; right: 6px; z-index: 50; display: flex; gap: 6px;">
+    <div style="position: absolute; top: 6px; right: 6px; z-index: 50; display: flex; gap: 6px;" onclick="event.stopPropagation()">
       <button id="btnMaxVideo" onclick="toggleMaxVideo(event)" style="background: rgba(37,99,235,0.85); color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 2px 8px; font-size: 11px; cursor: pointer;" title="Pantalla Completa">🖥️ Fullscreen</button>
       <button onclick="closeVideo(event)" style="background: rgba(220,38,38,0.85); color: #fff; border: none; border-radius: 6px; padding: 2px 8px; font-size: 11px; cursor: pointer;" title="Cerrar vídeo">❌</button>
     </div>
@@ -1269,15 +1270,16 @@ function toggleMaxVideo(e) {
   }
 }
 
+// CÓDIGO CORREGIDO:
 function closeVideo(e) {
   if (e) {
     e.stopPropagation();
     e.preventDefault();
   }
-  const container = document.getElementById('ytVideoContainer');
+  const mediaBack = document.getElementById('mediaAnchorBack');
   const cardEl = document.getElementById('cardElement');
   if (cardEl) cardEl.classList.remove('has-maximized-video');
-  if (container) container.remove();
+  if (mediaBack) mediaBack.innerHTML = '';
 }
 
 document.getElementById('celebrateBtn').onclick = (e) => {
