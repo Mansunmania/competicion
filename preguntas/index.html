@@ -93,7 +93,7 @@
     
     .card-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 20px; padding: 30px 45px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; box-shadow: 0 12px 20px -3px rgba(0,0,0,0.08), 0 4px 8px -4px rgba(0,0,0,0.05); border: 2.5px solid; overflow-y: auto; }
     .card-front { background: #ffffff; color: var(--ink); border-color: var(--line); }
-    .card-back { background: #1e293b; color: #ffffff; border-color: #334155; transform: rotateY(180deg); }
+    .card-back { background: #1e293b; color: #ffffff; border-color: #334155; transform: rotateY(180deg); backface-visibility: hidden; -webkit-backface-visibility: hidden; }
     
     .card-meta { position: absolute; top: 14px; left: 16px; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; padding: 3px 10px; border-radius: 6px; }
     .card-topic-meta { position: absolute; top: 14px; right: 16px; font-size: 12px; font-weight: 800; text-transform: uppercase; padding: 3px 10px; border-radius: 6px; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -102,8 +102,7 @@
     .topic-front { background: #f3e8ff; color: #6b21a8; }
     .topic-back { background: #581c87; color: #e9d5ff; }
     
-    .card-text-container { display: flex; flex-direction: column; gap: 12px; align-items: center; width: 100%; max-width: 95%; position: relative; 
-  z-index: 10; /* Eleva el texto por encima del contenido multimedia */}
+    .card-text-container { display: flex; flex-direction: column; gap: 12px; align-items: center; width: 100%; max-width: 95%; position: relative; z-index: 10; }
     
     .card-context-front { font-size: 26px; font-weight: 500; color: var(--muted); font-style: italic; line-height: 1.3; }
     .card-text-front { font-family: var(--font-playwrite); font-size: 34px; font-weight: 400; line-height: 1.5; word-wrap: break-word; width: 100%; color: #0f172a; }
@@ -122,56 +121,25 @@
     .card-img-preview:hover { transform: scale(1.04); }
 
     /* ESTILOS DE VÍDEO CON SOPORTE PARA MAXIMIZADO Y MINIATURA */
-    /* Prevenir que los clics en los botones del vídeo volteen la tarjeta */
-.yt-container, .yt-controls, #btnMaxVideo {
-  pointer-events: auto;
-}
+    .yt-container, .yt-controls, #btnMaxVideo { pointer-events: auto; }
 
-/* Estado del vídeo dentro de la tarjeta */
-.yt-container {
-  width: 100%;
-  max-width: 320px;
-  height: 180px;
-  margin-top: 10px;
-  border-radius: 12px;
-  overflow: hidden;
-  position: relative;
-  transition: transform 0.2s ease, opacity 0.2s ease;
-  z-index: 5;
-  background: #000; /* Asegura fondo sólido */
-}
+    .yt-container {
+      width: 100%; max-width: 320px; height: 180px; margin-top: 10px;
+      border-radius: 12px; overflow: hidden; position: relative;
+      transition: transform 0.2s ease, opacity 0.2s ease; z-index: 5; background: #000;
+    }
 
-/* Evita transparencias indeseadas del contenedor de la tarjeta al girar */
-.card-back {
-  background: #1e293b !important;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-}
+    .yt-container.maximized {
+      position: fixed !important; top: 50% !important; left: 50% !important;
+      transform: translate(-50%, -50%) !important; width: 92vw !important;
+      height: 80vh !important; max-width: none !important; z-index: 999999 !important;
+      box-shadow: 0 0 0 100vmax rgba(15, 23, 42, 0.9) !important;
+    }
 
-/* Eleva el contenedor del vídeo al máximo cuando está maximizado */
-.yt-container.maximized {
-  position: fixed !important;
-  top: 50% !important;
-  left: 50% !important;
-  transform: translate(-50%, -50%) !important;
-  width: 92vw !important;
-  height: 80vh !important;
-  max-width: none !important;
-  z-index: 999999 !important;
-  box-shadow: 0 0 0 100vmax rgba(15, 23, 42, 0.9) !important;
-}
+    .flashcard.has-maximized-video .card-text-container,
+    .flashcard.has-maximized-video .card-back * { z-index: 1 !important; }
 
-/* Cuando el vídeo se maximiza, obligamos al texto a situarse por detrás */
-.flashcard.has-maximized-video .card-text-container,
-.flashcard.has-maximized-video .card-back * {
-  z-index: 1 !important;
-}
-
-/* Desactivamos la perspectiva 3D para evitar que cree un aislamiento de capa en el reverso */
-.flashcard.has-maximized-video {
-  transform-style: flat !important;
-  z-index: 99999 !important;
-}
+    .flashcard.has-maximized-video { transform-style: flat !important; z-index: 99999 !important; }
     
     .yt-container.minimized {
       position: fixed !important; top: 50% !important; left: 50% !important; 
@@ -498,10 +466,10 @@
 <!-- VISTA MANDO REMOTO MÓVIL -->
 <div id="remoteView" class="remote-layout">
   <div class="remote-lvl-row">
-  <button class="btn-remote-lvl" onclick="sendRemoteCmd('SET_LVL_Fácil')">Fácil</button>
-  <button class="btn-remote-lvl" onclick="sendRemoteCmd('SET_LVL_Medio')">Medio</button>
-  <button class="btn-remote-lvl" onclick="sendRemoteCmd('SET_LVL_Difícil')">Difícil</button>
-</div>
+    <button class="btn-remote-lvl" onclick="sendRemoteCmd('SET_LVL_Fácil')">Fácil</button>
+    <button class="btn-remote-lvl" onclick="sendRemoteCmd('SET_LVL_Medio')">Medio</button>
+    <button class="btn-remote-lvl" onclick="sendRemoteCmd('SET_LVL_Difícil')">Difícil</button>
+  </div>
   <div class="remote-card-info">
     <div style="font-size: 11px; text-transform: uppercase; color: #94a3b8; font-weight: 700; margin-bottom: 2px;">Pregunta Activa</div>
     <div id="remoteQuestionText" style="font-size: 14px; color: #f8fafc; font-weight: 500; margin-bottom: 10px; line-height: 1.3;">-</div>
@@ -515,11 +483,8 @@
   <button class="btn-remote" onclick="sendRemoteCmd('PREV')">⬅️ Anterior</button>
   <button class="btn-remote btn-remote-flip" onclick="sendRemoteCmd('FLIP')">🔄 Girar / Respuesta</button>
   <button class="btn-remote" onclick="sendRemoteCmd('NEXT')">Siguiente ➡️</button>
-<!-- Botón para maximizar imagen si la tarjeta tiene imagen -->
-<button id="btnRemoteImgZoom" onclick="sendRemoteCmd('TOGGLE_ZOOM')">🔍 Ampliar Imagen</button>
-
-<!-- Botón para maximizar vídeo si la tarjeta tiene vídeo de YT -->
-<button id="btnRemoteYtMax" onclick="sendRemoteCmd('TOGGLE_MAX_VIDEO')">🖥️ Maximizar Vídeo</button>
+  <button id="btnRemoteImgZoom" onclick="sendRemoteCmd('TOGGLE_ZOOM')">🔍 Ampliar Imagen</button>
+  <button id="btnRemoteYtMax" onclick="sendRemoteCmd('TOGGLE_MAX_VIDEO')">🖥️ Maximizar Vídeo</button>
 </div>
 
 <!-- MODAL QR -->
@@ -1029,17 +994,10 @@ function handleImageUpload(inputElement, targetInputId) {
 
 function isImageUrl(urlStr) {
   if (!urlStr) return false;
-  
   const cleanUrl = urlStr.trim();
-  
-  // 1. Acepta imágenes en formato Base64 de la subida local
   if (cleanUrl.startsWith('data:image/')) return true;
-  
-  // 2. Acepta enlaces directos de Google Drive (lh3.googleusercontent.com)
   if (cleanUrl.includes('lh3.googleusercontent.com')) return true;
-  
-  // 3. Acepta URLs estándar que terminen en extensión de imagen
-return /\.(jpeg|jpg|jfif|gif|png|webp|svg)($|\?)/i.test(cleanUrl);
+  return /\.(jpeg|jpg|jfif|gif|png|webp|svg)($|\?)/i.test(cleanUrl);
 }
 
 function openImgModal(src) {
@@ -1081,7 +1039,6 @@ function parseYouTubeUrl(urlStr) {
     } else if (url.hostname.includes('youtube.com')) {
       id = url.searchParams.get('v');
       
-      // Captura formatos /embed/ y /shorts/
       if (!id) {
         if (url.pathname.startsWith('/embed/')) {
           id = url.pathname.split('/')[2];
@@ -1118,7 +1075,6 @@ function parseYouTubeUrl(urlStr) {
 function syncRemoteData() {
   if (!conn || !conn.open) return;
   
-  // Usar filtered e index (en lugar de cards y currentIndex)
   const currentCard = filtered[index];
   const mediaFront = document.getElementById('mediaAnchorFront');
   const mediaBack = document.getElementById('mediaAnchorBack');
@@ -1183,32 +1139,28 @@ function updateView() {
     const topicLabel = cardTopics.length > 0 ? `📌 ${cardTopics.join(', ')}` : "🔍 Sin tema";
     topF.textContent = topicLabel; topB.textContent = topicLabel;
 
-mediaFront.innerHTML = "";
-mediaBack.innerHTML = "";
-mediaBack.dataset.hasYt = "false";
+    mediaFront.innerHTML = "";
+    mediaBack.innerHTML = "";
+    mediaBack.dataset.hasYt = "false";
 
-if (currentCard.media && currentCard.media.trim() !== "") {
-  // Separar si el usuario introdujo varias URLs separadas por coma
-  const urls = currentCard.media.split(',').map(u => u.trim());
+    if (currentCard.media && currentCard.media.trim() !== "") {
+      const urls = currentCard.media.split(',').map(u => u.trim());
 
-  urls.forEach(urlStr => {
-    const ytData = parseYouTubeUrl(urlStr);
-    
-    if (ytData) {
-      // Si es un vídeo de YouTube, lo configuramos para el reverso
-      mediaBack.dataset.ytId = ytData.id;
-      mediaBack.dataset.ytStart = ytData.startSeconds;
-      mediaBack.dataset.hasYt = "true";
-    } else if (isImageUrl(urlStr)) {
-      // Si es una imagen, la colocamos en el anverso
-      const imgBtn = `<img src="${urlStr}" class="card-img-preview" onclick="event.stopPropagation(); openImgModal('${urlStr.replace(/'/g, "\\'")}')" title="Clic para maximizar" />`;
-      mediaFront.innerHTML = imgBtn;
-    } else {
-      // Si es un enlace web convencional, mostramos el botón en el reverso
-      mediaBack.innerHTML += `<button class="btn-media" onclick="openMediaLink(event, '${urlStr.replace(/'/g, "\\'")}')">🔗 Abrir Enlace Web</button>`;
+      urls.forEach(urlStr => {
+        const ytData = parseYouTubeUrl(urlStr);
+        
+        if (ytData) {
+          mediaBack.dataset.ytId = ytData.id;
+          mediaBack.dataset.ytStart = ytData.startSeconds;
+          mediaBack.dataset.hasYt = "true";
+        } else if (isImageUrl(urlStr)) {
+          const imgBtn = `<img src="${urlStr}" class="card-img-preview" onclick="event.stopPropagation(); openImgModal('${urlStr.replace(/'/g, "\\'")}')" title="Clic para maximizar" />`;
+          mediaFront.innerHTML = imgBtn;
+        } else {
+          mediaBack.innerHTML += `<button class="btn-media" onclick="openMediaLink(event, '${urlStr.replace(/'/g, "\\'")}')">🔗 Abrir Enlace Web</button>`;
+        }
+      });
     }
-  });
-}
     
     document.getElementById('editQContext').value = currentCard.qContext || '';
     document.getElementById('editQ').value = currentCard.q;
@@ -1275,7 +1227,7 @@ function handleCardClick(cardElement) {
     }
   }
   
-  syncRemoteData(); // Sincroniza estado de botones y vista en el mando
+  syncRemoteData();
 }
 
 function ensureVideoLoaded() {
@@ -1293,7 +1245,7 @@ function toggleMaxVideo(e) {
   
   const container = document.getElementById('ytVideoContainer');
   const btnMax = document.getElementById('btnMaxVideo');
-  const flashcard = document.getElementById('flashcard'); // o el id de tu tarjeta
+  const cardEl = document.getElementById('cardElement');
   
   if (!container) return;
 
@@ -1302,12 +1254,11 @@ function toggleMaxVideo(e) {
 
   if (!isMax) {
     container.classList.add('maximized');
-    // Elevamos la tarjeta completa para superar cualquier barrera 3D
-    if (flashcard) flashcard.classList.add('has-maximized-video');
+    if (cardEl) cardEl.classList.add('has-maximized-video');
     if (btnMax) btnMax.textContent = '❌ Restaurar';
   } else {
     container.classList.remove('maximized');
-    if (flashcard) flashcard.classList.remove('has-maximized-video');
+    if (cardEl) cardEl.classList.remove('has-maximized-video');
     if (btnMax) btnMax.textContent = '🖥️ Fullscreen';
   }
 }
@@ -1318,8 +1269,8 @@ function closeVideo(e) {
     e.preventDefault();
   }
   const container = document.getElementById('ytVideoContainer');
-  const flashcard = document.getElementById('flashcard');
-  if (flashcard) flashcard.classList.remove('has-maximized-video');
+  const cardEl = document.getElementById('cardElement');
+  if (cardEl) cardEl.classList.remove('has-maximized-video');
   if (container) container.remove();
 }
 
@@ -1515,23 +1466,20 @@ if (remoteTargetId) {
     conn.on('open', () => {
       syncRemoteData();
     });
-   conn.on('data', (cmd) => {
-  const cardEl = document.getElementById('cardElement');
-  if (cmd === 'NEXT') navCard(null, 1);
-  if (cmd === 'PREV') navCard(null, -1);
-  if (cmd === 'FLIP') handleCardClick(cardEl);
-  if (cmd === 'TOGGLE_ZOOM') toggleImageZoom();
-  if (cmd === 'TOGGLE_MAX_VIDEO') {
-  // Asegura la carga previa del iframe de YouTube si aún no se había inicializado
-  if (typeof ensureVideoLoaded === 'function') ensureVideoLoaded();
-  toggleMaxVideo();
-}
-  
-  // COMANDOS DE DIFICULTAD DESDE EL MANDO
-  if (cmd === 'SET_LVL_Fácil') setLvl('Fácil');
-  if (cmd === 'SET_LVL_Medio') setLvl('Medio');
-  if (cmd === 'SET_LVL_Difícil') setLvl('Difícil');
-});
+    conn.on('data', (cmd) => {
+      const cardEl = document.getElementById('cardElement');
+      if (cmd === 'NEXT') navCard(null, 1);
+      if (cmd === 'PREV') navCard(null, -1);
+      if (cmd === 'FLIP') handleCardClick(cardEl);
+      if (cmd === 'TOGGLE_ZOOM') toggleImageZoom();
+      if (cmd === 'TOGGLE_MAX_VIDEO') {
+        if (typeof ensureVideoLoaded === 'function') ensureVideoLoaded();
+        toggleMaxVideo();
+      }
+      if (cmd === 'SET_LVL_Fácil') setLvl('Fácil');
+      if (cmd === 'SET_LVL_Medio') setLvl('Medio');
+      if (cmd === 'SET_LVL_Difícil') setLvl('Difícil');
+    });
   });
 }
 
@@ -1539,7 +1487,6 @@ function openQRModal() {
   const modal = document.getElementById('qrModal');
   if (modal) {
     modal.classList.add('open');
-    // Asegurar que si Peer ya tiene ID pero el contenedor está vacío, se re-dibuje
     if (peer && peer.id && document.getElementById("qrcode").children.length === 0) {
       const remoteUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}?remote=${peer.id}`;
       new QRCode(document.getElementById("qrcode"), { text: remoteUrl, width: 200, height: 200 });
