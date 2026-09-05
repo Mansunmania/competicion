@@ -140,7 +140,7 @@
   z-index: 5;
 }
 
-/* Cuando el vídeo está maximizado */
+/* Eleva el contenedor del vídeo al máximo cuando está maximizado */
 .yt-container.maximized {
   position: fixed !important;
   top: 50% !important;
@@ -150,19 +150,21 @@
   height: 80vh !important;
   max-width: none !important;
   z-index: 999999 !important;
-  box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.85) !important;
+  box-shadow: 0 0 0 100vmax rgba(15, 23, 42, 0.9) !important;
 }
 
-/* Regla especial para romper la limitación 3D del contenedor de la tarjeta mientras el vídeo está abierto */
+/* Cuando el vídeo se maximiza, obligamos al texto a situarse por detrás */
+.flashcard.has-maximized-video .card-text-container,
+.flashcard.has-maximized-video .card-back * {
+  z-index: 1 !important;
+}
+
+/* Desactivamos la perspectiva 3D para evitar que cree un aislamiento de capa en el reverso */
 .flashcard.has-maximized-video {
   transform-style: flat !important;
   z-index: 99999 !important;
 }
-
-.flashcard.has-maximized-video .card-back {
-  z-index: 99999 !important;
-  overflow: visible !important;
-}
+    
     .yt-container.minimized {
       position: fixed !important; top: 50% !important; left: 50% !important; 
       transform: translate(-50%, -50%) !important; width: 90vw !important; 
@@ -1507,7 +1509,11 @@ if (remoteTargetId) {
   if (cmd === 'PREV') navCard(null, -1);
   if (cmd === 'FLIP') handleCardClick(cardEl);
   if (cmd === 'TOGGLE_ZOOM') toggleImageZoom();
-  if (cmd === 'TOGGLE_MAX_VIDEO') toggleMaxVideo();
+  if (cmd === 'TOGGLE_MAX_VIDEO') {
+  // Asegura la carga previa del iframe de YouTube si aún no se había inicializado
+  if (typeof ensureVideoLoaded === 'function') ensureVideoLoaded();
+  toggleMaxVideo();
+}
   
   // COMANDOS DE DIFICULTAD DESDE EL MANDO
   if (cmd === 'SET_LVL_Fácil') setLvl('Fácil');
