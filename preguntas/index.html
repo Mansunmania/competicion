@@ -505,8 +505,11 @@
   <button class="btn-remote" onclick="sendRemoteCmd('PREV')">⬅️ Anterior</button>
   <button class="btn-remote btn-remote-flip" onclick="sendRemoteCmd('FLIP')">🔄 Girar / Respuesta</button>
   <button class="btn-remote" onclick="sendRemoteCmd('NEXT')">Siguiente ➡️</button>
-  <button class="btn-remote btn-remote-img" id="btnRemoteImgZoom" onclick="sendRemoteCmd('TOGGLE_ZOOM')" style="display:none;">🔍 Ampliar / Cerrar Imagen</button>
-  <button class="btn-remote btn-remote-yt" id="btnRemoteYtMax" onclick="sendRemoteCmd('TOGGLE_MAX_VIDEO')" style="display:none;">🖥️ Pantalla Completa Vídeo</button>
+<!-- Botón para maximizar imagen si la tarjeta tiene imagen -->
+<button id="btnRemoteImgZoom" onclick="sendRemoteCmd('TOGGLE_ZOOM')">🔍 Ampliar Imagen</button>
+
+<!-- Botón para maximizar vídeo si la tarjeta tiene vídeo de YT -->
+<button id="btnRemoteYtMax" onclick="sendRemoteCmd('TOGGLE_MAX_VIDEO')">🖥️ Maximizar Vídeo</button>
 </div>
 
 <!-- MODAL QR -->
@@ -1098,19 +1101,25 @@ function parseYouTubeUrl(urlStr) {
 }
 
 function syncRemoteData() {
-  if (conn && conn.open && filtered.length > 0) {
-    const currentCard = filtered[index];
-    const mediaUrl = (currentCard.media || '').trim();
-    const ytData = parseYouTubeUrl(mediaUrl);
-    
-    conn.send({
-      type: 'CARD_SYNC',
-      question: currentCard.q || '',
-      answer: currentCard.a || '',
-      hasImage: isImageUrl(mediaUrl),
-      hasYt: !!ytData
-    });
-  }
+  if (!conn || !conn.open) return;
+  
+  const currentCard = cards[currentIndex]; // O la variable donde guardes la tarjeta actual
+  const mediaFront = document.getElementById('mediaAnchorFront');
+  const mediaBack = document.getElementById('mediaAnchorBack');
+
+  // Comprobar si hay imagen en el anverso
+  const hasImg = mediaFront && mediaFront.querySelector('.card-img-preview') !== null;
+  
+  // Comprobar si hay vídeo cargado o en dataset en el reverso
+  const hasYt = mediaBack && (mediaBack.dataset.hasYt === 'true' || document.getElementById('ytVideoContainer') !== null);
+
+  conn.send({
+    type: 'CARD_SYNC',
+    question: currentCard ? currentCard.question : '',
+    answer: currentCard ? currentCard.answer : '',
+    hasImage: hasImg,
+    hasYt: hasYt
+  });
 }
   
 function updateView() {
