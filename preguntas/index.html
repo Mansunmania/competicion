@@ -138,6 +138,14 @@
   position: relative;
   transition: transform 0.2s ease, opacity 0.2s ease;
   z-index: 5;
+  background: #000; /* Asegura fondo sólido */
+}
+
+/* Evita transparencias indeseadas del contenedor de la tarjeta al girar */
+.card-back {
+  background: #1e293b !important;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 /* Eleva el contenedor del vídeo al máximo cuando está maximizado */
@@ -1049,9 +1057,14 @@ function toggleImageZoom() {
   if (modal.classList.contains('open')) {
     closeImgModal();
   } else if (filtered.length) {
-    const mediaUrl = (filtered[index].media || '').trim();
-    if (isImageUrl(mediaUrl)) {
-      openImgModal(mediaUrl);
+    const imgEl = document.querySelector('#mediaAnchorFront img.card-img-preview');
+    if (imgEl && imgEl.src) {
+      openImgModal(imgEl.src);
+    } else {
+      const mediaUrl = (filtered[index].media || '').trim();
+      if (isImageUrl(mediaUrl)) {
+        openImgModal(mediaUrl);
+      }
     }
   }
 }
@@ -1105,20 +1118,18 @@ function parseYouTubeUrl(urlStr) {
 function syncRemoteData() {
   if (!conn || !conn.open) return;
   
-  const currentCard = cards[currentIndex]; // O la variable donde guardes la tarjeta actual
+  // Usar filtered e index (en lugar de cards y currentIndex)
+  const currentCard = filtered[index];
   const mediaFront = document.getElementById('mediaAnchorFront');
   const mediaBack = document.getElementById('mediaAnchorBack');
 
-  // Comprobar si hay imagen en el anverso
   const hasImg = mediaFront && mediaFront.querySelector('.card-img-preview') !== null;
-  
-  // Comprobar si hay vídeo cargado o en dataset en el reverso
   const hasYt = mediaBack && (mediaBack.dataset.hasYt === 'true' || document.getElementById('ytVideoContainer') !== null);
 
   conn.send({
     type: 'CARD_SYNC',
-    question: currentCard ? currentCard.question : '',
-    answer: currentCard ? currentCard.answer : '',
+    question: currentCard ? currentCard.q : '',
+    answer: currentCard ? currentCard.a : '',
     hasImage: hasImg,
     hasYt: hasYt
   });
@@ -1223,7 +1234,6 @@ function handleCardClick(cardElement) {
 
   if (isFlipped) {
     playArpa();
-
     if (mediaBack && mediaBack.dataset.hasYt === "true") {
       const id = mediaBack.dataset.ytId;
       const start = mediaBack.dataset.ytStart;
@@ -1264,6 +1274,8 @@ function handleCardClick(cardElement) {
       mediaBack.innerHTML = "";
     }
   }
+  
+  syncRemoteData(); // Sincroniza estado de botones y vista en el mando
 }
 
 function ensureVideoLoaded() {
