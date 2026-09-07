@@ -14,7 +14,6 @@
   <!-- PeerJS para Control Remoto WebRTC y QRCode.js -->
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <script src="https://www.youtube.com/iframe_api"></script>
 
   <style>
     :root {
@@ -140,16 +139,17 @@
       box-shadow: 0 0 0 100vmax rgba(15, 23, 42, 0.9) !important;
     }
 
-    .flashcard.has-maximized-video .card-back .card-text-container,
-    .flashcard.has-maximized-video .card-back p,
-    .flashcard.has-maximized-video .card-back h3,
-    .flashcard.has-maximized-video .card-back span,
-    .flashcard.has-maximized-video .card-back .success-actions,
-    .flashcard.has-maximized-video .card-back #celebrateBtn {
-      opacity: 0 !important;
-      visibility: hidden !important;
-      pointer-events: none !important;
-    }
+/* Oculta texto, contenedores y el botón de 'Correcto!' al maximizar el vídeo */
+.flashcard.has-maximized-video .card-back .card-text-container,
+.flashcard.has-maximized-video .card-back p,
+.flashcard.has-maximized-video .card-back h3,
+.flashcard.has-maximized-video .card-back span,
+.flashcard.has-maximized-video .card-back .success-actions,
+.flashcard.has-maximized-video .card-back #celebrateBtn {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
     
     .yt-container.minimized {
       position: fixed !important; top: 50% !important; left: 50% !important; 
@@ -527,10 +527,6 @@ let customTopics = [];
 let filtered = [];
 let index = 0;
 let filterMemory = {};
-
-/* CONFIGURACIÓN DE YOUTUBE API (ÁMBITO GLOBAL) */
-let ytPlayer = null;
-let ytPlayTimeout = null;
 
 const BASE_COURSES = ["5º", "6º"];
 
@@ -1104,40 +1100,12 @@ function syncRemoteData() {
     hasYt: hasYt
   });
 }
-
-function onYouTubeIframeAPIReady() {
-  // Callback opcional de YouTube Iframe API
-}
-
-function setupYouTubePlayer(containerId, videoId, startSec) {
-  if (ytPlayer && typeof ytPlayer.destroy === 'function') {
-    try { ytPlayer.destroy(); } catch(e){}
-  }
-
-  ytPlayer = new YT.Player(containerId, {
-    height: '100%',
-    width: '100%',
-    videoId: videoId,
-    playerVars: {
-      autoplay: 0,
-      start: startSec,
-      enablejsapi: 1,
-      rel: 0
-    },
-    events: {
-      onReady: (event) => {
-        event.target.pauseVideo();
-        event.target.seekTo(startSec, true);
-      }
-    }
-  });
-}
   
 function updateView() {
   const cardEl = document.getElementById('cardElement');
   const innerEl = document.getElementById('cardInnerElement');
   const wasFlipped = cardEl.classList.contains('flipped');
-
+  
   if (wasFlipped && innerEl) innerEl.style.opacity = '0';
   cardEl.classList.remove('flipped');
 
@@ -1196,17 +1164,26 @@ function updateView() {
           mediaBack.dataset.ytStart = ytData.startSeconds;
           mediaBack.dataset.hasYt = "true";
 
+          // Dentro de updateView(), en la sección donde se genera el iframe:
+const embedUrl = `https://www.youtube-nocookie.com/embed/${ytData.id}?start=${ytData.startSeconds}&autoplay=0&enablejsapi=1&rel=0`;
+          
           mediaBack.innerHTML = `
             <div id="ytVideoContainer" class="yt-container" onclick="event.stopPropagation()">
               <div style="position: absolute; top: 6px; right: 6px; z-index: 50; display: flex; gap: 6px;" onclick="event.stopPropagation()">
                 <button id="btnMaxVideo" onclick="toggleMaxVideo(event)" style="background: rgba(37,99,235,0.85); color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 2px 8px; font-size: 11px; cursor: pointer;" title="Pantalla Completa">🖥️ Fullscreen</button>
                 <button onclick="closeVideo(event)" style="background: rgba(220,38,38,0.85); color: #fff; border: none; border-radius: 6px; padding: 2px 8px; font-size: 11px; cursor: pointer;" title="Cerrar vídeo">❌</button>
               </div>
-              <div id="ytPlayerTarget"></div>
+              <iframe 
+                id="ytIframe"
+                width="100%" 
+                height="100%" 
+                src="${embedUrl}" 
+                title="YouTube video" 
+                frameborder="0" 
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                allowfullscreen>
+              </iframe>
             </div>`;
-
-          setupYouTubePlayer('ytPlayerTarget', ytData.id, ytData.startSeconds);
-
         } else if (isImageUrl(urlStr)) {
           const imgBtn = `<img src="${urlStr}" class="card-img-preview" onclick="event.stopPropagation(); openImgModal('${urlStr.replace(/'/g, "\\'")}')" title="Clic para maximizar" />`;
           mediaFront.innerHTML = imgBtn;
@@ -1221,6 +1198,9 @@ function updateView() {
   }, 150);
 }
 
+// Variable global para controlar el temporizador de reproducción
+let ytPlayTimeout = null;
+
 function handleCardClick(cardElement) {
   cardElement.classList.toggle('flipped');
   const isFlipped = cardElement.classList.contains('flipped');
@@ -1229,19 +1209,46 @@ function handleCardClick(cardElement) {
   if (isFlipped) {
     playArpa();
 
-    if (mediaBack && mediaBack.dataset.hasYt === "true" && ytPlayer && typeof ytPlayer.pauseVideo === 'function') {
+    if (mediaBack && mediaBack.dataset.hasYt === "true") {
+      const iframe = document.getElementById('ytIframe');
       const startSec = parseInt(mediaBack.dataset.ytStart, 10) || 0;
 
-      if (ytPlayTimeout) clearTimeout(ytPlayTimeout);
+      if (iframe && iframe.contentWindow) {
+        // 1. Cancelamos cualquier temporizador previo
+        if (ytPlayTimeout) clearTimeout(ytPlayTimeout);
 
-      ytPlayer.pauseVideo();
-      ytPlayer.seekTo(startSec, true);
+        // 2. Pausamos inmediatamente por si YouTube intentó un arranque automático nativo en el 1er giro
+        iframe.contentWindow.postMessage(
+          JSON.stringify({
+            event: 'command',
+            func: 'pauseVideo',
+            args: []
+          }),
+          '*'
+        );
 
-      ytPlayTimeout = setTimeout(() => {
-        if (cardElement.classList.contains('flipped')) {
-          ytPlayer.playVideo();
-        }
-      }, 2000);
+        // 3. Reubicamos el vídeo en el segundo exacto de la tarjeta
+        iframe.contentWindow.postMessage(
+          JSON.stringify({
+            event: 'command',
+            func: 'seekTo',
+            args: [startSec, true]
+          }),
+          '*'
+        );
+
+        // 4. Programamos la reproducción tras los 2 segundos
+        ytPlayTimeout = setTimeout(() => {
+          iframe.contentWindow.postMessage(
+            JSON.stringify({
+              event: 'command',
+              func: 'playVideo',
+              args: []
+            }),
+            '*'
+          );
+        }, 2000);
+      }
     }
 
     if (filtered.length) {
@@ -1256,10 +1263,21 @@ function handleCardClick(cardElement) {
   } else {
     playCardSlide();
 
+    // Al regresar al frente, cancelamos la reproducción programada y pausamos el vídeo
     if (ytPlayTimeout) clearTimeout(ytPlayTimeout);
 
-    if (mediaBack && mediaBack.dataset.hasYt === "true" && ytPlayer && typeof ytPlayer.pauseVideo === 'function') {
-      ytPlayer.pauseVideo();
+    if (mediaBack && mediaBack.dataset.hasYt === "true") {
+      const iframe = document.getElementById('ytIframe');
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage(
+          JSON.stringify({
+            event: 'command',
+            func: 'pauseVideo',
+            args: []
+          }),
+          '*'
+        );
+      }
     }
   }
   
@@ -1299,6 +1317,7 @@ function toggleMaxVideo(e) {
   }
 }
 
+// CÓDIGO CORREGIDO:
 function closeVideo(e) {
   if (e) {
     e.stopPropagation();
