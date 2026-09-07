@@ -1104,10 +1104,16 @@ function syncRemoteData() {
 function updateView() {
   const cardEl = document.getElementById('cardElement');
   const innerEl = document.getElementById('cardInnerElement');
-  const wasFlipped = cardEl.classList.contains('flipped');
   
+  // Limpiamos la clase de vídeo maximizado para que la nueva tarjeta se vea bien
+  if (cardEl) cardEl.classList.remove('has-maximized-video');
+
+  const wasFlipped = cardEl.classList.contains('flipped');
   if (wasFlipped && innerEl) innerEl.style.opacity = '0';
   cardEl.classList.remove('flipped');
+  
+  // ... resto del código de updateView() sin cambios ...
+}
 
   const counterEl = document.getElementById('cardCounter');
   const txtF = document.getElementById('textFront');
@@ -1301,7 +1307,10 @@ function toggleMaxVideo(e) {
   const btnMax = document.getElementById('btnMaxVideo');
   const cardEl = document.getElementById('cardElement');
   
-  if (!container) return;
+  if (!container) {
+    if (cardEl) cardEl.classList.remove('has-maximized-video');
+    return;
+  }
 
   const isMax = container.classList.contains('maximized');
   container.classList.remove('minimized');
