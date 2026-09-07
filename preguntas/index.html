@@ -1198,6 +1198,9 @@ function updateView() {
   }, 150);
 }
 
+// Variable global para controlar el temporizador de reproducción
+let ytPlayTimeout = null;
+
 function handleCardClick(cardElement) {
   cardElement.classList.toggle('flipped');
   const isFlipped = cardElement.classList.contains('flipped');
@@ -1206,11 +1209,35 @@ function handleCardClick(cardElement) {
   if (isFlipped) {
     playArpa();
 
-    // AL GIRAR: Enviamos la orden de reproducción inmediata al iframe que ya está cargado
     if (mediaBack && mediaBack.dataset.hasYt === "true") {
       const iframe = document.getElementById('ytIframe');
-      if (iframe) {
-        iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+      const startSec = parseInt(mediaBack.dataset.ytStart, 10) || 0;
+
+      if (iframe && iframe.contentWindow) {
+        // 1. Limpiamos cualquier temporizador pendiente por clics rápidos
+        if (ytPlayTimeout) clearTimeout(ytPlayTimeout);
+
+        // 2. Reposicionamos el vídeo al segundo de inicio indicado en la URL
+        iframe.contentWindow.postMessage(
+          JSON.stringify({
+            event: 'command',
+            func: 'seekTo',
+            args: [startSec, true]
+          }),
+          '*'
+        );
+
+        // 3. Programamos la reproducción tras 2 segundos (2000 ms)
+        ytPlayTimeout = setTimeout(() => {
+          iframe.contentWindow.postMessage(
+            JSON.stringify({
+              event: 'command',
+              func: 'playVideo',
+              args: []
+            }),
+            '*'
+          );
+        }, 2000);
       }
     }
 
@@ -1226,11 +1253,20 @@ function handleCardClick(cardElement) {
   } else {
     playCardSlide();
 
-    // AL VOLVER AL FRENTE: Pausamos el vídeo si estaba sonando
+    // Al volver al frente: cancelamos la reproducción programada y pausamos el vídeo
+    if (ytPlayTimeout) clearTimeout(ytPlayTimeout);
+
     if (mediaBack && mediaBack.dataset.hasYt === "true") {
       const iframe = document.getElementById('ytIframe');
-      if (iframe) {
-        iframe.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage(
+          JSON.stringify({
+            event: 'command',
+            func: 'pauseVideo',
+            args: []
+          }),
+          '*'
+        );
       }
     }
   }
