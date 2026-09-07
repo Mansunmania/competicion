@@ -1164,9 +1164,9 @@ function updateView() {
           mediaBack.dataset.ytStart = ytData.startSeconds;
           mediaBack.dataset.hasYt = "true";
 
-          // PRECARGA: Montamos el iframe con enablejsapi=1 sin autoplay mientras leéis el frente
-          const embedUrl = `https://www.youtube-nocookie.com/embed/${ytData.id}?start=${ytData.startSeconds}&enablejsapi=1&rel=0`;
-
+          // Dentro de updateView(), en la sección donde se genera el iframe:
+const embedUrl = `https://www.youtube-nocookie.com/embed/${ytData.id}?start=${ytData.startSeconds}&autoplay=0&enablejsapi=1&rel=0`;
+          
           mediaBack.innerHTML = `
             <div id="ytVideoContainer" class="yt-container" onclick="event.stopPropagation()">
               <div style="position: absolute; top: 6px; right: 6px; z-index: 50; display: flex; gap: 6px;" onclick="event.stopPropagation()">
@@ -1214,10 +1214,20 @@ function handleCardClick(cardElement) {
       const startSec = parseInt(mediaBack.dataset.ytStart, 10) || 0;
 
       if (iframe && iframe.contentWindow) {
-        // 1. Limpiamos cualquier temporizador pendiente por clics rápidos
+        // 1. Cancelamos cualquier temporizador previo
         if (ytPlayTimeout) clearTimeout(ytPlayTimeout);
 
-        // 2. Reposicionamos el vídeo al segundo de inicio indicado en la URL
+        // 2. Pausamos inmediatamente por si YouTube intentó un arranque automático nativo en el 1er giro
+        iframe.contentWindow.postMessage(
+          JSON.stringify({
+            event: 'command',
+            func: 'pauseVideo',
+            args: []
+          }),
+          '*'
+        );
+
+        // 3. Reubicamos el vídeo en el segundo exacto de la tarjeta
         iframe.contentWindow.postMessage(
           JSON.stringify({
             event: 'command',
@@ -1227,7 +1237,7 @@ function handleCardClick(cardElement) {
           '*'
         );
 
-        // 3. Programamos la reproducción tras 2 segundos (2000 ms)
+        // 4. Programamos la reproducción tras los 2 segundos
         ytPlayTimeout = setTimeout(() => {
           iframe.contentWindow.postMessage(
             JSON.stringify({
@@ -1253,7 +1263,7 @@ function handleCardClick(cardElement) {
   } else {
     playCardSlide();
 
-    // Al volver al frente: cancelamos la reproducción programada y pausamos el vídeo
+    // Al regresar al frente, cancelamos la reproducción programada y pausamos el vídeo
     if (ytPlayTimeout) clearTimeout(ytPlayTimeout);
 
     if (mediaBack && mediaBack.dataset.hasYt === "true") {
