@@ -140,17 +140,16 @@
       box-shadow: 0 0 0 100vmax rgba(15, 23, 42, 0.9) !important;
     }
 
-/* Oculta texto, contenedores y el botón de 'Correcto!' al maximizar el vídeo */
-.flashcard.has-maximized-video .card-back .card-text-container,
-.flashcard.has-maximized-video .card-back p,
-.flashcard.has-maximized-video .card-back h3,
-.flashcard.has-maximized-video .card-back span,
-.flashcard.has-maximized-video .card-back .success-actions,
-.flashcard.has-maximized-video .card-back #celebrateBtn {
-  opacity: 0 !important;
-  visibility: hidden !important;
-  pointer-events: none !important;
-}
+    .flashcard.has-maximized-video .card-back .card-text-container,
+    .flashcard.has-maximized-video .card-back p,
+    .flashcard.has-maximized-video .card-back h3,
+    .flashcard.has-maximized-video .card-back span,
+    .flashcard.has-maximized-video .card-back .success-actions,
+    .flashcard.has-maximized-video .card-back #celebrateBtn {
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
     
     .yt-container.minimized {
       position: fixed !important; top: 50% !important; left: 50% !important; 
@@ -528,6 +527,10 @@ let customTopics = [];
 let filtered = [];
 let index = 0;
 let filterMemory = {};
+
+/* CONFIGURACIÓN DE YOUTUBE API (ÁMBITO GLOBAL) */
+let ytPlayer = null;
+let ytPlayTimeout = null;
 
 const BASE_COURSES = ["5º", "6º"];
 
@@ -1102,18 +1105,13 @@ function syncRemoteData() {
   });
 }
 
-  // --- CONFIGURACIÓN DE YOUTUBE API (ÁMBITO GLOBAL) ---
-let ytPlayer = null;
-let ytPlayTimeout = null;
-
 function onYouTubeIframeAPIReady() {
-  // Callback requerido por la API de YouTube al cargar
+  // Callback opcional de YouTube Iframe API
 }
 
 function setupYouTubePlayer(containerId, videoId, startSec) {
-  // Destruye la instancia previa si existía para liberar recursos
   if (ytPlayer && typeof ytPlayer.destroy === 'function') {
-    ytPlayer.destroy();
+    try { ytPlayer.destroy(); } catch(e){}
   }
 
   ytPlayer = new YT.Player(containerId, {
@@ -1198,7 +1196,6 @@ function updateView() {
           mediaBack.dataset.ytStart = ytData.startSeconds;
           mediaBack.dataset.hasYt = "true";
 
-          // Sustitución: Generamos el contenedor donde se cargará el reproductor mediante JS
           mediaBack.innerHTML = `
             <div id="ytVideoContainer" class="yt-container" onclick="event.stopPropagation()">
               <div style="position: absolute; top: 6px; right: 6px; z-index: 50; display: flex; gap: 6px;" onclick="event.stopPropagation()">
@@ -1208,7 +1205,6 @@ function updateView() {
               <div id="ytPlayerTarget"></div>
             </div>`;
 
-          // Inicializamos la API de YouTube sobre el nuevo div 'ytPlayerTarget'
           setupYouTubePlayer('ytPlayerTarget', ytData.id, ytData.startSeconds);
 
         } else if (isImageUrl(urlStr)) {
@@ -1225,9 +1221,6 @@ function updateView() {
   }, 150);
 }
 
-// Variable global para controlar el temporizador de reproducción
-let ytPlayTimeout = null;
-
 function handleCardClick(cardElement) {
   cardElement.classList.toggle('flipped');
   const isFlipped = cardElement.classList.contains('flipped');
@@ -1241,11 +1234,9 @@ function handleCardClick(cardElement) {
 
       if (ytPlayTimeout) clearTimeout(ytPlayTimeout);
 
-      // Pausar y reubicar de manera nativa mediante los métodos del objeto
       ytPlayer.pauseVideo();
       ytPlayer.seekTo(startSec, true);
 
-      // Programar la reproducción tras 2 segundos
       ytPlayTimeout = setTimeout(() => {
         if (cardElement.classList.contains('flipped')) {
           ytPlayer.playVideo();
@@ -1308,7 +1299,6 @@ function toggleMaxVideo(e) {
   }
 }
 
-// CÓDIGO CORREGIDO:
 function closeVideo(e) {
   if (e) {
     e.stopPropagation();
