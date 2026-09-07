@@ -1105,15 +1105,11 @@ function updateView() {
   const cardEl = document.getElementById('cardElement');
   const innerEl = document.getElementById('cardInnerElement');
   
-  // Limpiamos la clase de vídeo maximizado para que la nueva tarjeta se vea bien
   if (cardEl) cardEl.classList.remove('has-maximized-video');
 
   const wasFlipped = cardEl.classList.contains('flipped');
   if (wasFlipped && innerEl) innerEl.style.opacity = '0';
   cardEl.classList.remove('flipped');
-  
-  // ... resto del código de updateView() sin cambios ...
-}
 
   const counterEl = document.getElementById('cardCounter');
   const txtF = document.getElementById('textFront');
@@ -1170,8 +1166,7 @@ function updateView() {
           mediaBack.dataset.ytStart = ytData.startSeconds;
           mediaBack.dataset.hasYt = "true";
 
-          // Dentro de updateView(), en la sección donde se genera el iframe:
-const embedUrl = `https://www.youtube-nocookie.com/embed/${ytData.id}?start=${ytData.startSeconds}&autoplay=0&enablejsapi=1&rel=0`;
+          const embedUrl = `https://www.youtube-nocookie.com/embed/${ytData.id}?start=${ytData.startSeconds}&autoplay=0&enablejsapi=1&rel=0`;
           
           mediaBack.innerHTML = `
             <div id="ytVideoContainer" class="yt-container" onclick="event.stopPropagation()">
