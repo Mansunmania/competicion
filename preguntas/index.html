@@ -744,6 +744,7 @@ function toggleFullscreen(e) {
 
 function navCard(e, dir) {
   if (e) e.stopPropagation();
+  closeImgModal(); // <-- AÑADIDO: Cierra la imagen si estaba maximizada
   if (!filtered.length) return;
   playCardSlide();
   index = (index + dir + filtered.length) % filtered.length;
@@ -1224,11 +1225,14 @@ function updateView() {
 let ytPlayTimeout = null;
 
 function handleCardClick(cardElement) {
+  closeImgModal(); // <-- AÑADIDO: Cierra la imagen maximizada al voltear la tarjeta
+  
   cardElement.classList.toggle('flipped');
   const isFlipped = cardElement.classList.contains('flipped');
   const mediaBack = document.getElementById('mediaAnchorBack');
 
   if (isFlipped) {
+    // ... resto del código de volteo existente ...
     playArpa();
 
     if (mediaBack && mediaBack.dataset.hasYt === "true") {
