@@ -950,7 +950,7 @@ function updateVisualFilterButtons() {
   renderCourseFilterButtons(); renderTopicControls(); 
 }
 
-function applyFilters() {
+function applyFilters(targetCard = null) {
   updateVisualFilterButtons();
   filtered = deck.filter(card => {
     const matchCourse = matchesCourseFilter(card, filterCourse);
@@ -965,8 +965,19 @@ function applyFilters() {
     return matchCourse && matchSubj && matchLvl && matchTopic;
   });
 
-  const memoryKey = `${filterCourse}|${filterSubj}|${filterLvl}|${confirmedTopics.join(',')}`;
-  index = (filterMemory[memoryKey] !== undefined && filterMemory[memoryKey] < filtered.length) ? filterMemory[memoryKey] : 0;
+  // SI SE ESPECIFICA UNA TARJETA, BUSCAMOS SU NUEVA POSICIÓN
+  if (targetCard) {
+    const newIndex = filtered.indexOf(targetCard);
+    if (newIndex !== -1) {
+      index = newIndex;
+    } else {
+      index = 0; // Si los nuevos filtros la ocultan, vuelve al inicio
+    }
+  } else {
+    const memoryKey = `${filterCourse}|${filterSubj}|${filterLvl}|${confirmedTopics.join(',')}`;
+    index = (filterMemory[memoryKey] !== undefined && filterMemory[memoryKey] < filtered.length) ? filterMemory[memoryKey] : 0;
+  }
+
   updateView();
 }
 
@@ -1397,7 +1408,7 @@ document.getElementById('shuffleBtn').onclick = () => {
   shuffleArray(filtered); index = 0; updateView();
 };
 
-// AL GUARDAR CAMBIOS DE EDICIÓN
+// AL GUARDAR CAMBIOS: SE QUEDA EN LA TARJETA EDITADA
 document.getElementById('updateBtn').onclick = () => {
   if (!filtered.length) return;
   const currentCard = filtered[index];
@@ -1411,31 +1422,43 @@ document.getElementById('updateBtn').onclick = () => {
   currentCard.topic = currentCard.topics.join(', ');
   currentCard.media = document.getElementById('editMedia').value.trim();
   
-  hasUnsavedChanges = true; // <-- MARCAR CAMBIO PENDIENTE
+  hasUnsavedChanges = true;
   saveDeck(); 
-  applyFilters();
+  applyFilters(currentCard); // <-- Le pasamos la tarjeta actual para mantener la vista aquí
 };
 
-// AL BORRAR UNA TARJETA
+// AL BORRAR UNA TARJETA (CORREGIDO)
 document.getElementById('delBtn').onclick = () => {
   if (!filtered.length || !confirm("¿Seguro que deseas eliminar esta tarjeta?")) return;
-  const globalIndex = deck.indexOf(filtered[index]);
+  
+  const cardToDelete = filtered[index];
+  const globalIndex = deck.indexOf(cardToDelete);
+  
   if (globalIndex > -1) { 
+    // Averiguamos cuál será la tarjeta siguiente ANTES de modificar los arrays
+    let nextCard = null;
+    if (index < filtered.length - 1) {
+      nextCard = filtered[index + 1]; // La siguiente tarjeta
+    } else if (index > 0) {
+      nextCard = filtered[index - 1]; // Si era la última, la anterior
+    }
+
     deck.splice(globalIndex, 1); 
-    hasUnsavedChanges = true; // <-- MARCAR CAMBIO PENDIENTE
+    hasUnsavedChanges = true; 
     saveDeck(); 
-    applyFilters(); 
+    
+    applyFilters(nextCard); // Filtra y busca directamente la tarjeta vecina
   }
 };
-
-// AL CREAR UNA NUEVA TARJETA
+  
+  // AL CREAR UNA TARJETA: SALTA DIRECTAMENTE A LA NUEVA TARJETA
 document.getElementById('addBtn').onclick = () => {
   const q = document.getElementById('addQ').value.trim();
   const a = document.getElementById('addA').value.trim();
   if (!q || !a) { alert("Completa al menos la pregunta y la respuesta."); return; }
 
   const topics = parseInputItems(document.getElementById('addTopic').value);
-  deck.push({
+  const newCard = {
     qContext: document.getElementById('addQContext').value.trim(),
     q, a,
     subj: document.getElementById('addSubj').value,
@@ -1443,18 +1466,21 @@ document.getElementById('addBtn').onclick = () => {
     course: document.getElementById('addCourse').value.trim(),
     topics: topics, topic: topics.join(', '),
     media: document.getElementById('addMedia').value.trim()
-  });
+  };
 
-  hasUnsavedChanges = true; // <-- MARCAR CAMBIO PENDIENTE
+  deck.push(newCard);
+
+  hasUnsavedChanges = true;
   saveDeck();
   document.getElementById('addQContext').value = '';
   document.getElementById('addQ').value = '';
   document.getElementById('addA').value = '';
   document.getElementById('addMedia').value = '';
   document.getElementById('addImgFile').value = '';
-  applyFilters();
+  
+  applyFilters(newCard); // <-- Salta directamente a la tarjeta recién creada
 };
-
+  
 // AL EXPORTAR EL JSON (SE DESACTIVA LA ALERTA)
 document.getElementById('exportBtn').onclick = () => {
   const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(deck, null, 2));
