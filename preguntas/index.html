@@ -527,6 +527,15 @@ let customTopics = [];
 let filtered = [];
 let index = 0;
 let filterMemory = {};
+let hasUnsavedChanges = false; // <-- AÑADIDO: Controla si hay cambios pendientes
+
+// AVISO NATIVO AL CERRAR O RECARGAR SI HAY CAMBIOS
+window.addEventListener('beforeunload', (e) => {
+  if (hasUnsavedChanges) {
+    e.preventDefault();
+    e.returnValue = ''; // Muestra el mensaje estándar del navegador
+  }
+});
 
 const BASE_COURSES = ["5º", "6º"];
 
@@ -1388,6 +1397,7 @@ document.getElementById('shuffleBtn').onclick = () => {
   shuffleArray(filtered); index = 0; updateView();
 };
 
+// AL GUARDAR CAMBIOS DE EDICIÓN
 document.getElementById('updateBtn').onclick = () => {
   if (!filtered.length) return;
   const currentCard = filtered[index];
@@ -1400,15 +1410,25 @@ document.getElementById('updateBtn').onclick = () => {
   currentCard.topics = parseInputItems(document.getElementById('editTopic').value);
   currentCard.topic = currentCard.topics.join(', ');
   currentCard.media = document.getElementById('editMedia').value.trim();
-  saveDeck(); applyFilters();
+  
+  hasUnsavedChanges = true; // <-- MARCAR CAMBIO PENDIENTE
+  saveDeck(); 
+  applyFilters();
 };
 
+// AL BORRAR UNA TARJETA
 document.getElementById('delBtn').onclick = () => {
   if (!filtered.length || !confirm("¿Seguro que deseas eliminar esta tarjeta?")) return;
   const globalIndex = deck.indexOf(filtered[index]);
-  if (globalIndex > -1) { deck.splice(globalIndex, 1); saveDeck(); applyFilters(); }
+  if (globalIndex > -1) { 
+    deck.splice(globalIndex, 1); 
+    hasUnsavedChanges = true; // <-- MARCAR CAMBIO PENDIENTE
+    saveDeck(); 
+    applyFilters(); 
+  }
 };
 
+// AL CREAR UNA NUEVA TARJETA
 document.getElementById('addBtn').onclick = () => {
   const q = document.getElementById('addQ').value.trim();
   const a = document.getElementById('addA').value.trim();
@@ -1425,6 +1445,7 @@ document.getElementById('addBtn').onclick = () => {
     media: document.getElementById('addMedia').value.trim()
   });
 
+  hasUnsavedChanges = true; // <-- MARCAR CAMBIO PENDIENTE
   saveDeck();
   document.getElementById('addQContext').value = '';
   document.getElementById('addQ').value = '';
@@ -1434,15 +1455,20 @@ document.getElementById('addBtn').onclick = () => {
   applyFilters();
 };
 
+// AL EXPORTAR EL JSON (SE DESACTIVA LA ALERTA)
 document.getElementById('exportBtn').onclick = () => {
   const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(deck, null, 2));
   const downloadAnchor = document.createElement('a');
   downloadAnchor.setAttribute("href", dataStr);
   downloadAnchor.setAttribute("download", "preguntas.json");
   document.body.appendChild(downloadAnchor);
-  downloadAnchor.click(); downloadAnchor.remove();
+  downloadAnchor.click(); 
+  downloadAnchor.remove();
+
+  hasUnsavedChanges = false; // <-- CAMBIOS GUARDADOS / EXPORTADOS CON ÉXITO
 };
 
+// AL IMPORTAR UN FICHERO
 document.getElementById('importFile').onchange = (e) => {
   const file = e.target.files[0];
   if (!file) return;
@@ -1453,6 +1479,7 @@ document.getElementById('importFile').onchange = (e) => {
       if (Array.isArray(importedData)) { 
         procesarMazo(importedData); 
         saveDeck();
+        hasUnsavedChanges = false; // <-- RESETEAR AL CARGAR UN NUEVO ARCHIVO
         mostrarAvisoOrigen("📁 Archivo importado manualmente");
         applyFilters(); 
         alert("¡Mazo importado con éxito!"); 
