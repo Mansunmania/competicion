@@ -1194,6 +1194,27 @@ function updateView() {
       });
     }
 
+    // SINCRONIZACIÓN CON EL PANEL DE EDICIÓN
+    const editTargetEl = document.getElementById('editTargetIndex');
+    const editQContextEl = document.getElementById('editQContext');
+    const editQEl = document.getElementById('editQ');
+    const editAEl = document.getElementById('editA');
+    const editSubjEl = document.getElementById('editSubj');
+    const editTopicEl = document.getElementById('editTopic');
+    const editLvlEl = document.getElementById('editLvl');
+    const editCourseEl = document.getElementById('editCourse');
+    const editMediaEl = document.getElementById('editMedia');
+
+    if (editTargetEl) editTargetEl.textContent = `ID: ${currentCard.id || index + 1}`;
+    if (editQContextEl) editQContextEl.value = currentCard.qContext || '';
+    if (editQEl) editQEl.value = currentCard.q || '';
+    if (editAEl) editAEl.value = currentCard.a || '';
+    if (editSubjEl) editSubjEl.value = currentCard.subj || 'Lengua';
+    if (editTopicEl) editTopicEl.value = getCardTopics(currentCard).join(', ');
+    if (editLvlEl) editLvlEl.value = currentCard.lvl || 'Fácil';
+    if (editCourseEl) editCourseEl.value = getCardCourses(currentCard).join(', ');
+    if (editMediaEl) editMediaEl.value = currentCard.media || '';
+
     if (innerEl) innerEl.style.opacity = '1';
     syncRemoteData();
   }, 150);
