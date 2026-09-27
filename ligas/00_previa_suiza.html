@@ -48,6 +48,10 @@
     .rank { font-weight: 800; width: 20px; }
     .gold { color: var(--gold); } .silver { color: var(--silver); } .bronze { color: var(--bronze); }
     
+    .editable-name { cursor: pointer; border-bottom: 1px dashed #93c5fd; padding: 1px 4px; border-radius: 3px; }
+    .editable-name:hover { background-color: #dbeafe; }
+    .edit-name-input { font-size: 11px; padding: 2px 4px; border: 1px solid var(--pri); border-radius: 4px; width: 95%; font-weight: 600; }
+
     .match-list { display: flex; flex-direction: column; gap: 4px; max-height: 520px; overflow-y: auto; }
     .match-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fafcff; font-size: 12px; cursor: pointer; }
     .match-item:hover { background: #eef2ff; }
@@ -118,7 +122,7 @@
     <h1>🏆 Previa Suiza (Clasificatoria)</h1>
     <p>Emparejamientos equilibrados y clasificación por categorías</p>
   </div>
-  <div style="display:flex; align-items:center; gap:10px;">
+  <divstyle="display:flex; align-items:center; gap:10px;">
     <span class="status-tag" id="autosaveStatus">⏳ Cargando...</span>
     <button class="btn secondary" onclick="handleManualLoadDrive()">🔄 Cargar de Drive</button>
     <button class="btn secondary" id="exportAll">📥 Exportar (JSON)</button>
@@ -276,9 +280,17 @@ function getAudioContext() {
 
 function uid() { return Math.random().toString(36).substr(2, 9); }
 
+function shuffleArray(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 function getNowFormatted() {
   const d = new Date();
-  return `${d.toLocaleDateString()} ${d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+  return ${d.toLocaleDateString()} ${d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})};
 }
 
 function getActiveData() {
@@ -294,7 +306,7 @@ function getActiveData() {
 
 function checkUnsavedBeforeAction(actionName = "continuar") {
   if (hasUnsavedChanges) {
-    return confirm(`Tienes cambios recientes sin exportar o guardar externamente. ¿Seguro que deseas ${actionName}?`);
+    return confirm(Tienes cambios recientes sin exportar o guardar externamente. ¿Seguro que deseas ${actionName}?);
   }
   return true;
 }
@@ -316,15 +328,12 @@ async function initDataCascade() {
   
   if (APPS_SCRIPT_URL && APPS_SCRIPT_URL.startsWith("https://script.google.com")) {
     try {
-      const res = await fetch(`${APPS_SCRIPT_URL}?file=${DEFAULT_FILENAME}`, { 
+      const res = await fetch(${APPS_SCRIPT_URL}?file=${DEFAULT_FILENAME}, { 
         method: 'GET', 
         redirect: 'follow' 
       });
       
       const result = await res.json();
-      console.log("Respuesta de Apps Script:", result); // Inspecciona esto en F12
-
-      // Validación más flexible por si la estructura varía ligeramente
       const groupsData = result.data?.groups || result.groups;
 
       if ((result.success || groupsData) && groupsData) {
@@ -340,7 +349,6 @@ async function initDataCascade() {
     }
   }
 
-  // Si falla la red o el formato, intenta con localStorage
   const rawLocal = localStorage.getItem(LOCAL_STORAGE_KEY);
   if (rawLocal) {
     try {
@@ -354,7 +362,6 @@ async function initDataCascade() {
     } catch (e) {}
   }
 
-  // Fallback final
   setSyncStatus('⚠️ Modo local básico');
   finishLoad();
 }
@@ -374,13 +381,13 @@ function updateUndoButton() {
   const btn = document.getElementById('btnUndo');
   if (!btn) return;
   btn.disabled = historyStack.length === 0;
-  btn.textContent = historyStack.length > 0 ? `↩️ Deshacer Último Marcador (${historyStack.length})` : `↩️ Deshacer Último Marcador`;
+  btn.textContent = historyStack.length > 0 ? ↩️ Deshacer Último Marcador (${historyStack.length}) : ↩️ Deshacer Último Marcador;
 }
 
 function updateGroupSelector() {
   const select = document.getElementById('groupSelect');
   select.innerHTML = '';
-  const sortedNames = Object.keys(db.groups).sort((a, b) => (db.groups[b].updatedAt || 0) - (db.groups[a].updatedAt || 0));
+  const sortedNames = Object.keys(db.groups).sort((a, b) => (db.groups[b].updatedAt  0) - (db.groups[a].updatedAt  0));
   sortedNames.forEach(name => {
     const opt = document.createElement('option');
     opt.value = name; opt.textContent = name;
@@ -389,44 +396,66 @@ function updateGroupSelector() {
   });
 }
 
+// GENERADOR DE SORTEO ALEATORIO SUIZO
 function generateSchedule(students, maxMatches) {
   if (students.length < 2) return [];
-  let matches = [];
-  let pairs = new Map();
-  let homeCount = {}, awayCount = {}, totalMatches = {};
-  students.forEach(s => { homeCount[s] = 0; awayCount[s] = 0; totalMatches[s] = 0; });
 
-  const targetMatchesPerStudent = maxMatches;
-  let attempts = 0;
-  while (attempts < 5000) {
-    attempts++;
-    let pool = students.filter(s => totalMatches[s] < targetMatchesPerStudent);
-    if (pool.length < 2) break;
+  let bestMatches = [];
+  let minRepeats = Infinity;
 
-    pool.sort((a, b) => totalMatches[a] - totalMatches[b]);
-    let a = pool[0];
-    let candidateB = pool.slice(1).filter(b => !pairs.has(`${a}||${b}`) && !pairs.has(`${b}||${a}`));
-    if (candidateB.length === 0) candidateB = pool.slice(1);
+  for (let run = 0; run < 50; run++) {
+    let matches = [];
+    let pairs = new Map();
+    let homeCount = {}, awayCount = {}, totalMatches = {};
+    students.forEach(s => { homeCount[s] = 0; awayCount[s] = 0; totalMatches[s] = 0; });
 
-    if (candidateB.length > 0) {
+    let attempts = 0;
+    while (attempts < 3000) {
+      attempts++;
+      let pool = students.filter(s => totalMatches[s] < maxMatches);
+      if (pool.length < 2) break;
+
+      shuffleArray(pool);
+      pool.sort((a, b) => totalMatches[a] - totalMatches[b]);
+
+      let a = pool[0];
+      let candidatePool = pool.slice(1);
+      shuffleArray(candidatePool);
+
+      let candidateB = candidatePool.filter(b => !pairs.has(${a}||${b}) && !pairs.has(${b}||${a}));
+      if (candidateB.length === 0) candidateB = candidatePool;
+
       candidateB.sort((b1, b2) => {
-        let times1 = (pairs.get(`${a}||${b1}`) || 0) + (pairs.get(`${b1}||${a}`) || 0);
-        let times2 = (pairs.get(`${a}||${b2}`) || 0) + (pairs.get(`${b2}||${a}`) || 0);
-        return times1 - times2;
+        let times1 = (pairs.get(${a}||${b1}) || 0) + (pairs.get(${b1}||${a}) || 0);
+        let times2 = (pairs.get(${a}||${b2}) || 0) + ${a}) (${b2}||${a}) || 0);
+        return (times1 - times2) || (Math.random() - 0.5);
       });
 
       let b = candidateB[0];
       let home = a, away = b;
       if (homeCount[a] > awayCount[a] || awayCount[b] > homeCount[b]) { home = b; away = a; }
 
-      let pairKey = `${home}||${away}`;
+      let pairKey = ${home}||${away};
       pairs.set(pairKey, (pairs.get(pairKey) || 0) + 1);
       homeCount[home]++; awayCount[away]++;
       totalMatches[home]++; totalMatches[away]++;
       matches.push({ id: uid(), a: home, b: away, result: null });
     }
+
+    let repeats = 0;
+    pairs.forEach(count => { if (count > 1) repeats += (count - 1); });
+
+    const allReachedTarget = students.every(s => totalMatches[s] === maxMatches);
+    if (allReachedTarget && repeats < minRepeats) {
+      minRepeats = repeats;
+      bestMatches = matches;
+      if (repeats === 0) break;
+    } else if (bestMatches.length === 0 && matches.length > 0) {
+      bestMatches = matches;
+    }
   }
-  return matches;
+
+  return shuffleArray(bestMatches);
 }
 
 function recalc() {
@@ -434,7 +463,7 @@ function recalc() {
   let map = {};
   if (!state.tieBreakers) state.tieBreakers = {};
   state.students.forEach(s => {
-    map[s] = { name: s, pts: 0, v: 0, e: 0, d: 0, gf: 0, gc: 0, p: 0, extra: parseFloat(state.tieBreakers[s]) || 0 };
+    map[s] = { name: s, pts: 0,v: 0, e: 0, d: 0, gf: 0, gc: 0, p: 0, extra: parseFloat(state.tieBreakers[s]) || 0 };
   });
 
   state.matches.forEach(m => {
@@ -465,7 +494,7 @@ function recalc() {
 function renderStandings() {
   const ranked = recalc();
   const total = ranked.length;
-  document.getElementById('standingsCount').textContent = `${total} Alumnos`;
+  document.getElementById('standingsCount').textContent = ${total} Alumnos;
 
   const base = Math.floor(total / 3);
   const remainder = total % 3;
@@ -482,17 +511,17 @@ function renderStandings() {
     const tr = document.createElement('tr');
     const medal = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
     const safeName = r.name.replace(/'/g, "\\'");
-    const extraText = r.extra > 0 ? `+${r.extra}` : r.extra;
+    const extraText = r.extra > 0 ? +${r.extra} : r.extra;
     const diff = r.gf - r.gc;
-    const diffText = diff > 0 ? `+${diff}` : diff;
+    const diffText = diff > 0 ? +${diff} : diff;
 
     if (i < div1Count) tr.style.backgroundColor = 'var(--zone-div1)';
     else if (i < div1Count + div2Count) tr.style.backgroundColor = 'var(--zone-div2)';
     else tr.style.backgroundColor = 'var(--zone-div3)';
 
-    tr.innerHTML = `
+    tr.innerHTML = 
       <td class="rank ${medal}">${i + 1}</td>
-      <td>${r.name}</td>
+      <td><span class="editable-name" title="Clic para cambiar nombre" onclick="enableNameEdit(this, '${safeName}')">${r.name}</span></td>
       <td><strong style="color:var(--pri)">${r.pts}</strong></td>
       <td>
         <div class="tie-ctrl">
@@ -505,11 +534,63 @@ function renderStandings() {
       <td>${r.gf}</td>
       <td style="color:var(--muted);">${r.gc}</td>
       <td><strong>${diffText}</strong></td>
-    `;
+    ;
 
     if (i < half) tbody1.appendChild(tr);
     else tbody2.appendChild(tr);
   });
+}
+
+function enableNameEdit(spanEl, oldName) {
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'edit-name-input';
+  input.value = oldName;
+
+  const finishEdit = () => {
+    const newName = input.value.trim();
+    if (newName && newName !== oldName) {
+      renameParticipant(oldName, newName);
+    } else {
+      renderStandings();
+    }
+  };
+
+  input.onblur = finishEdit;
+  input.onkeydown = (e) => {
+    if (e.key === 'Enter') {
+      finishEdit();
+    } else if (e.key === 'Escape') {
+      renderStandings();
+    }
+  };
+
+  spanEl.parentNode.replaceChild(input, spanEl);
+  input.focus();
+  input.select();
+}
+
+function renameParticipant(oldName, newName) {
+  pushHistory();
+  const state = getActiveData();
+
+  // 1. Actualizar lista de alumnos
+  state.students = state.students.map(s => s === oldName ? newName : s);
+
+  // 2. Actualizar desempates
+  if (state.tieBreakers && state.tieBreakers[oldName] !== undefined) {
+    state.tieBreakers[newName] = state.tieBreakers[oldName];
+    delete state.tieBreakers[oldName];
+  }
+
+  // 3. Actualizar partidos
+  state.matches.forEach(m => {
+    if (m.a === oldName) m.a = newName;
+    if (m.b === oldName) m.b = newName;
+  });
+
+  save();
+  render();
 }
 
 function modifyTiebreaker(student, amt) {
@@ -528,15 +609,15 @@ function renderMatches() {
   list1.innerHTML = ''; list2.innerHTML = '';
 
   const doneCount = state.matches.filter(m => m.result).length;
-  document.getElementById('matchProgress').textContent = `${doneCount} / ${state.matches.length} Jugados`;
+  document.getElementById('matchProgress').textContent = ${doneCount} / ${state.matches.length} Jugados;
 
   const half = Math.ceil(state.matches.length / 2);
 
   state.matches.forEach((m, i) => {
     const div = document.createElement('div');
-    div.className = `match-item ${m.result ? 'done' : ''}`;
-    let res = m.result ? `<strong style="color:var(--ok)">${m.result}</strong>` : `<span class="pill">Jugar</span>`;
-    div.innerHTML = `<span><strong>${m.a}</strong> vs <strong>${m.b}</strong></span> ${res}`;
+    div.className = match-item ${m.result ? 'done' : ''};
+    let res = m.result ? <strong style="color:var(--ok)">${m.result}</strong> : <span class="pill">Jugar</span>;
+    div.innerHTML = <span><strong>${m.a}</strong> vs <strong>${m.b}</strong></span> ${res};
     
     div.onclick = () => {
       state.currentMatchId = m.id;
@@ -560,17 +641,17 @@ function renderMatchEditor() {
   const match = state.matches.find(m => m.id === state.currentMatchId) || state.matches.find(m => !m.result);
 
   if (!match) {
-    box.innerHTML = `
+    box.innerHTML = 
       <div style="text-align:center; color:var(--ok); font-weight:bold; font-size:13px;">🏆 ¡Fase de Clasificación Completa!</div>
       <button id="btnUndo" class="btn undo" disabled>↩️ Deshacer Último Marcador</button>
-    `;
+    ;
     setupUndoHandler();
     return;
   }
 
   state.currentMatchId = match.id;
 
-  box.innerHTML = `
+  box.innerHTML = 
     <div style="font-size:11px; font-weight:bold; color:var(--muted); text-align:center; text-transform:uppercase;">Partido Seleccionado</div>
     <div class="goal-row">
       <span><strong>${match.a}</strong></span>
@@ -590,11 +671,11 @@ function renderMatchEditor() {
     </div>
     <button class="btn ok" id="saveGoalBtn" style="width:100%;">⚽ Guardar Marcador</button>
     <button id="btnUndo" class="btn undo" disabled>↩️ Deshacer Último Marcador</button>
-  `;
+  ;
 
   document.getElementById('saveGoalBtn').onclick = () => {
     pushHistory();
-    match.result = `${currentA}-${currentB}`;
+    match.result = ${currentA}-${currentB};
     
     if (currentA === currentB) {
       playSoundEffect('draw');
@@ -625,7 +706,7 @@ function setupUndoHandler() {
       save(); updateGroupSelector(); render();
     };
   }
-  updateUndoButton(); // <--- CORREGIDO: antes decía updateUndoButtonState()
+  updateUndoButton();
 }
 
 function changeGoal(team, amt) {
@@ -651,13 +732,12 @@ function playSoundEffect(type) {
     const now = ctx.currentTime;
 
     if (type === 'goal') {
-      // Cántico sintetizado "¡Goooool!" al sumar gol (+)
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       
       osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(220, now); // Nota La
-      osc.frequency.exponentialRampToValueAtTime(440, now + 0.3); // Sube una octava acelerando
+      osc.frequency.setValueAtTime(220, now);
+      osc.frequency.exponentialRampToValueAtTime(440, now + 0.3);
       
       gain.gain.setValueAtTime(0.01, now);
       gain.gain.linearRampToValueAtTime(0.3, now + 0.05);
@@ -670,7 +750,6 @@ function playSoundEffect(type) {
       osc.stop(now + 0.6);
 
     } else if (type === 'var') {
-      // Silbato corto del VAR al restar gol (-)
       const playWhistlePuff = (startTime) => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
@@ -693,7 +772,6 @@ function playSoundEffect(type) {
       playWhistlePuff(now + 0.1);
 
     } else if (type === 'victory') {
-      // Ovación y ambiente de estadio al guardar un partido ganado
       const bufferSize = ctx.sampleRate * 1.5;
       const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
       const output = buffer.getChannelData(0);
@@ -741,7 +819,6 @@ function playSoundEffect(type) {
       });
 
     } else if (type === 'draw') {
-      // Bajada de tono melancólica en caso de empate
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'sine';
@@ -789,7 +866,7 @@ function showFinalSummary(shrekList = [], donkeyList = [], bartList = [], isDraw
     if (!items || items.length === 0) {
       el.innerHTML = '<li><em>Sin clasificados</em></li>';
     } else {
-      el.innerHTML = items.map(name => `<li>${name}</li>`).join('');
+      el.innerHTML = items.map(name => <li>${name}</li>).join('');
     }
   };
 
@@ -816,8 +893,8 @@ function render() {
 document.getElementById('addGroupBtn').onclick = () => {
   const input = document.getElementById('newGroupName');
   let name = input.value.trim();
-  if (!name) name = `Clase - ${getNowFormatted()}`;
-  else if (!name.includes('-')) name = `${name} (${getNowFormatted().split(' ')[0]})`;
+  if (!name) name = Clase - ${getNowFormatted()};
+  else if (!name.includes('-')) name = ${name} (${getNowFormatted().split(' ')[0]});
 
   if (!db.groups[name]) {
     db.groups[name] = { students: [], matches: [], tieBreakers: {}, currentMatchId: null, maxMatches: 4, updatedAt: Date.now() };
@@ -829,7 +906,7 @@ document.getElementById('addGroupBtn').onclick = () => {
 
 document.getElementById('renameGroupBtn').onclick = () => {
   const oldName = db.activeGroup;
-  const newName = prompt(`Nuevo nombre para la competición:`, oldName);
+  const newName = prompt(Nuevo nombre para la competición:, oldName);
   if (newName && newName.trim() !== '' && newName !== oldName) {
     const cleanName = newName.trim();
     pushHistory();
@@ -842,7 +919,7 @@ document.getElementById('renameGroupBtn').onclick = () => {
 
 document.getElementById('deleteGroupBtn').onclick = () => {
   if (Object.keys(db.groups).length <= 1) { alert("Debes tener al menos una competición creada."); return; }
-  if (confirm(`¿Estás seguro de eliminar permanentemente "${db.activeGroup}"?`)) {
+  if (confirm(¿Estás seguro de eliminar permanentemente "${db.activeGroup}"?)) {
     pushHistory();
     delete db.groups[db.activeGroup];
     db.activeGroup = Object.keys(db.groups)[0];
@@ -865,14 +942,14 @@ document.getElementById('saveStudents').onclick = () => {
   const state = getActiveData();
   state.students = [...new Set(document.getElementById('studentsInput').value.split(/\n+/).map(s => s.trim()).filter(Boolean))];
   state.maxMatches = parseInt(document.getElementById('matchesPerStudentSelect').value, 10) || 4;
-  save(); render(); alert(`Lista guardada correctamente.`);
+  save(); render(); alert(Lista guardada correctamente.);
 };
 
 document.getElementById('generateMatches').onclick = () => {
   const state = getActiveData();
   if (state.students.length < 2) { alert('Añade al menos 2 alumnos.'); return; }
   const maxMatches = parseInt(document.getElementById('matchesPerStudentSelect').value, 10) || 4;
-  if (confirm(`¿Generar un nuevo sorteo de ${maxMatches} partidos por alumno para "${db.activeGroup}"?`)) {
+  if (confirm(¿Generar un nuevo sorteo de ${maxMatches} partidos por alumno para "${db.activeGroup}"?)) {
     historyStack = [];
     state.maxMatches = maxMatches;
     state.matches = generateSchedule(state.students, maxMatches);
