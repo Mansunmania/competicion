@@ -551,12 +551,24 @@ function enableNameEdit(spanEl, oldName) {
   input.className = 'edit-name-input';
   input.value = oldName;
 
+  // Bandera anti-reentrada: al pulsar Enter, finishEdit() llama a render(),
+  // que elimina este <input> del DOM. Eliminar un elemento con foco dispara
+  // un "blur" automático del navegador, y ese blur volvía a llamar a
+  // finishEdit() por segunda vez (justo en mitad del renderizado ya en curso),
+  // descuadrando el vaciado/relleno de las dos columnas y duplicando filas.
+  let finished = false;
+
   const finishEdit = () => {
+    if (finished) return;
+    finished = true;
+    input.onblur = null;
+    input.onkeydown = null;
+
     const newName = input.value.trim();
     if (newName && newName !== oldName) {
       renameParticipant(oldName, newName);
     } else {
-      render();
+      renderStandings();
     }
   };
 
@@ -565,7 +577,11 @@ function enableNameEdit(spanEl, oldName) {
     if (e.key === 'Enter') {
       finishEdit();
     } else if (e.key === 'Escape') {
-      render();
+      if (finished) return;
+      finished = true;
+      input.onblur = null;
+      input.onkeydown = null;
+      renderStandings();
     }
   };
 
@@ -578,26 +594,26 @@ function renameParticipant(oldName, newName) {
   pushHistory();
   const state = getActiveData();
 
-  // Reemplazar únicamente el nombre en su posición exacta
+  // 1. Reemplazar solo el nombre en la posición exacta del array de alumnos
   const idx = state.students.indexOf(oldName);
   if (idx !== -1) {
     state.students[idx] = newName;
   }
 
-  // Conservar desempates
+  // 2. Actualizar desempates
   if (state.tieBreakers && state.tieBreakers[oldName] !== undefined) {
     state.tieBreakers[newName] = state.tieBreakers[oldName];
     delete state.tieBreakers[oldName];
   }
 
-  // Actualizar actas de partidos
+  // 3. Actualizar partidos
   state.matches.forEach(m => {
     if (m.a === oldName) m.a = newName;
     if (m.b === oldName) m.b = newName;
   });
 
   save();
-  // Se renderizan todos los paneles limpios desde cero
+  // Se renderiza de nuevo toda la estructura limpia
   render();
 }
 
