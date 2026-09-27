@@ -526,7 +526,6 @@
     <button class="btn-remote-target active" id="btnTargetAll" onclick="setRemoteTarget('ALL')">🖥️ Normal</button>
     <button class="btn-remote-target" id="btnTargetR" onclick="setRemoteTarget('R')">▶️ Derecha</button>
   </div>
-  <p style="margin:0; font-size:11px; color:#64748b; text-align:center;">Usa estos 3 botones solo si el proyector está en Vista Dividida, para elegir qué mitad controlas. Si está en vista normal, déjalo en "🖥️ Normal".</p>
   <div class="remote-lvl-row">
     <button class="btn-remote-lvl" onclick="sendRemoteCmd('SET_LVL_Fácil')">Fácil</button>
     <button class="btn-remote-lvl" onclick="sendRemoteCmd('SET_LVL_Medio')">Medio</button>
@@ -1676,7 +1675,10 @@ function setRemoteTarget(t) {
   const idMap = { ALL: 'btnTargetAll', L: 'btnTargetL', R: 'btnTargetR' };
   const btn = document.getElementById(idMap[t]);
   if (btn) btn.classList.add('active');
-  if (navigator.vibrate) navigator.vibrate(20);
+  // 'SYNC' no navega ni gira nada: solo pide la pregunta/respuesta ACTUAL de ese panel,
+  // para que el mando se actualice al instante al cambiar de lado (sin esperar a
+  // pulsar Siguiente/Anterior/Girar).
+  sendRemoteCmd('SYNC');
 }
 
 if (remoteTargetId) {
@@ -1750,6 +1752,7 @@ if (remoteTargetId) {
         ejecutarComandoEnPanel(target, cmd);
       } else {
         ejecutarComandoLocal(cmd);
+        syncRemoteData(); // así 'SYNC' (al pulsar "🖥️ Normal") también actualiza el mando al instante
       }
     });
     // Enviar datos actuales al conectar el mando
