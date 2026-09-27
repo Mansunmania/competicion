@@ -275,6 +275,11 @@
         <span>Temas de Estudio (Tags):</span>
         <button id="btnSelectAllTopics" class="btn-flat" style="padding: 2px 8px; font-size: 11px;" onclick="toggleSelectAllTopics()">Seleccionar todos</button>
       </div>
+      <div style="font-weight:700; font-size:13px; color:var(--muted); width:100%; margin-top:8px; margin-bottom:4px;">🔍 Buscar por texto (Pregunta o Respuesta):</div>
+<div class="filter-group">
+  <input type="text" id="searchInput" placeholder="Escribe una palabra o frase..." style="max-width: 320px; padding: 6px 12px; font-size: 13px;" oninput="applyFilters()" />
+  <button class="btn-flat" onclick="document.getElementById('searchInput').value=''; applyFilters();" style="padding: 6px 12px; font-size: 12px;">✖ Limpiar búsqueda</button>
+</div>
       <div style="display: flex; gap: 4px; align-items: center;">
         <input id="newTopicInput" placeholder="Añadir nuevo tema..." style="padding: 4px 8px; font-size: 12px; width: 160px;" />
         <button class="btn-ok" id="addTopicBtn" style="padding: 4px 10px; font-size: 12px;">➕ Crear</button>
@@ -1097,6 +1102,11 @@ function updateVisualFilterButtons() {
 
 function applyFilters() {
   updateVisualFilterButtons();
+
+  // Leemos el texto a buscar (en minúsculas e ignorando espacios adicionales)
+  const searchInputEl = document.getElementById('searchInput');
+  const searchText = searchInputEl ? searchInputEl.value.trim().toLowerCase() : '';
+
   filtered = deck.filter(card => {
     const matchCourse = matchesCourseFilter(card, filterCourse);
     const matchSubj = (filterSubj === 'ALL' || card.subj === filterSubj);
@@ -1107,10 +1117,19 @@ function applyFilters() {
       const cardTopics = getCardTopics(card);
       matchTopic = confirmedTopics.some(t => (t === 'NONE') ? cardTopics.length === 0 : cardTopics.includes(t));
     }
-    return matchCourse && matchSubj && matchLvl && matchTopic;
+
+    // 🔍 NUEVA CONDICIÓN: Buscar coincidencia única y exclusivamente en Pregunta (q) o Respuesta (a)
+    let matchText = true;
+    if (searchText !== '') {
+      const qText = (card.q || '').toLowerCase();
+      const aText = (card.a || '').toLowerCase();
+      matchText = qText.includes(searchText) || aText.includes(searchText);
+    }
+
+    return matchCourse && matchSubj && matchLvl && matchTopic && matchText;
   });
 
-  const memoryKey = `${filterCourse}|${filterSubj}|${filterLvl}|${confirmedTopics.join(',')}`;
+  const memoryKey = ${filterCourse}|${filterSubj}|${filterLvl}|${confirmedTopics.join(',')}|${searchText};
   index = (filterMemory[memoryKey] !== undefined && filterMemory[memoryKey] < filtered.length) ? filterMemory[memoryKey] : 0;
   updateView();
 }
