@@ -475,14 +475,13 @@ function recalc() {
       let gA = parts[0], gB = parts[1];
       A.gf += gA; A.gc += gB; B.gf += gB; B.gc += gA;
       
-      // SISTEMA DE PUNTUACIÓN DE SUIZA/LIGA (3 pts victoria, 1 emp)
-      if (gA > gB) { 
-        A.pts += 3; A.v++; B.d++; 
-      } else if (gB > gA) { 
-        B.pts += 3; B.v++; A.d++; 
-      } else { 
-        A.pts += 1; B.pts += 1; A.e++; B.e++; 
-      }
+      // 1 punto por cada gol/acierto anotado
+      A.pts += gA; 
+      B.pts += gB;
+
+      if (gA > gB) { A.v++; B.d++; }
+      else if (gB > gA) { B.v++; A.d++; }
+      else { A.e++; B.e++; }
     }
   });
 
@@ -579,14 +578,11 @@ function renameParticipant(oldName, newName) {
   pushHistory();
   const state = getActiveData();
 
-  // 1. Reemplazar solo la primera ocurrencia del nombre antiguo para evitar duplicidades
+  // 1. Reemplazar solo el nombre en la posición exacta del array de alumnos
   const idx = state.students.indexOf(oldName);
   if (idx !== -1) {
     state.students[idx] = newName;
   }
-  
-  // Limpiar posibles duplicados accidentales en la lista general
-  state.students = [...new Set(state.students)];
 
   // 2. Actualizar desempates
   if (state.tieBreakers && state.tieBreakers[oldName] !== undefined) {
@@ -594,13 +590,14 @@ function renameParticipant(oldName, newName) {
     delete state.tieBreakers[oldName];
   }
 
-  // 3. Actualizar partidos manteniendo la coherencia de emparejamientos
+  // 3. Actualizar partidos
   state.matches.forEach(m => {
     if (m.a === oldName) m.a = newName;
     if (m.b === oldName) m.b = newName;
   });
 
   save();
+  // Se renderiza de nuevo toda la estructura limpia
   render();
 }
 
