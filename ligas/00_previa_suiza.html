@@ -556,7 +556,7 @@ function enableNameEdit(spanEl, oldName) {
     if (newName && newName !== oldName) {
       renameParticipant(oldName, newName);
     } else {
-      renderStandings();
+      render();
     }
   };
 
@@ -565,7 +565,7 @@ function enableNameEdit(spanEl, oldName) {
     if (e.key === 'Enter') {
       finishEdit();
     } else if (e.key === 'Escape') {
-      renderStandings();
+      render();
     }
   };
 
@@ -578,26 +578,26 @@ function renameParticipant(oldName, newName) {
   pushHistory();
   const state = getActiveData();
 
-  // 1. Reemplazar solo el nombre en la posición exacta del array de alumnos
+  // Reemplazar únicamente el nombre en su posición exacta
   const idx = state.students.indexOf(oldName);
   if (idx !== -1) {
     state.students[idx] = newName;
   }
 
-  // 2. Actualizar desempates
+  // Conservar desempates
   if (state.tieBreakers && state.tieBreakers[oldName] !== undefined) {
     state.tieBreakers[newName] = state.tieBreakers[oldName];
     delete state.tieBreakers[oldName];
   }
 
-  // 3. Actualizar partidos
+  // Actualizar actas de partidos
   state.matches.forEach(m => {
     if (m.a === oldName) m.a = newName;
     if (m.b === oldName) m.b = newName;
   });
 
   save();
-  // Se renderiza de nuevo toda la estructura limpia
+  // Se renderizan todos los paneles limpios desde cero
   render();
 }
 
