@@ -1545,7 +1545,13 @@ document.getElementById('shuffleBtn').onclick = () => {
 // AL GUARDAR CAMBIOS DE EDICIÓN
 document.getElementById('updateBtn').onclick = () => {
   if (!filtered.length) return;
-  const currentCard = filtered[index];
+  
+  // Guardamos la posición actual antes de refrescar los filtros
+  const currentIndex = index;
+  const memoryKey = `\({filterCourse}|\){filterSubj}|\({filterLvl}|\){confirmedTopics.join(',')}`;
+  filterMemory[memoryKey] = currentIndex;
+
+  const currentCard = filtered[currentIndex];
   currentCard.qContext = document.getElementById('editQContext').value.trim();
   currentCard.q = document.getElementById('editQ').value.trim();
   currentCard.a = document.getElementById('editA').value.trim();
@@ -1556,7 +1562,7 @@ document.getElementById('updateBtn').onclick = () => {
   currentCard.topic = currentCard.topics.join(', ');
   currentCard.media = document.getElementById('editMedia').value.trim();
   
-  hasUnsavedChanges = true; // <-- MARCAR CAMBIO PENDIENTE
+  hasUnsavedChanges = true;
   saveDeck(); 
   applyFilters();
 };
