@@ -551,11 +551,23 @@
 <div id="splitModal" onclick="closeSplitModal()">
   <div class="split-config-box" onclick="event.stopPropagation()">
     <h3 style="margin:0; color:var(--ink);">🔀 Pantalla dividida (2 niveles a la vez)</h3>
-    <p style="margin:0; font-size:12px; color:var(--muted);">Elige el curso y/o la dificultad de cada mitad. Deja "Todos" en lo que no quieras filtrar. Cada mitad funciona de forma totalmente independiente (tarjeta, navegación y su propio mando si lo necesitas).</p>
+    <p style="margin:0; font-size:12px; color:var(--muted);">Elige el curso, la asignatura y/o la dificultad de cada mitad. Deja "Todas" en lo que no quieras filtrar.</p>
     <div class="split-config-cols">
+      <!-- Panel Izquierdo -->
       <div class="split-config-col">
         <label>Panel Izquierdo — Curso</label>
         <select id="splitCourseL"></select>
+        
+        <label>Panel Izquierdo — Asignatura</label>
+        <select id="splitSubjL">
+          <option value="ALL">Todas las asignaturas</option>
+          <option value="Lengua">Lengua 🇪🇸</option>
+          <option value="Inglés">Inglés 🇬🇧</option>
+          <option value="Matemáticas">Matemáticas 📐</option>
+          <option value="Sociales">Sociales 🌍</option>
+          <option value="Naturales">Naturales 🌿</option>
+        </select>
+
         <label>Panel Izquierdo — Dificultad</label>
         <select id="splitLvlL">
           <option value="ALL">Todos los niveles</option>
@@ -564,9 +576,23 @@
           <option value="Difícil">Difícil</option>
         </select>
       </div>
+
+      <!-- Panel Derecho -->
       <div class="split-config-col">
         <label>Panel Derecho — Curso</label>
         <select id="splitCourseR"></select>
+
+        <label>Panel Derecho — Asignatura</label>
+        <select id="splitSubjR">
+          <option value="ALL">Todas las asignaturas</option>
+          <option value="Lengua">Lengua 🇪🇸</option>
+          <option value="Inglés">Inglés 🇬🇧</option>
+          <option value="Matemáticas">Matemáticas 📐</option>
+
+          <option value="Sociales">Sociales 🌍</option>
+          <option value="Naturales">Naturales 🌿</option>
+        </select>
+
         <label>Panel Derecho — Dificultad</label>
         <select id="splitLvlR">
           <option value="ALL">Todos los niveles</option>
@@ -619,6 +645,7 @@ let hasUnsavedChanges = false; // <-- AÑADIDO: Controla si hay cambios pendient
 const pageParams = new URLSearchParams(window.location.search);
 const isEmbedMode = pageParams.get('embed') === '1';
 const embedCourseParam = pageParams.get('course') || 'ALL';
+const embedSubjParam = pageParams.get('subj') || 'ALL';
 const embedLvlParam = pageParams.get('lvl') || 'ALL';
 if (isEmbedMode) document.body.classList.add('embed-mode');
 
@@ -749,19 +776,37 @@ async function loadDeck() {
   let origenCargado = "";
   let cargadoConExito = false;
 
-  try {
-    const resDrive = await fetch(APPS_SCRIPT_URL, { redirect: 'follow' });
-    if (!resDrive.ok) throw new Error(`Status: ${resDrive.status}`);
-    const dataDrive = await resDrive.json();
-    if (Array.isArray(dataDrive) && dataDrive.length > 0) {
-      procesarMazo(dataDrive);
-      origenCargado = "☁️ Google Drive";
-      cargadoConExito = true;
+  // OPTIMIZACIÓN: Si estamos dentro de un iframe (embed-mode), intentamos usar 
+  // los datos que el marco padre ya tiene cargados en memoria o en localStorage.
+  if (isEmbedMode) {
+    try {
+      if (window.parent && window.parent.deck && window.parent.deck.length > 0) {
+        procesarMazo(window.parent.deck);
+        origenCargado = "⚡ Memoria Compartida (Ventana Principal)";
+        cargadoConExito = true;
+      }
+    } catch (e) {
+      // Ignorar posibles restricciones de origen
     }
-  } catch (errDrive) {
-    console.warn("Fallo al cargar desde Drive via Apps Script:", errDrive);
   }
 
+  // Si no es iframe o no se pudo acceder al padre, hacer la carga normal
+  if (!cargadoConExito && !isEmbedMode) {
+    try {
+      const resDrive = await fetch(APPS_SCRIPT_URL, { redirect: 'follow' });
+      if (!resDrive.ok) throw new Error(`Status: ${resDrive.status}`);
+      const dataDrive = await resDrive.json();
+      if (Array.isArray(dataDrive) && dataDrive.length > 0) {
+        procesarMazo(dataDrive);
+        origenCargado = "☁️ Google Drive";
+        cargadoConExito = true;
+      }
+    } catch (errDrive) {
+      console.warn("Fallo al cargar desde Drive via Apps Script:", errDrive);
+    }
+  }
+
+  // Fallback 1: LocalStorage
   if (!cargadoConExito) {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) { 
@@ -776,6 +821,7 @@ async function loadDeck() {
     }
   }
 
+  // Fallback 2: JSON local
   if (!cargadoConExito) {
     try {
       const resLocal = await fetch('preguntas.json?v=' + new Date().getTime());
@@ -804,6 +850,7 @@ async function loadDeck() {
 
   if (isEmbedMode) {
     if (embedCourseParam && embedCourseParam !== 'ALL') setCourse(embedCourseParam);
+    if (embedSubjParam && embedSubjParam !== 'ALL') setSubj(embedSubjParam);
     if (embedLvlParam && embedLvlParam !== 'ALL') setLvl(embedLvlParam);
   }
 }
@@ -1712,8 +1759,10 @@ function closeSplitModal() {
 
 function activateSplitView() {
   const cL = document.getElementById('splitCourseL').value;
+  const sL = document.getElementById('splitSubjL').value;
   const lL = document.getElementById('splitLvlL').value;
   const cR = document.getElementById('splitCourseR').value;
+  const sR = document.getElementById('splitSubjR').value;
   const lR = document.getElementById('splitLvlR').value;
 
   // URL de esta misma página, sin query string previa (funciona tanto en http(s):// como en file://)
