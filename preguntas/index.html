@@ -11,14 +11,6 @@
   <link rel="dns-prefetch" href="https://www.youtube-nocookie.com">
   <link rel="preconnect" href="https://www.googlevideo.com">
   
-  <!-- PeerJS para Control Remoto WebRTC y QRCode.js -->
-  <!-- CAMBIO: se usa jsdelivr (reparte el tráfico entre varias CDN: Cloudflare, Fastly...)
-       en vez de unpkg.com y cdnjs.cloudflare.com, que dependen ÚNICAMENTE de Cloudflare.
-       Esto reduce (no garantiza al 100%) las probabilidades de verse afectado por los
-       bloqueos de IPs de Cloudflare que aplican los operadores españoles durante los
-       partidos de LaLiga, ya que jsdelivr no siempre resuelve contra el mismo proveedor.
-       Si algún día tampoco cargara, cambia estas dos URLs por las que tenías antes
-       (unpkg.com / cdnjs.cloudflare.com) o prueba con cdn.jsdelivr.net/gh/... -->
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 
@@ -130,7 +122,6 @@
     .card-img-preview { max-height: 140px; border-radius: 8px; border: 1px solid var(--line); cursor: pointer; transition: transform 0.2s; object-fit: contain; }
     .card-img-preview:hover { transform: scale(1.04); }
 
-    /* ESTILOS DE VÍDEO CON SOPORTE PARA MAXIMIZADO Y MINIATURA */
     .yt-container, .yt-controls, #btnMaxVideo { pointer-events: auto; }
 
     .yt-container {
@@ -146,17 +137,16 @@
       box-shadow: 0 0 0 100vmax rgba(15, 23, 42, 0.9) !important;
     }
 
-/* Oculta texto, contenedores y el botón de 'Correcto!' al maximizar el vídeo */
-.flashcard.has-maximized-video .card-back .card-text-container,
-.flashcard.has-maximized-video .card-back p,
-.flashcard.has-maximized-video .card-back h3,
-.flashcard.has-maximized-video .card-back span,
-.flashcard.has-maximized-video .card-back .success-actions,
-.flashcard.has-maximized-video .card-back #celebrateBtn {
-  opacity: 0 !important;
-  visibility: hidden !important;
-  pointer-events: none !important;
-}
+    .flashcard.has-maximized-video .card-back .card-text-container,
+    .flashcard.has-maximized-video .card-back p,
+    .flashcard.has-maximized-video .card-back h3,
+    .flashcard.has-maximized-video .card-back span,
+    .flashcard.has-maximized-video .card-back .success-actions,
+    .flashcard.has-maximized-video .card-back #celebrateBtn {
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
     
     .yt-container.minimized {
       position: fixed !important; top: 50% !important; left: 50% !important; 
@@ -201,12 +191,10 @@
     }
     .notion-item:hover { background: #f1f5f9; }
 
-    /* MODAL QR MANDO */
     #qrModal { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.8); z-index: 3000; display: none; justify-content: center; align-items: center; }
     #qrModal.open { display: flex; }
     .qr-box { background: white; padding: 24px; border-radius: 16px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; }
 
-    /* MANDO MÓVIL */
     .remote-layout { display: none; flex-direction: column; gap: 10px; width: 100%; max-width: 400px; height: 92vh; margin: 0 auto; justify-content: center; padding: 10px; }
     .remote-card-info { background: #0f172a; border: 1px solid #334155; padding: 14px; border-radius: 16px; text-align: left; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); }
     .btn-remote { flex: 1; border: none; border-radius: 16px; font-size: 1.3rem; font-weight: bold; color: white; background: var(--pri); touch-action: manipulation; }
@@ -218,7 +206,6 @@
     .btn-remote-lvl { flex: 1; padding: 10px 4px; font-size: 0.85rem; font-weight: bold; border-radius: 10px; border: none; background: #334155; color: white; cursor: pointer; }
     .btn-remote-lvl.active { background: var(--pri); }
 
-    /* ===== MODO EMBED (usado dentro de cada mitad de la Vista Dividida) ===== */
     body.embed-mode { padding: 8px; }
     body.embed-mode .filters,
     body.embed-mode .editor-box,
@@ -229,7 +216,6 @@
     body.embed-mode .flashcard-wrapper { margin: 6px auto; }
     body.embed-mode .flashcard { max-width: 100%; height: min(62vh, 480px); }
 
-    /* ===== VISTA DIVIDIDA (dos mitades independientes, cada una con su filtro) ===== */
     .split-view-container {
       display: none; position: fixed; inset: 0; background: #0f172a; z-index: 5000;
     }
@@ -253,7 +239,6 @@
 </head>
 <body>
 
-<!-- CONTENEDOR VISTA PROYECTOR / PC -->
 <div id="appView" class="layout">
 
   <div class="filters">
@@ -275,11 +260,6 @@
         <span>Temas de Estudio (Tags):</span>
         <button id="btnSelectAllTopics" class="btn-flat" style="padding: 2px 8px; font-size: 11px;" onclick="toggleSelectAllTopics()">Seleccionar todos</button>
       </div>
-      <div style="font-weight:700; font-size:13px; color:var(--muted); width:100%; margin-top:8px; margin-bottom:4px;">🔍 Buscar por texto (Pregunta o Respuesta):</div>
-<div class="filter-group">
-  <input type="text" id="searchInput" placeholder="Escribe una palabra o frase..." style="max-width: 320px; padding: 6px 12px; font-size: 13px;" oninput="applyFilters()" />
-  <button class="btn-flat" onclick="document.getElementById('searchInput').value=''; applyFilters();" style="padding: 6px 12px; font-size: 12px;">✖ Limpiar búsqueda</button>
-</div>
       <div style="display: flex; gap: 4px; align-items: center;">
         <input id="newTopicInput" placeholder="Añadir nuevo tema..." style="padding: 4px 8px; font-size: 12px; width: 160px;" />
         <button class="btn-ok" id="addTopicBtn" style="padding: 4px 10px; font-size: 12px;">➕ Crear</button>
@@ -287,6 +267,13 @@
     </div>
     
     <div class="filter-group" id="topicFilterGroup"></div>
+
+    <!-- BUSCADOR INDEPENDIENTE Y BIEN MAQUETADO -->
+    <div style="font-weight:700; font-size:13px; color:var(--muted); width:100%; margin-top:8px; margin-bottom:4px;">🔍 Buscar por texto (Pregunta o Respuesta):</div>
+    <div class="filter-group">
+      <input type="text" id="searchInput" placeholder="Escribe una palabra o frase..." style="max-width: 320px; padding: 6px 12px; font-size: 13px;" oninput="applyFilters()" />
+      <button class="btn-flat" onclick="document.getElementById('searchInput').value=''; applyFilters();" style="padding: 6px 12px; font-size: 12px;">✖ Limpiar búsqueda</button>
+    </div>
     
     <div id="topicConfirmZone" class="confirmation-bar" style="display: none;">
       <div style="display:flex; align-items:center; gap:8px;">
@@ -360,7 +347,6 @@
     </div>
   </div>
 
-  <!-- VISOR DE IMAGEN MAXIMIZADA -->
   <div class="img-modal" id="imgModal" onclick="closeImgModal()">
     <div class="img-modal-content" onclick="event.stopPropagation()">
       <button class="img-modal-close" onclick="closeImgModal()">✖</button>
@@ -518,7 +504,6 @@
 
 </div>
 
-<!-- VISTA MANDO REMOTO MÓVIL -->
 <div id="remoteView" class="remote-layout">
   <div class="remote-lvl-row">
     <button class="btn-remote-lvl" onclick="sendRemoteCmd('SET_LVL_Fácil')">Fácil</button>
@@ -542,7 +527,6 @@
   <button id="btnRemoteYtMax" onclick="sendRemoteCmd('TOGGLE_MAX_VIDEO')">🖥️ Maximizar Vídeo</button>
 </div>
 
-<!-- MODAL QR -->
 <div id="qrModal" onclick="closeQRModal()">
   <div class="qr-box" onclick="event.stopPropagation()">
     <h3 style="margin:0; color:var(--ink);">📱 Mando a distancia</h3>
@@ -552,13 +536,11 @@
   </div>
 </div>
 
-<!-- MODAL CONFIGURACIÓN VISTA DIVIDIDA -->
 <div id="splitModal" onclick="closeSplitModal()">
   <div class="split-config-box" onclick="event.stopPropagation()">
     <h3 style="margin:0; color:var(--ink);">🔀 Pantalla dividida (2 niveles a la vez)</h3>
     <p style="margin:0; font-size:12px; color:var(--muted);">Elige el curso, la asignatura y/o la dificultad de cada mitad. Deja "Todas" en lo que no quieras filtrar.</p>
     <div class="split-config-cols">
-      <!-- Panel Izquierdo -->
       <div class="split-config-col">
         <label>Panel Izquierdo — Curso</label>
         <select id="splitCourseL"></select>
@@ -582,7 +564,6 @@
         </select>
       </div>
 
-      <!-- Panel Derecho -->
       <div class="split-config-col">
         <label>Panel Derecho — Curso</label>
         <select id="splitCourseR"></select>
@@ -593,7 +574,6 @@
           <option value="Lengua">Lengua 🇪🇸</option>
           <option value="Inglés">Inglés 🇬🇧</option>
           <option value="Matemáticas">Matemáticas 📐</option>
-
           <option value="Sociales">Sociales 🌍</option>
           <option value="Naturales">Naturales 🌿</option>
         </select>
@@ -614,7 +594,6 @@
   </div>
 </div>
 
-<!-- CONTENEDOR VISTA DIVIDIDA (dos instancias independientes de la app, vía iframe) -->
 <div id="splitViewContainer" class="split-view-container">
   <button class="btn-exit-split" onclick="exitSplitView()">↩️ Volver a vista normal</button>
   <iframe id="splitPaneL" class="split-pane" title="Panel izquierdo"></iframe>
@@ -642,11 +621,8 @@ let customTopics = [];
 let filtered = [];
 let index = 0;
 let filterMemory = {};
-let hasUnsavedChanges = false; // <-- AÑADIDO: Controla si hay cambios pendientes
+let hasUnsavedChanges = false;
 
-/* MODO EMBED: cuando esta página se carga dentro de un iframe de la Vista Dividida,
-   con ?embed=1&course=...&lvl=..., se oculta la edición/filtros y se aplica el filtro
-   indicado automáticamente (ver activateSplitView() y el final de loadDeck()). */
 const pageParams = new URLSearchParams(window.location.search);
 const isEmbedMode = pageParams.get('embed') === '1';
 const embedCourseParam = pageParams.get('course') || 'ALL';
@@ -654,17 +630,15 @@ const embedSubjParam = pageParams.get('subj') || 'ALL';
 const embedLvlParam = pageParams.get('lvl') || 'ALL';
 if (isEmbedMode) document.body.classList.add('embed-mode');
 
-// AVISO NATIVO AL CERRAR O RECARGAR SI HAY CAMBIOS
 window.addEventListener('beforeunload', (e) => {
   if (hasUnsavedChanges) {
     e.preventDefault();
-    e.returnValue = ''; // Muestra el mensaje estándar del navegador
+    e.returnValue = '';
   }
 });
 
 const BASE_COURSES = ["5º", "6º"];
 
-/* SÍNTESIS DE AUDIO REALISTA CON WEB AUDIO API */
 let audioCtx = null;
 
 function initAudio() {
@@ -781,8 +755,6 @@ async function loadDeck() {
   let origenCargado = "";
   let cargadoConExito = false;
 
-  // OPTIMIZACIÓN: Si estamos dentro de un iframe (embed-mode), intentamos usar 
-  // los datos que el marco padre ya tiene cargados en memoria o en localStorage.
   if (isEmbedMode) {
     try {
       if (window.parent && window.parent.deck && window.parent.deck.length > 0) {
@@ -790,12 +762,9 @@ async function loadDeck() {
         origenCargado = "⚡ Memoria Compartida (Ventana Principal)";
         cargadoConExito = true;
       }
-    } catch (e) {
-      // Ignorar posibles restricciones de origen
-    }
+    } catch (e) {}
   }
 
-  // Si no es iframe o no se pudo acceder al padre, hacer la carga normal
   if (!cargadoConExito && !isEmbedMode) {
     try {
       const resDrive = await fetch(APPS_SCRIPT_URL, { redirect: 'follow' });
@@ -811,7 +780,6 @@ async function loadDeck() {
     }
   }
 
-  // Fallback 1: LocalStorage
   if (!cargadoConExito) {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) { 
@@ -826,7 +794,6 @@ async function loadDeck() {
     }
   }
 
-  // Fallback 2: JSON local
   if (!cargadoConExito) {
     try {
       const resLocal = await fetch('preguntas.json?v=' + new Date().getTime());
@@ -903,7 +870,7 @@ function toggleFullscreen(e) {
 
 function navCard(e, dir) {
   if (e) e.stopPropagation();
-  closeImgModal(); // <-- AÑADIDO: Cierra la imagen si estaba maximizada
+  closeImgModal();
   if (!filtered.length) return;
   playCardSlide();
   index = (index + dir + filtered.length) % filtered.length;
@@ -1103,7 +1070,6 @@ function updateVisualFilterButtons() {
 function applyFilters() {
   updateVisualFilterButtons();
 
-  // Leemos el texto a buscar (en minúsculas e ignorando espacios adicionales)
   const searchInputEl = document.getElementById('searchInput');
   const searchText = searchInputEl ? searchInputEl.value.trim().toLowerCase() : '';
 
@@ -1118,7 +1084,6 @@ function applyFilters() {
       matchTopic = confirmedTopics.some(t => (t === 'NONE') ? cardTopics.length === 0 : cardTopics.includes(t));
     }
 
-    // 🔍 NUEVA CONDICIÓN: Buscar coincidencia única y exclusivamente en Pregunta (q) o Respuesta (a)
     let matchText = true;
     if (searchText !== '') {
       const qText = (card.q || '').toLowerCase();
@@ -1129,7 +1094,7 @@ function applyFilters() {
     return matchCourse && matchSubj && matchLvl && matchTopic && matchText;
   });
 
-  const memoryKey = ${filterCourse}|${filterSubj}|${filterLvl}|${confirmedTopics.join(',')}|${searchText};
+  const memoryKey = `${filterCourse}|${filterSubj}|${filterLvl}|${confirmedTopics.join(',')}|${searchText}`;
   index = (filterMemory[memoryKey] !== undefined && filterMemory[memoryKey] < filtered.length) ? filterMemory[memoryKey] : 0;
   updateView();
 }
@@ -1139,7 +1104,6 @@ function openMediaLink(e, url) {
   window.open(url, '_blank'); 
 }
 
-/* COMPRESIÓN DE IMÁGENES AL SUBIR */
 function handleImageUpload(inputElement, targetInputId) {
   const file = inputElement.files[0];
   if (!file) return;
@@ -1368,7 +1332,6 @@ function updateView() {
       });
     }
 
-    // SINCRONIZACIÓN CON EL PANEL DE EDICIÓN
     const editTargetEl = document.getElementById('editTargetIndex');
     const editQContextEl = document.getElementById('editQContext');
     const editQEl = document.getElementById('editQ');
@@ -1394,18 +1357,16 @@ function updateView() {
   }, 150);
 }
 
-// Variable global para controlar el temporizador de reproducción
 let ytPlayTimeout = null;
 
 function handleCardClick(cardElement) {
-  closeImgModal(); // <-- AÑADIDO: Cierra la imagen maximizada al voltear la tarjeta
+  closeImgModal();
   
   cardElement.classList.toggle('flipped');
   const isFlipped = cardElement.classList.contains('flipped');
   const mediaBack = document.getElementById('mediaAnchorBack');
 
   if (isFlipped) {
-    // ... resto del código de volteo existente ...
     playArpa();
 
     if (mediaBack && mediaBack.dataset.hasYt === "true") {
@@ -1413,10 +1374,8 @@ function handleCardClick(cardElement) {
       const startSec = parseInt(mediaBack.dataset.ytStart, 10) || 0;
 
       if (iframe && iframe.contentWindow) {
-        // 1. Cancelamos cualquier temporizador previo
         if (ytPlayTimeout) clearTimeout(ytPlayTimeout);
 
-        // 2. Pausamos inmediatamente por si YouTube intentó un arranque automático nativo en el 1er giro
         iframe.contentWindow.postMessage(
           JSON.stringify({
             event: 'command',
@@ -1426,7 +1385,6 @@ function handleCardClick(cardElement) {
           '*'
         );
 
-        // 3. Reubicamos el vídeo en el segundo exacto de la tarjeta
         iframe.contentWindow.postMessage(
           JSON.stringify({
             event: 'command',
@@ -1436,7 +1394,6 @@ function handleCardClick(cardElement) {
           '*'
         );
 
-        // 4. Programamos la reproducción tras los 2 segundos
         ytPlayTimeout = setTimeout(() => {
           iframe.contentWindow.postMessage(
             JSON.stringify({
@@ -1462,7 +1419,6 @@ function handleCardClick(cardElement) {
   } else {
     playCardSlide();
 
-    // Al regresar al frente, cancelamos la reproducción programada y pausamos el vídeo
     if (ytPlayTimeout) clearTimeout(ytPlayTimeout);
 
     if (mediaBack && mediaBack.dataset.hasYt === "true") {
@@ -1519,7 +1475,6 @@ function toggleMaxVideo(e) {
   }
 }
 
-// CÓDIGO CORREGIDO:
 function closeVideo(e) {
   if (e) {
     e.stopPropagation();
@@ -1565,10 +1520,8 @@ document.getElementById('shuffleBtn').onclick = () => {
 document.getElementById('updateBtn').onclick = () => {
   if (!filtered.length) return;
 
-  // 1. Guardamos la referencia directa a la tarjeta que estamos editando
   const cardBeingEdited = filtered[index];
 
-  // 2. Aplicamos las modificaciones a los campos del objeto
   cardBeingEdited.qContext = document.getElementById('editQContext').value.trim();
   cardBeingEdited.q = document.getElementById('editQ').value.trim();
   cardBeingEdited.a = document.getElementById('editA').value.trim();
@@ -1582,7 +1535,8 @@ document.getElementById('updateBtn').onclick = () => {
   hasUnsavedChanges = true;
   saveDeck(); 
 
-  // 3. Volvemos a filtrar el mazo
+  const currentSearchText = (document.getElementById('searchInput')?.value || '').trim().toLowerCase();
+
   updateVisualFilterButtons();
   filtered = deck.filter(card => {
     const matchCourse = matchesCourseFilter(card, filterCourse);
@@ -1594,44 +1548,48 @@ document.getElementById('updateBtn').onclick = () => {
       const cardTopics = getCardTopics(card);
       matchTopic = confirmedTopics.some(t => (t === 'NONE') ? cardTopics.length === 0 : cardTopics.includes(t));
     }
-    return matchCourse && matchSubj && matchLvl && matchTopic;
+
+    let matchText = true;
+    if (currentSearchText !== '') {
+      const qText = (card.q || '').toLowerCase();
+      const aText = (card.a || '').toLowerCase();
+      matchText = qText.includes(currentSearchText) || aText.includes(currentSearchText);
+    }
+
+    return matchCourse && matchSubj && matchLvl && matchTopic && matchText;
   });
 
-  // 4. Buscamos dónde ha quedado la tarjeta dentro del nuevo array filtrado
   const newIndex = filtered.indexOf(cardBeingEdited);
   
   if (newIndex !== -1) {
-    // Si la tarjeta sigue estando dentro del filtro actual, nos quedamos en su nueva posición
     index = newIndex;
   } else {
-    // Si la edición hizo que la tarjeta ya no cumpla el filtro (ej. le cambiaste la asignatura),
-    // nos quedamos en el mismo índice numérico si existe, o en la última disponible.
     index = Math.min(index, Math.max(0, filtered.length - 1));
   }
 
-  // 5. Actualizamos la memoria del filtro y la vista
-  const memoryKey = `\({filterCourse}|\){filterSubj}|\({filterLvl}|\){confirmedTopics.join(',')}`;
+  const memoryKey = `${filterCourse}|${filterSubj}|${filterLvl}|${confirmedTopics.join(',')}|${currentSearchText}`;
   filterMemory[memoryKey] = index;
   updateView();
 };
   
-// AL BORRAR UNA TARJETA
 document.getElementById('delBtn').onclick = () => {
   if (!filtered.length || !confirm("¿Seguro que deseas eliminar esta tarjeta?")) return;
   const globalIndex = deck.indexOf(filtered[index]);
   if (globalIndex > -1) { 
     deck.splice(globalIndex, 1); 
-    hasUnsavedChanges = true; // <-- MARCAR CAMBIO PENDIENTE
+    hasUnsavedChanges = true;
     saveDeck(); 
     applyFilters(); 
   }
 };
 
-// AL CREAR UNA NUEVA TARJETA
+// AL CREAR UNA NUEVA TARJETA (Mantiene la tarjeta actual en pantalla)
 document.getElementById('addBtn').onclick = () => {
   const q = document.getElementById('addQ').value.trim();
   const a = document.getElementById('addA').value.trim();
   if (!q || !a) { alert("Completa al menos la pregunta y la respuesta."); return; }
+
+  const currentCardBeforeAdd = filtered[index];
 
   const topics = parseInputItems(document.getElementById('addTopic').value);
   deck.push({
@@ -1644,17 +1602,25 @@ document.getElementById('addBtn').onclick = () => {
     media: document.getElementById('addMedia').value.trim()
   });
 
-  hasUnsavedChanges = true; // <-- MARCAR CAMBIO PENDIENTE
+  hasUnsavedChanges = true;
   saveDeck();
   document.getElementById('addQContext').value = '';
   document.getElementById('addQ').value = '';
   document.getElementById('addA').value = '';
   document.getElementById('addMedia').value = '';
   document.getElementById('addImgFile').value = '';
+  
   applyFilters();
+
+  if (currentCardBeforeAdd) {
+    const retainedIndex = filtered.indexOf(currentCardBeforeAdd);
+    if (retainedIndex !== -1) {
+      index = retainedIndex;
+      updateView();
+    }
+  }
 };
 
-// AL EXPORTAR EL JSON (SE DESACTIVA LA ALERTA)
 document.getElementById('exportBtn').onclick = () => {
   const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(deck, null, 2));
   const downloadAnchor = document.createElement('a');
@@ -1664,10 +1630,9 @@ document.getElementById('exportBtn').onclick = () => {
   downloadAnchor.click(); 
   downloadAnchor.remove();
 
-  hasUnsavedChanges = false; // <-- CAMBIOS GUARDADOS / EXPORTADOS CON ÉXITO
+  hasUnsavedChanges = false;
 };
 
-// AL IMPORTAR UN FICHERO
 document.getElementById('importFile').onchange = (e) => {
   const file = e.target.files[0];
   if (!file) return;
@@ -1678,7 +1643,7 @@ document.getElementById('importFile').onchange = (e) => {
       if (Array.isArray(importedData)) { 
         procesarMazo(importedData); 
         saveDeck();
-        hasUnsavedChanges = false; // <-- RESETEAR AL CARGAR UN NUEVO ARCHIVO
+        hasUnsavedChanges = false;
         mostrarAvisoOrigen("📁 Archivo importado manualmente");
         applyFilters(); 
         alert("¡Mazo importado con éxito!"); 
@@ -1693,7 +1658,6 @@ setupMultiAutocomplete('editCourse', 'menuEdit', getAllAvailableCourses);
 setupMultiAutocomplete('addTopic', 'menuAddTopic', getAllAvailableTopics);
 setupMultiAutocomplete('editTopic', 'menuEditTopic', getAllAvailableTopics);
 
-/* LÓGICA DE CONTROL REMOTO CON PEERJS */
 let peer = null, conn = null;
 const urlParams = new URLSearchParams(window.location.search);
 const remoteTargetId = urlParams.get('remote');
@@ -1745,10 +1709,9 @@ if (remoteTargetId) {
     }
   });
   
-    peer.on('open', (id) => {
+  peer.on('open', (id) => {
     const remoteUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}?remote=${id}`;
     
-    // Generar código QR para el mando a distancia
     const qrContainer = document.getElementById('qrcode');
     if (qrContainer) {
       qrContainer.innerHTML = '';
@@ -1776,12 +1739,10 @@ if (remoteTargetId) {
         }
       }
     });
-    // Enviar datos actuales al conectar el mando
     setTimeout(syncRemoteData, 500);
   });
 }
 
-/* FUNCIONES DE MODALES Y VISTA DIVIDIDA */
 function openQRModal() {
   document.getElementById('qrModal').classList.add('open');
 }
@@ -1836,7 +1797,6 @@ function exitSplitView() {
   document.getElementById('splitPaneR').src = 'about:blank';
 }
 
-// Inicialización de la aplicación
 window.addEventListener('DOMContentLoaded', () => {
   loadDeck();
 });
