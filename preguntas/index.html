@@ -522,8 +522,8 @@
 <!-- VISTA MANDO REMOTO MÓVIL -->
 <div id="remoteView" class="remote-layout">
   <div class="remote-target-row" id="remoteTargetRow">
-    <button class="btn-remote-target active" id="btnTargetAll" onclick="setRemoteTarget('ALL')">🖥️ Normal</button>
     <button class="btn-remote-target" id="btnTargetL" onclick="setRemoteTarget('L')">◀️ Izquierda</button>
+    <button class="btn-remote-target active" id="btnTargetAll" onclick="setRemoteTarget('ALL')">🖥️ Normal</button>
     <button class="btn-remote-target" id="btnTargetR" onclick="setRemoteTarget('R')">▶️ Derecha</button>
   </div>
   <p style="margin:0; font-size:11px; color:#64748b; text-align:center;">Usa estos 3 botones solo si el proyector está en Vista Dividida, para elegir qué mitad controlas. Si está en vista normal, déjalo en "🖥️ Normal".</p>
@@ -1770,32 +1770,38 @@ function ejecutarComandoLocal(cmd) {
 }
 
 // Reenvía un comando desde la página principal (el mando ya emparejado aquí) hacia uno de
-// los dos iframes de la Vista Dividida, y devuelve al móvil la pregunta/respuesta de esa
-// mitad para que el profesor las siga viendo aunque esté controlando un panel dividido.
+// los dos iframes de la Vista Dividida. Se usa postMessage en vez de llamar directamente a
+// una función del iframe: postMessage es el mecanismo estándar para comunicar frames y
+// funciona de forma fiable aunque el navegador restrinja el acceso directo a propiedades
+// entre documentos (algo que sí puede pasar, en silencio, con contentWindow.miFuncion()).
 function ejecutarComandoEnPanel(target, cmd) {
   const container = document.getElementById('splitViewContainer');
   if (!container || !container.classList.contains('open')) return;
   const pane = document.getElementById(target === 'L' ? 'splitPaneL' : 'splitPaneR');
   if (!pane || !pane.contentWindow) return;
-
-  try {
-    if (typeof pane.contentWindow.ejecutarComandoLocal === 'function') {
-      pane.contentWindow.ejecutarComandoLocal(cmd);
-    }
-  } catch (e) {
-    console.warn('No se pudo controlar el panel ' + target + ':', e);
-    return;
-  }
-
-  // Pequeño margen para que termine la animación de volteo/cambio de tarjeta antes de leer el estado
-  setTimeout(() => {
-    try {
-      if (conn && conn.open && typeof pane.contentWindow.obtenerEstadoTarjetaActual === 'function') {
-        conn.send({ type: 'CARD_SYNC', ...pane.contentWindow.obtenerEstadoTarjetaActual() });
-      }
-    } catch (e) { /* iframe puede no estar listo todavía */ }
-  }, 180);
+  pane.contentWindow.postMessage({ type: 'SPLIT_REMOTE_CMD', cmd: cmd, target: target }, '*');
 }
+
+// Cada panel embebido ejecuta el comando recibido y, tras un pequeño margen (para que
+// termine la animación de volteo/cambio de tarjeta), devuelve su pregunta/respuesta actual
+// a la página principal, para que el mando del móvil las siga mostrando correctamente.
+window.addEventListener('message', (e) => {
+  if (!e.data) return;
+  if (e.data.type === 'SPLIT_REMOTE_CMD') {
+    ejecutarComandoLocal(e.data.cmd);
+    setTimeout(() => {
+      try {
+        window.parent.postMessage({ type: 'SPLIT_CARD_STATE', target: e.data.target, ...obtenerEstadoTarjetaActual() }, '*');
+      } catch (err) { /* ignorar */ }
+    }, 180);
+  }
+  if (e.data.type === 'SPLIT_CARD_STATE') {
+    // Esto lo recibe la página principal desde el panel que se acaba de controlar
+    if (conn && conn.open) {
+      conn.send({ type: 'CARD_SYNC', question: e.data.question, answer: e.data.answer, hasImage: e.data.hasImage, hasYt: e.data.hasYt });
+    }
+  }
+});
 
 /* FUNCIONES DE MODALES Y VISTA DIVIDIDA */
 function openQRModal() {
