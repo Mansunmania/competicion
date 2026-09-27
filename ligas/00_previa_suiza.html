@@ -574,8 +574,14 @@ function renameParticipant(oldName, newName) {
   pushHistory();
   const state = getActiveData();
 
-  // 1. Actualizar lista de alumnos
-  state.students = state.students.map(s => s === oldName ? newName : s);
+  // 1. Reemplazar solo la primera ocurrencia del nombre antiguo para evitar duplicidades
+  const idx = state.students.indexOf(oldName);
+  if (idx !== -1) {
+    state.students[idx] = newName;
+  }
+  
+  // Limpiar posibles duplicados accidentales en la lista general
+  state.students = [...new Set(state.students)];
 
   // 2. Actualizar desempates
   if (state.tieBreakers && state.tieBreakers[oldName] !== undefined) {
@@ -583,7 +589,7 @@ function renameParticipant(oldName, newName) {
     delete state.tieBreakers[oldName];
   }
 
-  // 3. Actualizar partidos
+  // 3. Actualizar partidos manteniendo la coherencia de emparejamientos
   state.matches.forEach(m => {
     if (m.a === oldName) m.a = newName;
     if (m.b === oldName) m.b = newName;
