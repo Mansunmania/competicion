@@ -12,8 +12,15 @@
   <link rel="preconnect" href="https://www.googlevideo.com">
   
   <!-- PeerJS para Control Remoto WebRTC y QRCode.js -->
-  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <!-- CAMBIO: se usa jsdelivr (reparte el tráfico entre varias CDN: Cloudflare, Fastly...)
+       en vez de unpkg.com y cdnjs.cloudflare.com, que dependen ÚNICAMENTE de Cloudflare.
+       Esto reduce (no garantiza al 100%) las probabilidades de verse afectado por los
+       bloqueos de IPs de Cloudflare que aplican los operadores españoles durante los
+       partidos de LaLiga, ya que jsdelivr no siempre resuelve contra el mismo proveedor.
+       Si algún día tampoco cargara, cambia estas dos URLs por las que tenías antes
+       (unpkg.com / cdnjs.cloudflare.com) o prueba con cdn.jsdelivr.net/gh/... -->
+  <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 
   <style>
     :root {
@@ -210,6 +217,38 @@
     .remote-lvl-row { display: flex; gap: 6px; width: 100%; }
     .btn-remote-lvl { flex: 1; padding: 10px 4px; font-size: 0.85rem; font-weight: bold; border-radius: 10px; border: none; background: #334155; color: white; cursor: pointer; }
     .btn-remote-lvl.active { background: var(--pri); }
+
+    /* ===== MODO EMBED (usado dentro de cada mitad de la Vista Dividida) ===== */
+    body.embed-mode { padding: 8px; }
+    body.embed-mode .filters,
+    body.embed-mode .editor-box,
+    body.embed-mode .edit-zone,
+    body.embed-mode #btnSplitView,
+    body.embed-mode #data-source-badge { display: none !important; }
+    body.embed-mode .layout { gap: 8px; }
+    body.embed-mode .flashcard-wrapper { margin: 6px auto; }
+    body.embed-mode .flashcard { max-width: 100%; height: min(62vh, 480px); }
+
+    /* ===== VISTA DIVIDIDA (dos mitades independientes, cada una con su filtro) ===== */
+    .split-view-container {
+      display: none; position: fixed; inset: 0; background: #0f172a; z-index: 5000;
+    }
+    .split-view-container.open { display: flex; }
+    .split-pane { flex: 1; height: 100%; border: none; background: #f0f4f8; }
+    .split-divider { width: 5px; background: #334155; flex-shrink: 0; }
+    .btn-exit-split {
+      position: fixed; top: 10px; right: 10px; z-index: 5001; background: rgba(220,38,38,0.92);
+      color: #fff; border: none; padding: 10px 16px; border-radius: 10px; font-weight: 700;
+      font-size: 14px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+    .btn-exit-split:hover { background: #b91c1c; }
+
+    #splitModal { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.8); z-index: 3000; display: none; justify-content: center; align-items: center; }
+    #splitModal.open { display: flex; }
+    .split-config-box { background: #fff; padding: 24px; border-radius: 16px; display: flex; flex-direction: column; gap: 14px; max-width: 480px; width: 92%; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
+    .split-config-cols { display: flex; gap: 16px; }
+    .split-config-col { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+    .split-config-col label { margin-top: 4px; }
   </style>
 </head>
 <body>
@@ -305,6 +344,7 @@
       <button class="btn-flat" id="nextBtn" onclick="navCard(event, 1)">Siguiente ➡️</button>
       <button class="btn-warn" id="shuffleBtn">🎯 Aleatorio</button>
       <button class="btn-pri" style="background:#8b5cf6;" onclick="openQRModal()">📱 Mando Móvil</button>
+      <button class="btn-pri" style="background:#0891b2;" id="btnSplitView" onclick="openSplitModal()">🔀 Vista Dividida</button>
     </div>
   </div>
 
@@ -507,6 +547,50 @@
   </div>
 </div>
 
+<!-- MODAL CONFIGURACIÓN VISTA DIVIDIDA -->
+<div id="splitModal" onclick="closeSplitModal()">
+  <div class="split-config-box" onclick="event.stopPropagation()">
+    <h3 style="margin:0; color:var(--ink);">🔀 Pantalla dividida (2 niveles a la vez)</h3>
+    <p style="margin:0; font-size:12px; color:var(--muted);">Elige el curso y/o la dificultad de cada mitad. Deja "Todos" en lo que no quieras filtrar. Cada mitad funciona de forma totalmente independiente (tarjeta, navegación y su propio mando si lo necesitas).</p>
+    <div class="split-config-cols">
+      <div class="split-config-col">
+        <label>Panel Izquierdo — Curso</label>
+        <select id="splitCourseL"></select>
+        <label>Panel Izquierdo — Dificultad</label>
+        <select id="splitLvlL">
+          <option value="ALL">Todos los niveles</option>
+          <option value="Fácil">Fácil</option>
+          <option value="Medio">Medio</option>
+          <option value="Difícil">Difícil</option>
+        </select>
+      </div>
+      <div class="split-config-col">
+        <label>Panel Derecho — Curso</label>
+        <select id="splitCourseR"></select>
+        <label>Panel Derecho — Dificultad</label>
+        <select id="splitLvlR">
+          <option value="ALL">Todos los niveles</option>
+          <option value="Fácil">Fácil</option>
+          <option value="Medio">Medio</option>
+          <option value="Difícil">Difícil</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:flex; gap:8px; justify-content:flex-end;">
+      <button class="btn-flat" onclick="closeSplitModal()">Cancelar</button>
+      <button class="btn-pri" style="background:#0891b2;" onclick="activateSplitView()">🔀 Activar vista dividida</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONTENEDOR VISTA DIVIDIDA (dos instancias independientes de la app, vía iframe) -->
+<div id="splitViewContainer" class="split-view-container">
+  <button class="btn-exit-split" onclick="exitSplitView()">↩️ Volver a vista normal</button>
+  <iframe id="splitPaneL" class="split-pane" title="Panel izquierdo"></iframe>
+  <div class="split-divider"></div>
+  <iframe id="splitPaneR" class="split-pane" title="Panel derecho"></iframe>
+</div>
+
 <script>
 const STORAGE_KEY = 'classroom_cards_deck_v4';
 const STORAGE_TOPICS_KEY = 'classroom_cards_topics_v4';
@@ -528,6 +612,15 @@ let filtered = [];
 let index = 0;
 let filterMemory = {};
 let hasUnsavedChanges = false; // <-- AÑADIDO: Controla si hay cambios pendientes
+
+/* MODO EMBED: cuando esta página se carga dentro de un iframe de la Vista Dividida,
+   con ?embed=1&course=...&lvl=..., se oculta la edición/filtros y se aplica el filtro
+   indicado automáticamente (ver activateSplitView() y el final de loadDeck()). */
+const pageParams = new URLSearchParams(window.location.search);
+const isEmbedMode = pageParams.get('embed') === '1';
+const embedCourseParam = pageParams.get('course') || 'ALL';
+const embedLvlParam = pageParams.get('lvl') || 'ALL';
+if (isEmbedMode) document.body.classList.add('embed-mode');
 
 // AVISO NATIVO AL CERRAR O RECARGAR SI HAY CAMBIOS
 window.addEventListener('beforeunload', (e) => {
@@ -708,6 +801,11 @@ async function loadDeck() {
 
   mostrarAvisoOrigen(origenCargado);
   applyFilters();
+
+  if (isEmbedMode) {
+    if (embedCourseParam && embedCourseParam !== 'ALL') setCourse(embedCourseParam);
+    if (embedLvlParam && embedLvlParam !== 'ALL') setLvl(embedLvlParam);
+  }
 }
 
 function procesarMazo(datos) {
@@ -950,7 +1048,7 @@ function updateVisualFilterButtons() {
   renderCourseFilterButtons(); renderTopicControls(); 
 }
 
-function applyFilters(targetCard = null) {
+function applyFilters() {
   updateVisualFilterButtons();
   filtered = deck.filter(card => {
     const matchCourse = matchesCourseFilter(card, filterCourse);
@@ -965,19 +1063,8 @@ function applyFilters(targetCard = null) {
     return matchCourse && matchSubj && matchLvl && matchTopic;
   });
 
-  // SI SE ESPECIFICA UNA TARJETA, BUSCAMOS SU NUEVA POSICIÓN
-  if (targetCard) {
-    const newIndex = filtered.indexOf(targetCard);
-    if (newIndex !== -1) {
-      index = newIndex;
-    } else {
-      index = 0; // Si los nuevos filtros la ocultan, vuelve al inicio
-    }
-  } else {
-    const memoryKey = `${filterCourse}|${filterSubj}|${filterLvl}|${confirmedTopics.join(',')}`;
-    index = (filterMemory[memoryKey] !== undefined && filterMemory[memoryKey] < filtered.length) ? filterMemory[memoryKey] : 0;
-  }
-
+  const memoryKey = `${filterCourse}|${filterSubj}|${filterLvl}|${confirmedTopics.join(',')}`;
+  index = (filterMemory[memoryKey] !== undefined && filterMemory[memoryKey] < filtered.length) ? filterMemory[memoryKey] : 0;
   updateView();
 }
 
@@ -1408,7 +1495,7 @@ document.getElementById('shuffleBtn').onclick = () => {
   shuffleArray(filtered); index = 0; updateView();
 };
 
-// AL GUARDAR CAMBIOS: SE QUEDA EN LA TARJETA EDITADA
+// AL GUARDAR CAMBIOS DE EDICIÓN
 document.getElementById('updateBtn').onclick = () => {
   if (!filtered.length) return;
   const currentCard = filtered[index];
@@ -1422,43 +1509,31 @@ document.getElementById('updateBtn').onclick = () => {
   currentCard.topic = currentCard.topics.join(', ');
   currentCard.media = document.getElementById('editMedia').value.trim();
   
-  hasUnsavedChanges = true;
+  hasUnsavedChanges = true; // <-- MARCAR CAMBIO PENDIENTE
   saveDeck(); 
-  applyFilters(currentCard); // <-- Le pasamos la tarjeta actual para mantener la vista aquí
+  applyFilters();
 };
 
-// AL BORRAR UNA TARJETA (CORREGIDO)
+// AL BORRAR UNA TARJETA
 document.getElementById('delBtn').onclick = () => {
   if (!filtered.length || !confirm("¿Seguro que deseas eliminar esta tarjeta?")) return;
-  
-  const cardToDelete = filtered[index];
-  const globalIndex = deck.indexOf(cardToDelete);
-  
+  const globalIndex = deck.indexOf(filtered[index]);
   if (globalIndex > -1) { 
-    // Averiguamos cuál será la tarjeta siguiente ANTES de modificar los arrays
-    let nextCard = null;
-    if (index < filtered.length - 1) {
-      nextCard = filtered[index + 1]; // La siguiente tarjeta
-    } else if (index > 0) {
-      nextCard = filtered[index - 1]; // Si era la última, la anterior
-    }
-
     deck.splice(globalIndex, 1); 
-    hasUnsavedChanges = true; 
+    hasUnsavedChanges = true; // <-- MARCAR CAMBIO PENDIENTE
     saveDeck(); 
-    
-    applyFilters(nextCard); // Filtra y busca directamente la tarjeta vecina
+    applyFilters(); 
   }
 };
-  
-  // AL CREAR UNA TARJETA: SALTA DIRECTAMENTE A LA NUEVA TARJETA
+
+// AL CREAR UNA NUEVA TARJETA
 document.getElementById('addBtn').onclick = () => {
   const q = document.getElementById('addQ').value.trim();
   const a = document.getElementById('addA').value.trim();
   if (!q || !a) { alert("Completa al menos la pregunta y la respuesta."); return; }
 
   const topics = parseInputItems(document.getElementById('addTopic').value);
-  const newCard = {
+  deck.push({
     qContext: document.getElementById('addQContext').value.trim(),
     q, a,
     subj: document.getElementById('addSubj').value,
@@ -1466,21 +1541,18 @@ document.getElementById('addBtn').onclick = () => {
     course: document.getElementById('addCourse').value.trim(),
     topics: topics, topic: topics.join(', '),
     media: document.getElementById('addMedia').value.trim()
-  };
+  });
 
-  deck.push(newCard);
-
-  hasUnsavedChanges = true;
+  hasUnsavedChanges = true; // <-- MARCAR CAMBIO PENDIENTE
   saveDeck();
   document.getElementById('addQContext').value = '';
   document.getElementById('addQ').value = '';
   document.getElementById('addA').value = '';
   document.getElementById('addMedia').value = '';
   document.getElementById('addImgFile').value = '';
-  
-  applyFilters(newCard); // <-- Salta directamente a la tarjeta recién creada
+  applyFilters();
 };
-  
+
 // AL EXPORTAR EL JSON (SE DESACTIVA LA ALERTA)
 document.getElementById('exportBtn').onclick = () => {
   const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(deck, null, 2));
@@ -1617,6 +1689,49 @@ function closeQRModal() {
   if (modal) {
     modal.classList.remove('open');
   }
+}
+
+/* ===== LÓGICA DE LA VISTA DIVIDIDA ===== */
+function openSplitModal() {
+  const opciones = ['ALL', ...getAllAvailableCourses()];
+  const rellenarSelect = (sel) => {
+    const valorPrevio = sel.value;
+    sel.innerHTML = opciones.map(c =>
+      `<option value="${c}">${c === 'ALL' ? 'Todos los cursos' : c}</option>`
+    ).join('');
+    if (opciones.includes(valorPrevio)) sel.value = valorPrevio;
+  };
+  rellenarSelect(document.getElementById('splitCourseL'));
+  rellenarSelect(document.getElementById('splitCourseR'));
+  document.getElementById('splitModal').classList.add('open');
+}
+
+function closeSplitModal() {
+  document.getElementById('splitModal').classList.remove('open');
+}
+
+function activateSplitView() {
+  const cL = document.getElementById('splitCourseL').value;
+  const lL = document.getElementById('splitLvlL').value;
+  const cR = document.getElementById('splitCourseR').value;
+  const lR = document.getElementById('splitLvlR').value;
+
+  // URL de esta misma página, sin query string previa (funciona tanto en http(s):// como en file://)
+  const base = window.location.href.split('?')[0].split('#')[0];
+  const urlL = `${base}?embed=1&course=${encodeURIComponent(cL)}&lvl=${encodeURIComponent(lL)}`;
+  const urlR = `${base}?embed=1&course=${encodeURIComponent(cR)}&lvl=${encodeURIComponent(lR)}`;
+
+  document.getElementById('splitPaneL').src = urlL;
+  document.getElementById('splitPaneR').src = urlR;
+  document.getElementById('splitViewContainer').classList.add('open');
+  closeSplitModal();
+}
+
+function exitSplitView() {
+  document.getElementById('splitViewContainer').classList.remove('open');
+  // Se descargan los iframes para parar audio/vídeo y liberar sus conexiones de mando remoto
+  document.getElementById('splitPaneL').src = 'about:blank';
+  document.getElementById('splitPaneR').src = 'about:blank';
 }
 
 loadDeck();
