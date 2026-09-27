@@ -1545,28 +1545,57 @@ document.getElementById('shuffleBtn').onclick = () => {
 // AL GUARDAR CAMBIOS DE EDICIÓN
 document.getElementById('updateBtn').onclick = () => {
   if (!filtered.length) return;
-  
-  // Guardamos la posición actual antes de refrescar los filtros
-  const currentIndex = index;
-  const memoryKey = `\({filterCourse}|\){filterSubj}|\({filterLvl}|\){confirmedTopics.join(',')}`;
-  filterMemory[memoryKey] = currentIndex;
 
-  const currentCard = filtered[currentIndex];
-  currentCard.qContext = document.getElementById('editQContext').value.trim();
-  currentCard.q = document.getElementById('editQ').value.trim();
-  currentCard.a = document.getElementById('editA').value.trim();
-  currentCard.subj = document.getElementById('editSubj').value;
-  currentCard.lvl = document.getElementById('editLvl').value;
-  currentCard.course = document.getElementById('editCourse').value.trim();
-  currentCard.topics = parseInputItems(document.getElementById('editTopic').value);
-  currentCard.topic = currentCard.topics.join(', ');
-  currentCard.media = document.getElementById('editMedia').value.trim();
+  // 1. Guardamos la referencia directa a la tarjeta que estamos editando
+  const cardBeingEdited = filtered[index];
+
+  // 2. Aplicamos las modificaciones a los campos del objeto
+  cardBeingEdited.qContext = document.getElementById('editQContext').value.trim();
+  cardBeingEdited.q = document.getElementById('editQ').value.trim();
+  cardBeingEdited.a = document.getElementById('editA').value.trim();
+  cardBeingEdited.subj = document.getElementById('editSubj').value;
+  cardBeingEdited.lvl = document.getElementById('editLvl').value;
+  cardBeingEdited.course = document.getElementById('editCourse').value.trim();
+  cardBeingEdited.topics = parseInputItems(document.getElementById('editTopic').value);
+  cardBeingEdited.topic = cardBeingEdited.topics.join(', ');
+  cardBeingEdited.media = document.getElementById('editMedia').value.trim();
   
   hasUnsavedChanges = true;
   saveDeck(); 
-  applyFilters();
-};
 
+  // 3. Volvemos a filtrar el mazo
+  updateVisualFilterButtons();
+  filtered = deck.filter(card => {
+    const matchCourse = matchesCourseFilter(card, filterCourse);
+    const matchSubj = (filterSubj === 'ALL' || card.subj === filterSubj);
+    const matchLvl = (filterLvl === 'ALL' || card.lvl === filterLvl);
+    
+    let matchTopic = true;
+    if (confirmedTopics.length > 0) {
+      const cardTopics = getCardTopics(card);
+      matchTopic = confirmedTopics.some(t => (t === 'NONE') ? cardTopics.length === 0 : cardTopics.includes(t));
+    }
+    return matchCourse && matchSubj && matchLvl && matchTopic;
+  });
+
+  // 4. Buscamos dónde ha quedado la tarjeta dentro del nuevo array filtrado
+  const newIndex = filtered.indexOf(cardBeingEdited);
+  
+  if (newIndex !== -1) {
+    // Si la tarjeta sigue estando dentro del filtro actual, nos quedamos en su nueva posición
+    index = newIndex;
+  } else {
+    // Si la edición hizo que la tarjeta ya no cumpla el filtro (ej. le cambiaste la asignatura),
+    // nos quedamos en el mismo índice numérico si existe, o en la última disponible.
+    index = Math.min(index, Math.max(0, filtered.length - 1));
+  }
+
+  // 5. Actualizamos la memoria del filtro y la vista
+  const memoryKey = `\({filterCourse}|\){filterSubj}|\({filterLvl}|\){confirmedTopics.join(',')}`;
+  filterMemory[memoryKey] = index;
+  updateView();
+};
+  
 // AL BORRAR UNA TARJETA
 document.getElementById('delBtn').onclick = () => {
   if (!filtered.length || !confirm("¿Seguro que deseas eliminar esta tarjeta?")) return;
