@@ -1691,65 +1691,64 @@ if (remoteTargetId) {
     }
   });
   
-  peer.on('open', (id) => {
+    peer.on('open', (id) => {
     const remoteUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}?remote=${id}`;
-    const qrContainer = document.getElementById("qrcode");
-    qrContainer.innerHTML = "";
-    new QRCode(qrContainer, { text: remoteUrl, width: 200, height: 200 });
+    
+    // Generar código QR para el mando a distancia
+    const qrContainer = document.getElementById('qrcode');
+    if (qrContainer) {
+      qrContainer.innerHTML = '';
+      new QRCode(qrContainer, {
+        text: remoteUrl,
+        width: 180,
+        height: 180
+      });
+    }
   });
 
   peer.on('connection', (c) => {
     conn = c;
-    conn.on('open', () => {
-      syncRemoteData();
-    });
-    conn.on('data', (cmd) => {
+    conn.on('data', (data) => {
       const cardEl = document.getElementById('cardElement');
-      if (cmd === 'NEXT') navCard(null, 1);
-      if (cmd === 'PREV') navCard(null, -1);
-      if (cmd === 'FLIP') handleCardClick(cardEl);
-      if (cmd === 'TOGGLE_ZOOM') toggleImageZoom();
-      if (cmd === 'TOGGLE_MAX_VIDEO') {
-        if (typeof ensureVideoLoaded === 'function') ensureVideoLoaded();
-        toggleMaxVideo();
+      if (typeof data === 'string') {
+        if (data === 'PREV') navCard(null, -1);
+        else if (data === 'NEXT') navCard(null, 1);
+        else if (data === 'FLIP') handleCardClick(cardEl);
+        else if (data === 'TOGGLE_ZOOM') toggleImageZoom();
+        else if (data === 'TOGGLE_MAX_VIDEO') toggleMaxVideo(null);
+        else if (data.startsWith('SET_LVL_')) {
+          const lvl = data.replace('SET_LVL_', '');
+          setLvl(lvl);
+        }
       }
-      if (cmd === 'SET_LVL_Fácil') setLvl('Fácil');
-      if (cmd === 'SET_LVL_Medio') setLvl('Medio');
-      if (cmd === 'SET_LVL_Difícil') setLvl('Difícil');
     });
+    // Enviar datos actuales al conectar el mando
+    setTimeout(syncRemoteData, 500);
   });
 }
 
-function openQRModal() { 
-  const modal = document.getElementById('qrModal');
-  if (modal) {
-    modal.classList.add('open');
-    if (peer && peer.id && document.getElementById("qrcode").children.length === 0) {
-      const remoteUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}?remote=${peer.id}`;
-      new QRCode(document.getElementById("qrcode"), { text: remoteUrl, width: 200, height: 200 });
-    }
-  }
+/* FUNCIONES DE MODALES Y VISTA DIVIDIDA */
+function openQRModal() {
+  document.getElementById('qrModal').classList.add('open');
 }
 
-function closeQRModal() { 
-  const modal = document.getElementById('qrModal');
-  if (modal) {
-    modal.classList.remove('open');
-  }
+function closeQRModal() {
+  document.getElementById('qrModal').classList.remove('open');
 }
 
-/* ===== LÓGICA DE LA VISTA DIVIDIDA ===== */
 function openSplitModal() {
-  const opciones = ['ALL', ...getAllAvailableCourses()];
-  const rellenarSelect = (sel) => {
-    const valorPrevio = sel.value;
-    sel.innerHTML = opciones.map(c =>
-      `<option value="${c}">${c === 'ALL' ? 'Todos los cursos' : c}</option>`
-    ).join('');
-    if (opciones.includes(valorPrevio)) sel.value = valorPrevio;
+  const courses = getAllAvailableCourses();
+  const buildOptions = (selId) => {
+    const select = document.getElementById(selId);
+    if (!select) return;
+    let html = '<option value="ALL">Todos los cursos</option>';
+    courses.forEach(c => {
+      html += `<option value="${c}">${c}</option>`;
+    });
+    select.innerHTML = html;
   };
-  rellenarSelect(document.getElementById('splitCourseL'));
-  rellenarSelect(document.getElementById('splitCourseR'));
+  buildOptions('splitCourseL');
+  buildOptions('splitCourseR');
   document.getElementById('splitModal').classList.add('open');
 }
 
@@ -1761,29 +1760,32 @@ function activateSplitView() {
   const cL = document.getElementById('splitCourseL').value;
   const sL = document.getElementById('splitSubjL').value;
   const lL = document.getElementById('splitLvlL').value;
+
   const cR = document.getElementById('splitCourseR').value;
   const sR = document.getElementById('splitSubjR').value;
   const lR = document.getElementById('splitLvlR').value;
 
-  // URL de esta misma página, sin query string previa (funciona tanto en http(s):// como en file://)
-  const base = window.location.href.split('?')[0].split('#')[0];
-  const urlL = `${base}?embed=1&course=${encodeURIComponent(cL)}&lvl=${encodeURIComponent(lL)}`;
-  const urlR = `${base}?embed=1&course=${encodeURIComponent(cR)}&lvl=${encodeURIComponent(lR)}`;
+  const basePath = window.location.pathname;
+  const srcL = `${basePath}?embed=1&course=${encodeURIComponent(cL)}&subj=${encodeURIComponent(sL)}&lvl=${encodeURIComponent(lL)}`;
+  const srcR = `${basePath}?embed=1&course=${encodeURIComponent(cR)}&subj=${encodeURIComponent(sR)}&lvl=${encodeURIComponent(lR)}`;
 
-  document.getElementById('splitPaneL').src = urlL;
-  document.getElementById('splitPaneR').src = urlR;
+  document.getElementById('splitPaneL').src = srcL;
+  document.getElementById('splitPaneR').src = srcR;
+
   document.getElementById('splitViewContainer').classList.add('open');
   closeSplitModal();
 }
 
 function exitSplitView() {
   document.getElementById('splitViewContainer').classList.remove('open');
-  // Se descargan los iframes para parar audio/vídeo y liberar sus conexiones de mando remoto
   document.getElementById('splitPaneL').src = 'about:blank';
   document.getElementById('splitPaneR').src = 'about:blank';
 }
 
-loadDeck();
+// Inicialización de la aplicación
+window.addEventListener('DOMContentLoaded', () => {
+  loadDeck();
+});
 </script>
 </body>
 </html>
