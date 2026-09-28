@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Mazo Flippity Completo - Proyector Classroom</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,13 +12,6 @@
   <link rel="preconnect" href="https://www.googlevideo.com">
   
   <!-- PeerJS para Control Remoto WebRTC y QRCode.js -->
-  <!-- CAMBIO: se usa jsdelivr (reparte el tráfico entre varias CDN: Cloudflare, Fastly...)
-       en vez de unpkg.com y cdnjs.cloudflare.com, que dependen ÚNICAMENTE de Cloudflare.
-       Esto reduce (no garantiza al 100%) las probabilidades de verse afectado por los
-       bloqueos de IPs de Cloudflare que aplican los operadores españoles durante los
-       partidos de LaLiga, ya que jsdelivr no siempre resuelve contra el mismo proveedor.
-       Si algún día tampoco cargara, cambia estas dos URLs por las que tenías antes
-       (unpkg.com / cdnjs.cloudflare.com) o prueba con cdn.jsdelivr.net/gh/... -->
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 
@@ -130,7 +123,6 @@
     .card-img-preview { max-height: 140px; border-radius: 8px; border: 1px solid var(--line); cursor: pointer; transition: transform 0.2s; object-fit: contain; }
     .card-img-preview:hover { transform: scale(1.04); }
 
-    /* ESTILOS DE VÍDEO CON SOPORTE PARA MAXIMIZADO Y MINIATURA */
     .yt-container, .yt-controls, #btnMaxVideo { pointer-events: auto; }
 
     .yt-container {
@@ -146,17 +138,16 @@
       box-shadow: 0 0 0 100vmax rgba(15, 23, 42, 0.9) !important;
     }
 
-/* Oculta texto, contenedores y el botón de 'Correcto!' al maximizar el vídeo */
-.flashcard.has-maximized-video .card-back .card-text-container,
-.flashcard.has-maximized-video .card-back p,
-.flashcard.has-maximized-video .card-back h3,
-.flashcard.has-maximized-video .card-back span,
-.flashcard.has-maximized-video .card-back .success-actions,
-.flashcard.has-maximized-video .card-back #celebrateBtn {
-  opacity: 0 !important;
-  visibility: hidden !important;
-  pointer-events: none !important;
-}
+    .flashcard.has-maximized-video .card-back .card-text-container,
+    .flashcard.has-maximized-video .card-back p,
+    .flashcard.has-maximized-video .card-back h3,
+    .flashcard.has-maximized-video .card-back span,
+    .flashcard.has-maximized-video .card-back .success-actions,
+    .flashcard.has-maximized-video .card-back #celebrateBtn {
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
     
     .yt-container.minimized {
       position: fixed !important; top: 50% !important; left: 50% !important; 
@@ -201,28 +192,78 @@
     }
     .notion-item:hover { background: #f1f5f9; }
 
-    /* MODAL QR MANDO */
     #qrModal { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.8); z-index: 6000; display: none; justify-content: center; align-items: center; }
     #qrModal.open { display: flex; }
     .qr-box { background: white; padding: 24px; border-radius: 16px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; }
 
-    /* MANDO MÓVIL */
-    .remote-layout { display: none; flex-direction: column; gap: 10px; width: 100%; height: 92vh; height: 100dvh; max-height: 92vh; max-height: 100dvh; margin: 0 auto; padding: 10px; box-sizing: border-box; overflow-y: auto; }
-    .remote-card-info { background: #0f172a; border: 1px solid #334155; padding: 10px 14px; border-radius: 16px; text-align: left; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); flex: 0 0 auto; }
-    .btn-remote { flex: 1 1 0; min-height: 50px; border: none; border-radius: 16px; font-size: 1.3rem; font-weight: bold; color: white; background: var(--pri); touch-action: manipulation; }
+    /* ESTILOS REESTRUCTURADOS Y AJUSTADOS PARA EL MANDO MÓVIL */
+    .remote-layout {
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+      max-width: 450px;
+      margin: 0 auto;
+      padding: 12px;
+      box-sizing: border-box;
+      overflow: hidden;
+      background: var(--bg);
+    }
+    .remote-card-info {
+      background: #0f172a;
+      border: 1px solid #334155;
+      padding: 12px 16px;
+      border-radius: 16px;
+      text-align: left;
+      box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
+      flex: 0 0 auto;
+    }
+    .btn-remote {
+      flex: 1 1 0%;
+      min-height: 52px;
+      max-height: 90px;
+      border: none;
+      border-radius: 16px;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: white;
+      background: var(--pri);
+      touch-action: manipulation;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
     .btn-remote-flip { background: var(--ok); }
-    .btn-remote-img, .btn-remote-yt { flex: 0 0 auto; min-height: 44px; max-height: 50px; font-size: 1.1rem; border: none; border-radius: 16px; font-weight: bold; color: white; touch-action: manipulation; }
+    .btn-remote-img, .btn-remote-yt {
+      flex: 0 0 auto;
+      height: 46px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 14px;
+      font-weight: 700;
+      color: white;
+      touch-action: manipulation;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
     .btn-remote-img { background: var(--purple); }
     .btn-remote-yt { background: var(--yt); }
-    .img-upload-input { font-size: 11px; padding: 4px; }
-    .remote-lvl-row { display: flex; gap: 6px; width: 100%; flex: 0 0 auto; }
-    .btn-remote-lvl { flex: 1; padding: 10px 4px; font-size: 0.85rem; font-weight: bold; border-radius: 10px; border: none; background: #334155; color: white; cursor: pointer; }
-    .btn-remote-lvl.active { background: var(--pri); }
-    .remote-target-row { display: flex; gap: 6px; width: 100%; flex: 0 0 auto; }
-    .btn-remote-target { flex: 1; padding: 8px 4px; font-size: 0.72rem; font-weight: 700; border-radius: 10px; border: 2px solid transparent; background: #334155; color: #94a3b8; cursor: pointer; }
+    
+    .remote-target-row { display: flex; gap: 8px; width: 100%; flex: 0 0 auto; }
+    .btn-remote-target {
+      flex: 1; padding: 10px 4px; font-size: 0.8rem; font-weight: 700;
+      border-radius: 10px; border: 2px solid transparent; background: #1e293b; color: #94a3b8; cursor: pointer;
+    }
     .btn-remote-target.active { background: #0891b2; color: #fff; border-color: #67e8f9; }
 
-    /* ===== MODO EMBED (usado dentro de cada mitad de la Vista Dividida) ===== */
+    .remote-lvl-row { display: flex; gap: 8px; width: 100%; flex: 0 0 auto; }
+    .btn-remote-lvl {
+      flex: 1; padding: 10px 4px; font-size: 0.85rem; font-weight: 700;
+      border-radius: 10px; border: none; background: #1e293b; color: #ffffff; cursor: pointer;
+    }
+    .btn-remote-lvl.active { background: var(--pri); }
+
     body.embed-mode { padding: 8px; }
     body.embed-mode .filters,
     body.embed-mode .editor-box,
@@ -234,7 +275,6 @@
     body.embed-mode .flashcard-wrapper { margin: 6px auto; }
     body.embed-mode .flashcard { max-width: 100%; height: min(62vh, 480px); }
 
-    /* ===== VISTA DIVIDIDA (dos mitades independientes, cada una con su filtro) ===== */
     .split-view-container {
       display: none; position: fixed; inset: 0; background: #0f172a; z-index: 5000;
     }
@@ -260,7 +300,6 @@
 </head>
 <body>
 
-<!-- CONTENEDOR VISTA PROYECTOR / PC -->
 <div id="appView" class="layout">
 
   <div class="filters">
@@ -289,6 +328,12 @@
     </div>
     
     <div class="filter-group" id="topicFilterGroup"></div>
+
+    <div style="font-weight:700; font-size:13px; color:var(--muted); width:100%; margin-top:8px; margin-bottom:4px;">🔍 Buscar por texto (Pregunta o Respuesta):</div>
+    <div class="filter-group">
+      <input type="text" id="searchInput" placeholder="Escribe una palabra o frase..." style="max-width: 320px; padding: 6px 12px; font-size: 13px;" oninput="applyFilters()" />
+      <button class="btn-flat" onclick="document.getElementById('searchInput').value=''; applyFilters();" style="padding: 6px 12px; font-size: 12px;">✖ Limpiar búsqueda</button>
+    </div>
     
     <div id="topicConfirmZone" class="confirmation-bar" style="display: none;">
       <div style="display:flex; align-items:center; gap:8px;">
@@ -301,11 +346,6 @@
           ✅ Confirmar selección (<span id="selectedTopicsCount">0</span>)
         </button>
       </div>
-    </div>
-
-    <div style="display:flex; align-items:center; gap:8px; width:100%; margin-top:8px; margin-bottom:4px;">
-      <input id="searchTextInput" type="search" placeholder="🔎 Buscar en preguntas y respuestas..." oninput="setSearchText(this.value)" style="flex:1; padding:8px 10px; font-size:13px; border-radius:8px; border:1px solid var(--line);" />
-      <button class="btn-flat" style="padding:8px 10px; font-size:12px;" onclick="clearSearchText()">✕ Limpiar</button>
     </div>
 
     <div style="font-weight:700; font-size:13px; color:var(--muted); width:100%; margin-top:8px; margin-bottom:4px;">Dificultad / Nivel de Liga:</div>
@@ -367,7 +407,6 @@
     </div>
   </div>
 
-  <!-- VISOR DE IMAGEN MAXIMIZADA -->
   <div class="img-modal" id="imgModal" onclick="closeImgModal()">
     <div class="img-modal-content" onclick="event.stopPropagation()">
       <button class="img-modal-close" onclick="closeImgModal()">✖</button>
@@ -539,22 +578,21 @@
   </div>
   <div class="remote-card-info">
     <div style="font-size: 11px; text-transform: uppercase; color: #94a3b8; font-weight: 700; margin-bottom: 2px;">Pregunta Activa</div>
-    <div id="remoteQuestionText" style="font-size: 14px; color: #f8fafc; font-weight: 500; margin-bottom: 10px; line-height: 1.3;">-</div>
+    <div id="remoteQuestionText" style="font-size: 14px; color: #f8fafc; font-weight: 500; margin-bottom: 6px; line-height: 1.3;">-</div>
     
-    <div style="border-top: 1px dashed #334155; padding-top: 8px;">
+    <div style="border-top: 1px dashed #334155; padding-top: 6px;">
       <div style="font-size: 11px; text-transform: uppercase; color: #38bdf8; font-weight: 700; margin-bottom: 2px;">💡 Solución (Vista Profesor)</div>
-      <div id="remoteAnswerText" style="font-size: 17px; font-weight: 700; color: #4ade80; line-height: 1.3;">-</div>
+      <div id="remoteAnswerText" style="font-size: 16px; font-weight: 700; color: #4ade80; line-height: 1.3;">-</div>
     </div>
   </div>
 
   <button class="btn-remote" onclick="sendRemoteCmd('PREV')">⬅️ Anterior</button>
   <button class="btn-remote btn-remote-flip" onclick="sendRemoteCmd('FLIP')">🔄 Girar / Respuesta</button>
   <button class="btn-remote" onclick="sendRemoteCmd('NEXT')">Siguiente ➡️</button>
-  <button class="btn-remote-img" id="btnRemoteImgZoom" onclick="sendRemoteCmd('TOGGLE_ZOOM')">🔍 Ampliar Imagen</button>
-  <button class="btn-remote-yt" id="btnRemoteYtMax" onclick="sendRemoteCmd('TOGGLE_MAX_VIDEO')">🖥️ Maximizar Vídeo</button>
+  <button class="btn-remote-img" id="btnRemoteImgZoom" style="display:none;" onclick="sendRemoteCmd('TOGGLE_ZOOM')">🔍 Ampliar Imagen</button>
+  <button class="btn-remote-yt" id="btnRemoteYtMax" style="display:none;" onclick="sendRemoteCmd('TOGGLE_MAX_VIDEO')">🖥️ Maximizar Vídeo</button>
 </div>
 
-<!-- MODAL QR -->
 <div id="qrModal" onclick="closeQRModal()">
   <div class="qr-box" onclick="event.stopPropagation()">
     <h3 style="margin:0; color:var(--ink);">📱 Mando a distancia</h3>
@@ -564,13 +602,11 @@
   </div>
 </div>
 
-<!-- MODAL CONFIGURACIÓN VISTA DIVIDIDA -->
 <div id="splitModal" onclick="closeSplitModal()">
   <div class="split-config-box" onclick="event.stopPropagation()">
     <h3 style="margin:0; color:var(--ink);">🔀 Pantalla dividida (2 niveles a la vez)</h3>
     <p style="margin:0; font-size:12px; color:var(--muted);">Elige el curso, la asignatura y/o la dificultad de cada mitad. Deja "Todas" en lo que no quieras filtrar.</p>
     <div class="split-config-cols">
-      <!-- Panel Izquierdo -->
       <div class="split-config-col">
         <label>Panel Izquierdo — Curso</label>
         <select id="splitCourseL"></select>
@@ -594,7 +630,6 @@
         </select>
       </div>
 
-      <!-- Panel Derecho -->
       <div class="split-config-col">
         <label>Panel Derecho — Curso</label>
         <select id="splitCourseR"></select>
@@ -605,7 +640,6 @@
           <option value="Lengua">Lengua 🇪🇸</option>
           <option value="Inglés">Inglés 🇬🇧</option>
           <option value="Matemáticas">Matemáticas 📐</option>
-
           <option value="Sociales">Sociales 🌍</option>
           <option value="Naturales">Naturales 🌿</option>
         </select>
@@ -626,7 +660,6 @@
   </div>
 </div>
 
-<!-- CONTENEDOR VISTA DIVIDIDA (dos instancias independientes de la app, vía iframe) -->
 <div id="splitViewContainer" class="split-view-container">
   <div class="split-toolbar">
     <button class="btn-pair-split" onclick="openQRModal()">📱 Mando</button>
@@ -657,11 +690,8 @@ let customTopics = [];
 let filtered = [];
 let index = 0;
 let filterMemory = {};
-let hasUnsavedChanges = false; // <-- AÑADIDO: Controla si hay cambios pendientes
+let hasUnsavedChanges = false;
 
-/* MODO EMBED: cuando esta página se carga dentro de un iframe de la Vista Dividida,
-   con ?embed=1&course=...&lvl=..., se oculta la edición/filtros y se aplica el filtro
-   indicado automáticamente (ver activateSplitView() y el final de loadDeck()). */
 const pageParams = new URLSearchParams(window.location.search);
 const isEmbedMode = pageParams.get('embed') === '1';
 const embedCourseParam = pageParams.get('course') || 'ALL';
@@ -669,17 +699,15 @@ const embedSubjParam = pageParams.get('subj') || 'ALL';
 const embedLvlParam = pageParams.get('lvl') || 'ALL';
 if (isEmbedMode) document.body.classList.add('embed-mode');
 
-// AVISO NATIVO AL CERRAR O RECARGAR SI HAY CAMBIOS
 window.addEventListener('beforeunload', (e) => {
   if (hasUnsavedChanges) {
     e.preventDefault();
-    e.returnValue = ''; // Muestra el mensaje estándar del navegador
+    e.returnValue = '';
   }
 });
 
 const BASE_COURSES = ["5º", "6º"];
 
-/* SÍNTESIS DE AUDIO REALISTA CON WEB AUDIO API */
 let audioCtx = null;
 
 function initAudio() {
@@ -791,29 +819,30 @@ function saveTopics() {
   localStorage.setItem(STORAGE_TOPICS_KEY, JSON.stringify(customTopics)); 
 }
 
+// OPTIMIZACIÓN A: Carga de datos con tiempo límite de 2.5s para Apps Script
 async function loadDeck() {
   const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxmsFEuwrNg7QV3lEB9V2BuH8RkfpOOnrwEPZdVQ8dRbAaEbJkqRGVIOGwTprSPHUO5Hg/exec';
   let origenCargado = "";
   let cargadoConExito = false;
 
-  // OPTIMIZACIÓN: Si estamos dentro de un iframe (embed-mode), intentamos usar 
-  // los datos que el marco padre ya tiene cargados en memoria o en localStorage.
   if (isEmbedMode) {
     try {
       if (window.parent && window.parent.deck && window.parent.deck.length > 0) {
         procesarMazo(window.parent.deck);
-        origenCargado = "⚡ Memoria Compartida (Ventana Principal)";
+        origenCargado = "⚡ Memoria Compartida";
         cargadoConExito = true;
       }
-    } catch (e) {
-      // Ignorar posibles restricciones de origen
-    }
+    } catch (e) {}
   }
 
-  // Si no es iframe o no se pudo acceder al padre, hacer la carga normal
   if (!cargadoConExito && !isEmbedMode) {
     try {
-      const resDrive = await fetch(APPS_SCRIPT_URL, { redirect: 'follow' });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2500); // Max 2.5 seg de espera en red
+      
+      const resDrive = await fetch(APPS_SCRIPT_URL, { redirect: 'follow', signal: controller.signal });
+      clearTimeout(timeoutId);
+
       if (!resDrive.ok) throw new Error(`Status: ${resDrive.status}`);
       const dataDrive = await resDrive.json();
       if (Array.isArray(dataDrive) && dataDrive.length > 0) {
@@ -822,11 +851,10 @@ async function loadDeck() {
         cargadoConExito = true;
       }
     } catch (errDrive) {
-      console.warn("Fallo al cargar desde Drive via Apps Script:", errDrive);
+      console.warn("Respuesta lenta o fallo al cargar desde Drive, pasando a caché/local:", errDrive);
     }
   }
 
-  // Fallback 1: LocalStorage
   if (!cargadoConExito) {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) { 
@@ -834,14 +862,13 @@ async function loadDeck() {
         let parsed = JSON.parse(raw); 
         if (Array.isArray(parsed) && parsed.length > 0) {
           procesarMazo(parsed);
-          origenCargado = "💾 Memoria Local (LocalStorage)";
+          origenCargado = "💾 Memoria Local";
           cargadoConExito = true;
         }
       } catch(e) {} 
     }
   }
 
-  // Fallback 2: JSON local
   if (!cargadoConExito) {
     try {
       const resLocal = await fetch('preguntas.json?v=' + new Date().getTime());
@@ -853,7 +880,7 @@ async function loadDeck() {
         cargadoConExito = true;
       }
     } catch (errLocal) {
-      console.warn("Fallo al cargar preguntas.json desde GitHub/local:", errLocal);
+      console.warn("Fallo al cargar preguntas.json:", errLocal);
     }
   }
 
@@ -918,7 +945,7 @@ function toggleFullscreen(e) {
 
 function navCard(e, dir) {
   if (e) e.stopPropagation();
-  closeImgModal(); // <-- AÑADIDO: Cierra la imagen si estaba maximizada
+  closeImgModal();
   if (!filtered.length) return;
   playCardSlide();
   index = (index + dir + filtered.length) % filtered.length;
@@ -1117,6 +1144,10 @@ function updateVisualFilterButtons() {
 
 function applyFilters() {
   updateVisualFilterButtons();
+
+  const searchInputEl = document.getElementById('searchInput');
+  const searchText = searchInputEl ? searchInputEl.value.trim().toLowerCase() : '';
+
   filtered = deck.filter(card => {
     const matchCourse = matchesCourseFilter(card, filterCourse);
     const matchSubj = (filterSubj === 'ALL' || card.subj === filterSubj);
@@ -1129,10 +1160,10 @@ function applyFilters() {
     }
 
     let matchText = true;
-    if (searchText) {
-      matchText = (card.q && card.q.toLowerCase().includes(searchText))
-        || (card.a && card.a.toLowerCase().includes(searchText))
-        || (card.qContext && card.qContext.toLowerCase().includes(searchText));
+    if (searchText !== '') {
+      const qText = (card.q || '').toLowerCase();
+      const aText = (card.a || '').toLowerCase();
+      matchText = qText.includes(searchText) || aText.includes(searchText);
     }
 
     return matchCourse && matchSubj && matchLvl && matchTopic && matchText;
@@ -1143,24 +1174,11 @@ function applyFilters() {
   updateView();
 }
 
-// BÚSQUEDA POR TEXTO en preguntas y respuestas
-let searchText = '';
-function setSearchText(v) {
-  searchText = (v || '').trim().toLowerCase();
-  applyFilters();
-}
-function clearSearchText() {
-  const input = document.getElementById('searchTextInput');
-  if (input) input.value = '';
-  setSearchText('');
-}
-
 function openMediaLink(e, url) { 
   e.stopPropagation(); 
   window.open(url, '_blank'); 
 }
 
-/* COMPRESIÓN DE IMÁGENES AL SUBIR */
 function handleImageUpload(inputElement, targetInputId) {
   const file = inputElement.files[0];
   if (!file) return;
@@ -1277,10 +1295,6 @@ function parseYouTubeUrl(urlStr) {
   }
 }
 
-// Devuelve el estado (pregunta/respuesta/etc.) de la tarjeta actual EN ESTA PÁGINA.
-// Se expone como función global para que, en Vista Dividida, la página principal pueda
-// leerla directamente desde dentro de cada iframe (son el mismo origen) y así el mando
-// del móvil pueda seguir mostrando la pregunta/respuesta del panel que se está controlando.
 function obtenerEstadoTarjetaActual() {
   const currentCard = filtered[index];
   const mediaFront = document.getElementById('mediaAnchorFront');
@@ -1393,7 +1407,6 @@ function updateView() {
       });
     }
 
-    // SINCRONIZACIÓN CON EL PANEL DE EDICIÓN
     const editTargetEl = document.getElementById('editTargetIndex');
     const editQContextEl = document.getElementById('editQContext');
     const editQEl = document.getElementById('editQ');
@@ -1419,18 +1432,16 @@ function updateView() {
   }, 150);
 }
 
-// Variable global para controlar el temporizador de reproducción
 let ytPlayTimeout = null;
 
 function handleCardClick(cardElement) {
-  closeImgModal(); // <-- AÑADIDO: Cierra la imagen maximizada al voltear la tarjeta
+  closeImgModal();
   
   cardElement.classList.toggle('flipped');
   const isFlipped = cardElement.classList.contains('flipped');
   const mediaBack = document.getElementById('mediaAnchorBack');
 
   if (isFlipped) {
-    // ... resto del código de volteo existente ...
     playArpa();
 
     if (mediaBack && mediaBack.dataset.hasYt === "true") {
@@ -1438,10 +1449,8 @@ function handleCardClick(cardElement) {
       const startSec = parseInt(mediaBack.dataset.ytStart, 10) || 0;
 
       if (iframe && iframe.contentWindow) {
-        // 1. Cancelamos cualquier temporizador previo
         if (ytPlayTimeout) clearTimeout(ytPlayTimeout);
 
-        // 2. Pausamos inmediatamente por si YouTube intentó un arranque automático nativo en el 1er giro
         iframe.contentWindow.postMessage(
           JSON.stringify({
             event: 'command',
@@ -1451,7 +1460,6 @@ function handleCardClick(cardElement) {
           '*'
         );
 
-        // 3. Reubicamos el vídeo en el segundo exacto de la tarjeta
         iframe.contentWindow.postMessage(
           JSON.stringify({
             event: 'command',
@@ -1461,7 +1469,6 @@ function handleCardClick(cardElement) {
           '*'
         );
 
-        // 4. Programamos la reproducción tras los 2 segundos
         ytPlayTimeout = setTimeout(() => {
           iframe.contentWindow.postMessage(
             JSON.stringify({
@@ -1487,7 +1494,6 @@ function handleCardClick(cardElement) {
   } else {
     playCardSlide();
 
-    // Al regresar al frente, cancelamos la reproducción programada y pausamos el vídeo
     if (ytPlayTimeout) clearTimeout(ytPlayTimeout);
 
     if (mediaBack && mediaBack.dataset.hasYt === "true") {
@@ -1544,7 +1550,6 @@ function toggleMaxVideo(e) {
   }
 }
 
-// CÓDIGO CORREGIDO:
 function closeVideo(e) {
   if (e) {
     e.stopPropagation();
@@ -1586,42 +1591,78 @@ document.getElementById('shuffleBtn').onclick = () => {
   shuffleArray(filtered); index = 0; updateView();
 };
 
-// AL GUARDAR CAMBIOS DE EDICIÓN
 document.getElementById('updateBtn').onclick = () => {
   if (!filtered.length) return;
-  const currentCard = filtered[index];
-  currentCard.qContext = document.getElementById('editQContext').value.trim();
-  currentCard.q = document.getElementById('editQ').value.trim();
-  currentCard.a = document.getElementById('editA').value.trim();
-  currentCard.subj = document.getElementById('editSubj').value;
-  currentCard.lvl = document.getElementById('editLvl').value;
-  currentCard.course = document.getElementById('editCourse').value.trim();
-  currentCard.topics = parseInputItems(document.getElementById('editTopic').value);
-  currentCard.topic = currentCard.topics.join(', ');
-  currentCard.media = document.getElementById('editMedia').value.trim();
-  
-  hasUnsavedChanges = true; // <-- MARCAR CAMBIO PENDIENTE
-  saveDeck(); 
-  applyFilters();
-};
 
-// AL BORRAR UNA TARJETA
+  const cardBeingEdited = filtered[index];
+
+  cardBeingEdited.qContext = document.getElementById('editQContext').value.trim();
+  cardBeingEdited.q = document.getElementById('editQ').value.trim();
+  cardBeingEdited.a = document.getElementById('editA').value.trim();
+  cardBeingEdited.subj = document.getElementById('editSubj').value;
+  cardBeingEdited.lvl = document.getElementById('editLvl').value;
+  cardBeingEdited.course = document.getElementById('editCourse').value.trim();
+  cardBeingEdited.topics = parseInputItems(document.getElementById('editTopic').value);
+  cardBeingEdited.topic = cardBeingEdited.topics.join(', ');
+  cardBeingEdited.media = document.getElementById('editMedia').value.trim();
+  
+  hasUnsavedChanges = true;
+  saveDeck(); 
+
+  const currentSearchText = (document.getElementById('searchInput')?.value || '').trim().toLowerCase();
+
+  updateVisualFilterButtons();
+  filtered = deck.filter(card => {
+    const matchCourse = matchesCourseFilter(card, filterCourse);
+    const matchSubj = (filterSubj === 'ALL' || card.subj === filterSubj);
+    const matchLvl = (filterLvl === 'ALL' || card.lvl === filterLvl);
+    
+    let matchTopic = true;
+    if (confirmedTopics.length > 0) {
+      const cardTopics = getCardTopics(card);
+      matchTopic = confirmedTopics.some(t => (t === 'NONE') ? cardTopics.length === 0 : cardTopics.includes(t));
+    }
+
+    let matchText = true;
+    if (currentSearchText !== '') {
+      const qText = (card.q || '').toLowerCase();
+      const aText = (card.a || '').toLowerCase();
+      matchText = qText.includes(currentSearchText) || aText.includes(currentSearchText);
+    }
+
+    return matchCourse && matchSubj && matchLvl && matchTopic && matchText;
+  });
+
+  const newIndex = filtered.indexOf(cardBeingEdited);
+  
+  if (newIndex !== -1) {
+    index = newIndex;
+  } else {
+    index = Math.min(index, Math.max(0, filtered.length - 1));
+  }
+
+  const memoryKey = `${filterCourse}|${filterSubj}|${filterLvl}|${confirmedTopics.join(',')}|${currentSearchText}`;
+  filterMemory[memoryKey] = index;
+  updateView();
+};
+  
 document.getElementById('delBtn').onclick = () => {
   if (!filtered.length || !confirm("¿Seguro que deseas eliminar esta tarjeta?")) return;
   const globalIndex = deck.indexOf(filtered[index]);
   if (globalIndex > -1) { 
     deck.splice(globalIndex, 1); 
-    hasUnsavedChanges = true; // <-- MARCAR CAMBIO PENDIENTE
+    hasUnsavedChanges = true;
     saveDeck(); 
     applyFilters(); 
   }
 };
 
-// AL CREAR UNA NUEVA TARJETA
 document.getElementById('addBtn').onclick = () => {
   const q = document.getElementById('addQ').value.trim();
   const a = document.getElementById('addA').value.trim();
   if (!q || !a) { alert("Completa al menos la pregunta y la respuesta."); return; }
+
+  const currentCardBeforeAdd = filtered[index];
 
   const topics = parseInputItems(document.getElementById('addTopic').value);
   deck.push({
@@ -1634,17 +1675,25 @@ document.getElementById('addBtn').onclick = () => {
     media: document.getElementById('addMedia').value.trim()
   });
 
-  hasUnsavedChanges = true; // <-- MARCAR CAMBIO PENDIENTE
+  hasUnsavedChanges = true;
   saveDeck();
   document.getElementById('addQContext').value = '';
   document.getElementById('addQ').value = '';
   document.getElementById('addA').value = '';
   document.getElementById('addMedia').value = '';
   document.getElementById('addImgFile').value = '';
+  
   applyFilters();
+
+  if (currentCardBeforeAdd) {
+    const retainedIndex = filtered.indexOf(currentCardBeforeAdd);
+    if (retainedIndex !== -1) {
+      index = retainedIndex;
+      updateView();
+    }
+  }
 };
 
-// AL EXPORTAR EL JSON (SE DESACTIVA LA ALERTA)
 document.getElementById('exportBtn').onclick = () => {
   const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(deck, null, 2));
   const downloadAnchor = document.createElement('a');
@@ -1654,10 +1703,9 @@ document.getElementById('exportBtn').onclick = () => {
   downloadAnchor.click(); 
   downloadAnchor.remove();
 
-  hasUnsavedChanges = false; // <-- CAMBIOS GUARDADOS / EXPORTADOS CON ÉXITO
+  hasUnsavedChanges = false;
 };
 
-// AL IMPORTAR UN FICHERO
 document.getElementById('importFile').onchange = (e) => {
   const file = e.target.files[0];
   if (!file) return;
@@ -1668,7 +1716,7 @@ document.getElementById('importFile').onchange = (e) => {
       if (Array.isArray(importedData)) { 
         procesarMazo(importedData); 
         saveDeck();
-        hasUnsavedChanges = false; // <-- RESETEAR AL CARGAR UN NUEVO ARCHIVO
+        hasUnsavedChanges = false;
         mostrarAvisoOrigen("📁 Archivo importado manualmente");
         applyFilters(); 
         alert("¡Mazo importado con éxito!"); 
@@ -1683,12 +1731,26 @@ setupMultiAutocomplete('editCourse', 'menuEdit', getAllAvailableCourses);
 setupMultiAutocomplete('addTopic', 'menuAddTopic', getAllAvailableTopics);
 setupMultiAutocomplete('editTopic', 'menuEditTopic', getAllAvailableTopics);
 
-/* LÓGICA DE CONTROL REMOTO CON PEERJS */
+/* LÓGICA DE CONTROL REMOTO CON PEERJS Y MEDICIÓN DINÁMICA DE PANTALLA */
 let peer = null, conn = null;
 const urlParams = new URLSearchParams(window.location.search);
 const remoteTargetId = urlParams.get('remote');
 
-let remoteTarget = 'ALL'; // 'ALL' = vista normal, 'L' = panel izquierdo, 'R' = panel derecho (Vista Dividida)
+let remoteTarget = 'ALL';
+
+// OPTIMIZACIÓN B: Medición física exacta de la pantalla en dispositivos móviles
+function adjustRemoteViewHeight() {
+  const remoteView = document.getElementById('remoteView');
+  if (remoteView && remoteView.style.display !== 'none') {
+    const actualHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    remoteView.style.height = `${actualHeight}px`;
+  }
+}
+
+window.addEventListener('resize', adjustRemoteViewHeight);
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', adjustRemoteViewHeight);
+}
 
 function sendRemoteCmd(cmd) {
   if (conn) conn.send({ cmd: cmd, target: remoteTarget });
@@ -1701,15 +1763,15 @@ function setRemoteTarget(t) {
   const idMap = { ALL: 'btnTargetAll', L: 'btnTargetL', R: 'btnTargetR' };
   const btn = document.getElementById(idMap[t]);
   if (btn) btn.classList.add('active');
-  // 'SYNC' no navega ni gira nada: solo pide la pregunta/respuesta ACTUAL de ese panel,
-  // para que el mando se actualice al instante al cambiar de lado (sin esperar a
-  // pulsar Siguiente/Anterior/Girar).
   sendRemoteCmd('SYNC');
 }
 
 if (remoteTargetId) {
   document.getElementById('appView').style.display = 'none';
-  document.getElementById('remoteView').style.display = 'flex';
+  const remoteViewEl = document.getElementById('remoteView');
+  remoteViewEl.style.display = 'flex';
+  adjustRemoteViewHeight();
+
   peer = new Peer({
     config: {
       iceServers: [
@@ -1730,10 +1792,10 @@ if (remoteTargetId) {
         document.getElementById('remoteAnswerText').textContent = data.answer || 'Sin respuesta';
         
         const imgBtn = document.getElementById('btnRemoteImgZoom');
-        if (imgBtn) imgBtn.style.display = data.hasImage ? 'block' : 'none';
+        if (imgBtn) imgBtn.style.display = data.hasImage ? 'flex' : 'none';
 
         const ytMaxBtn = document.getElementById('btnRemoteYtMax');
-        if (ytMaxBtn) ytMaxBtn.style.display = data.hasYt ? 'block' : 'none';
+        if (ytMaxBtn) ytMaxBtn.style.display = data.hasYt ? 'flex' : 'none';
       }
     });
   });
@@ -1751,10 +1813,9 @@ if (remoteTargetId) {
     }
   });
   
-    peer.on('open', (id) => {
+  peer.on('open', (id) => {
     const remoteUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}?remote=${id}`;
     
-    // Generar código QR para el mando a distancia
     const qrContainer = document.getElementById('qrcode');
     if (qrContainer) {
       qrContainer.innerHTML = '';
@@ -1769,7 +1830,6 @@ if (remoteTargetId) {
   peer.on('connection', (c) => {
     conn = c;
     conn.on('data', (data) => {
-      // Compatibilidad con el formato antiguo (string) y el nuevo ({cmd, target})
       const cmd = (typeof data === 'string') ? data : data.cmd;
       const target = (typeof data === 'object' && data && data.target) ? data.target : 'ALL';
       if (!cmd) return;
@@ -1778,16 +1838,13 @@ if (remoteTargetId) {
         ejecutarComandoEnPanel(target, cmd);
       } else {
         ejecutarComandoLocal(cmd);
-        syncRemoteData(); // así 'SYNC' (al pulsar "🖥️ Normal") también actualiza el mando al instante
+        syncRemoteData();
       }
     });
-    // Enviar datos actuales al conectar el mando
     setTimeout(syncRemoteData, 500);
   });
 }
 
-// Ejecuta un comando del mando SOBRE ESTA MISMA página (proyector en vista normal,
-// o dentro de uno de los paneles de la Vista Dividida cuando se llama desde dentro).
 function ejecutarComandoLocal(cmd) {
   const cardEl = document.getElementById('cardElement');
   if (cmd === 'PREV') navCard(null, -1);
@@ -1798,11 +1855,6 @@ function ejecutarComandoLocal(cmd) {
   else if (cmd.startsWith('SET_LVL_')) setLvl(cmd.replace('SET_LVL_', ''));
 }
 
-// Reenvía un comando desde la página principal (el mando ya emparejado aquí) hacia uno de
-// los dos iframes de la Vista Dividida. Se usa postMessage en vez de llamar directamente a
-// una función del iframe: postMessage es el mecanismo estándar para comunicar frames y
-// funciona de forma fiable aunque el navegador restrinja el acceso directo a propiedades
-// entre documentos (algo que sí puede pasar, en silencio, con contentWindow.miFuncion()).
 function ejecutarComandoEnPanel(target, cmd) {
   const container = document.getElementById('splitViewContainer');
   if (!container || !container.classList.contains('open')) return;
@@ -1811,9 +1863,6 @@ function ejecutarComandoEnPanel(target, cmd) {
   pane.contentWindow.postMessage({ type: 'SPLIT_REMOTE_CMD', cmd: cmd, target: target }, '*');
 }
 
-// Cada panel embebido ejecuta el comando recibido y, tras un pequeño margen (para que
-// termine la animación de volteo/cambio de tarjeta), devuelve su pregunta/respuesta actual
-// a la página principal, para que el mando del móvil las siga mostrando correctamente.
 window.addEventListener('message', (e) => {
   if (!e.data) return;
   if (e.data.type === 'SPLIT_REMOTE_CMD') {
@@ -1821,18 +1870,16 @@ window.addEventListener('message', (e) => {
     setTimeout(() => {
       try {
         window.parent.postMessage({ type: 'SPLIT_CARD_STATE', target: e.data.target, ...obtenerEstadoTarjetaActual() }, '*');
-      } catch (err) { /* ignorar */ }
+      } catch (err) { }
     }, 180);
   }
   if (e.data.type === 'SPLIT_CARD_STATE') {
-    // Esto lo recibe la página principal desde el panel que se acaba de controlar
     if (conn && conn.open) {
       conn.send({ type: 'CARD_SYNC', question: e.data.question, answer: e.data.answer, hasImage: e.data.hasImage, hasYt: e.data.hasYt });
     }
   }
 });
 
-/* FUNCIONES DE MODALES Y VISTA DIVIDIDA */
 function openQRModal() {
   document.getElementById('qrModal').classList.add('open');
 }
@@ -1887,7 +1934,6 @@ function exitSplitView() {
   document.getElementById('splitPaneR').src = 'about:blank';
 }
 
-// Inicialización de la aplicación
 window.addEventListener('DOMContentLoaded', () => {
   loadDeck();
 });
