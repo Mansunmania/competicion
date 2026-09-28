@@ -1,1895 +1,1011 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mazo Flippity Completo - Proyector Classroom</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playwrite+DE+Grund:wght@100..400&display=swap" rel="stylesheet">
-  <link rel="preconnect" href="https://www.youtube-nocookie.com">
-  <link rel="dns-prefetch" href="https://www.youtube-nocookie.com">
-  <link rel="preconnect" href="https://www.googlevideo.com">
-  
-  <!-- PeerJS para Control Remoto WebRTC y QRCode.js -->
-  <!-- CAMBIO: se usa jsdelivr (reparte el tráfico entre varias CDN: Cloudflare, Fastly...)
-       en vez de unpkg.com y cdnjs.cloudflare.com, que dependen ÚNICAMENTE de Cloudflare.
-       Esto reduce (no garantiza al 100%) las probabilidades de verse afectado por los
-       bloqueos de IPs de Cloudflare que aplican los operadores españoles durante los
-       partidos de LaLiga, ya que jsdelivr no siempre resuelve contra el mismo proveedor.
-       Si algún día tampoco cargara, cambia estas dos URLs por las que tenías antes
-       (unpkg.com / cdnjs.cloudflare.com) o prueba con cdn.jsdelivr.net/gh/... -->
-  <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fase Previa Suiza - Multiclase</title>
   <style>
     :root {
-      --bg: #f0f4f8; --card: #ffffff; --ink: #1e293b; --muted: #64748b; --line: #cbd5e1;
-      --pri: #2563eb; --ok: #16a34a; --bad: #dc2626; --warn: #ea580c; --purple: #8b5cf6; --yt: #e11d48;
-      --font-playwrite: 'Playwrite DE Grund', cursive, sans-serif;
+      --bg: #f4f7fb; --card: #ffffff; --ink: #1f2937; --muted: #6b7280;
+      --line: #dbe3ee; --pri: #2563eb; --pri2: #1d4ed8; --ok: #16a34a;
+      --warn: #d97706; --bad: #dc2626; --gold: #f59e0b; --silver: #94a3b8; --bronze: #b45309;
+      --zone-div1: #f0fdf4; --zone-div2: #ffffff; --zone-div3: #fefce8;
     }
     * { box-sizing: border-box; }
-    body { margin: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--ink); padding: 20px; }
-    .layout { max-width: 1000px; margin: 0 auto; display: grid; grid-template-columns: 1fr; gap: 20px; }
+    body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--ink); }
+    header { padding: 12px 20px; background: linear-gradient(135deg, var(--pri), var(--pri2)); color: #fff; display: flex; justify-content: space-between; align-items: center; }
+    header h1 { margin: 0; font-size: 20px; } header p { margin: 2px 0 0; opacity: 0.9; font-size: 13px; }
     
-    .editor-box { background: var(--card); padding: 16px; border-radius: 12px; border: 1px solid var(--line); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
-    .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 10px; align-items: end; }
-    label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
-    input, select, textarea, button { font: inherit; font-size: 14px; }
-    input, select, textarea { width: 100%; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); }
-    textarea { resize: vertical; }
+    .wrap { padding: 14px; max-width: 1600px; margin: 0 auto; }
+    .grid-top { display: grid; grid-template-columns: 360px 1fr; gap: 14px; margin-bottom: 14px; }
     
-    button { padding: 8px 16px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; transition: transform 0.1s, background 0.1s; }
-    .btn-pri { background: var(--pri); color: #fff; } .btn-pri:hover { background: #1d4ed8; }
-    .btn-ok { background: var(--ok); color: #fff; } .btn-ok:hover { background: #15803d; }
-    .btn-bad { background: var(--bad); color: #fff; } .btn-bad:hover { background: #b91c1c; }
-    .btn-warn { background: var(--warn); color: #fff; } .btn-warn:hover { background: #c2410c; }
-    .btn-flat { background: #e2e8f0; color: var(--ink); } .btn-flat:hover { background: #cbd5e1; }
-    .btn-media { background: #ffe4e6; color: var(--yt); border: 1px solid #fecdd3; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
-    .btn-media:hover { background: #fecdd3; transform: scale(1.03); }
+    .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px; box-shadow: 0 2px 6px rgba(0,0,0,.04); }
+    label { display: block; font-size: 11px; font-weight: 700; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; }
+    input[type="text"], textarea, select { width: 100%; padding: 8px; border: 1px solid var(--line); border-radius: 8px; resize: vertical; background: #fff; font: inherit; }
+    
+    button { border: 0; border-radius: 8px; padding: 8px 12px; font-weight: 700; cursor: pointer; font-size: 13px; font: inherit; }
+    .btn { background: var(--pri); color: #fff; } .btn:hover { background: var(--pri2); }
+    .btn.ok { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+    .btn.warn { background: #fff7ed; color: #9a3412; border: 1px solid #fed7aa; }
+    .btn.bad { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+    .btn.secondary { background: #e2e8f0; color: var(--ink); }
+    .btn.undo { background: var(--warn); color: #fff; margin-top: 6px; width: 100%; text-align: center; }
+    .btn.undo:disabled { background: #e5e7eb; color: #9ca3af; cursor: not-allowed; border: 1px solid #d1d5db; opacity: 0.6; }
 
-    .filters { display: flex; flex-wrap: wrap; gap: 10px; background: var(--card); padding: 12px; border-radius: 12px; border: 1px solid var(--line); }
-    .filter-btn { background: #e2e8f0; color: var(--ink); padding: 6px 12px; font-size: 13px; border-radius: 8px; }
-    .filter-btn.active { background: var(--pri); color: #fff; }
-    
-    .btn-topic { background: #f3e8ff; color: #6b21a8; border: 1px solid #e9d5ff; padding: 6px 12px; font-size: 13px; border-radius: 20px; transition: all 0.2s; user-select: none; }
-    .btn-topic:hover { background: #e9d5ff; }
-    .btn-topic.selected { background: var(--purple); color: #fff; border-color: var(--purple); font-weight: bold; transform: scale(1.03); }
-    
-    .btn-special { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; padding: 6px 12px; font-size: 13px; border-radius: 20px; }
-    .btn-special.selected { background: #d97706; color: #fff; border-color: #d97706; font-weight: bold; }
-    
-    .filter-group { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; align-items: center; }
+    .match-box { display: flex; flex-direction: column; gap: 8px; background: #f8fafc; border: 1px dashed var(--line); padding: 10px; border-radius: 10px; }
+    .goal-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; background: #fff; padding: 6px 12px; border: 1px solid var(--line); border-radius: 8px; }
+    .counter-box { display: inline-flex; align-items: center; gap: 6px; }
+    .btn-counter { background: #f1f5f9; border: 1px solid var(--line); border-radius: 6px; width: 30px; height: 30px; font-weight: bold; cursor: pointer; }
+    .counter-value { font-size: 16px; font-weight: 800; min-width: 18px; text-align: center; color: var(--pri); }
 
-    .confirmation-bar {
-      width: 100%; background: #f8fafc; border: 1px solid #cbd5e1; border-left: 4px solid var(--purple);
-      border-radius: 8px; padding: 10px 14px; margin-top: 10px; display: flex; flex-wrap: wrap;
-      justify-content: space-between; align-items: center; gap: 10px; animation: fadeIn 0.2s ease-in-out;
+    .dual-container { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .columns-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 5px 3px; border-bottom: 1px solid var(--line); text-align: center; font-size: 11px; }
+    th { font-size: 9px; color: var(--muted); text-transform: uppercase; background: #f8fafc; }
+    th:nth-child(2), td:nth-child(2) { text-align: left; font-weight: 600; }
+    .rank { font-weight: 800; width: 20px; }
+    .gold { color: var(--gold); } .silver { color: var(--silver); } .bronze { color: var(--bronze); }
+    
+    .editable-name { cursor: pointer; border-bottom: 1px dashed #93c5fd; padding: 1px 4px; border-radius: 3px; }
+    .editable-name:hover { background-color: #dbeafe; }
+    .edit-name-input { font-size: 11px; padding: 2px 4px; border: 1px solid var(--pri); border-radius: 4px; width: 95%; font-weight: 600; }
+
+    .match-list { display: flex; flex-direction: column; gap: 4px; max-height: 520px; overflow-y: auto; }
+    .match-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fafcff; font-size: 12px; cursor: pointer; }
+    .match-item:hover { background: #eef2ff; }
+    .match-item.done { opacity: 0.55; background: #f8fafc; }
+    .pill { font-size: 10px; padding: 2px 6px; border-radius: 4px; background: #eef2ff; color: #3730a3; font-weight: bold; }
+
+    .tie-ctrl { display: inline-flex; gap: 2px; align-items: center; }
+    .btn-tie { padding: 0 4px; font-size: 10px; border-radius: 3px; background: #f1f5f9; border: 1px solid var(--line); cursor: pointer; }
+    
+    .legend { display: flex; gap: 12px; font-size: 11px; font-weight: bold; }
+    .legend-item { display: flex; align-items: center; gap: 4px; }
+    .legend-box { width: 12px; height: 12px; border-radius: 3px; border: 1px solid var(--line); }
+    
+    .group-box { background: #eff6ff; border: 1px solid #bfdbfe; padding: 10px; border-radius: 8px; margin-bottom: 10px; }
+    .status-tag { font-size: 11px; padding: 3px 8px; border-radius: 12px; background: #dcfce7; color: #166534; font-weight: 600; }
+
+    /* Estilos del Modal de Resumen Final */
+    .summary-modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0, 0, 0, 0.85); display: flex; justify-content: center; align-items: center;
+      z-index: 9999;
     }
-    .selected-pills-preview { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-    .pill-preview { background: #e9d5ff; color: #6b21a8; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 12px; }
-
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
-
-    .flashcard-wrapper { display: flex; flex-direction: column; align-items: center; gap: 16px; margin: 15px auto; width: 100%; }
-    .flashcard { width: 100%; max-width: 750px; height: 420px; perspective: 1000px; cursor: pointer; position: relative; transition: all 0.3s ease; }
-    
-    .flashcard.fullscreen {
-      position: fixed; top: 15px; left: 15px; width: calc(100vw - 30px) !important;
-      height: calc(100vh - 30px) !important; max-width: none !important; z-index: 1000;
-      box-shadow: 0 0 0 100vw rgba(15, 23, 42, 0.88);
+    .summary-modal-card {
+      background: #1e1e24; border-radius: 16px; width: 90%; max-width: 1100px;
+      padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative; color: #fff;
     }
-
-    .btn-fullscreen {
-      position: absolute; bottom: 12px; right: 16px; z-index: 30; background: rgba(226, 232, 240, 0.9);
-      color: var(--ink); border: 1px solid var(--line); padding: 6px 12px; border-radius: 8px;
-      font-size: 12px; font-weight: bold; backdrop-filter: blur(4px);
+    .summary-close-btn {
+      position: absolute; top: 15px; right: 20px; background: transparent;
+      border: none; color: #fff; font-size: 1.5rem; cursor: pointer;
     }
-    .btn-fullscreen:hover { background: #cbd5e1; }
-
-    .fs-nav-btn {
-      display: none; position: absolute; top: 50%; transform: translateY(-50%); z-index: 35;
-      background: rgba(255, 255, 255, 0.9); color: var(--ink); border: 2px solid var(--line);
-      border-radius: 50%; width: 52px; height: 52px; font-size: 22px; align-items: center;
-      justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    .summary-title { text-align: center; margin-bottom: 20px; font-size: 2rem; color: #f1c40f; }
+    .summary-columns-container {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;
     }
-    .fs-nav-btn:hover { background: #ffffff; transform: translateY(-50%) scale(1.1); }
-    .fs-nav-prev { left: 15px; }
-    .fs-nav-next { right: 15px; }
-    .flashcard.fullscreen .fs-nav-btn { display: flex; }
-    
-    .card-inner { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 0.4s, opacity 0.15s; }
-    .flashcard.flipped .card-inner { transform: rotateY(180deg); }
-    
-    .card-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 20px; padding: 30px 45px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; box-shadow: 0 12px 20px -3px rgba(0,0,0,0.08), 0 4px 8px -4px rgba(0,0,0,0.05); border: 2.5px solid; overflow-y: auto; }
-    .card-front { background: #ffffff; color: var(--ink); border-color: var(--line); }
-    .card-back { background: #1e293b; color: #ffffff; border-color: #334155; transform: rotateY(180deg); backface-visibility: hidden; -webkit-backface-visibility: hidden; }
-    
-    .card-meta { position: absolute; top: 14px; left: 16px; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; padding: 3px 10px; border-radius: 6px; }
-    .card-topic-meta { position: absolute; top: 14px; right: 16px; font-size: 12px; font-weight: 800; text-transform: uppercase; padding: 3px 10px; border-radius: 6px; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .meta-front { background: #f1f5f9; color: var(--muted); }
-    .meta-back { background: #334155; color: #94a3b8; }
-    .topic-front { background: #f3e8ff; color: #6b21a8; }
-    .topic-back { background: #581c87; color: #e9d5ff; }
-    
-    .card-text-container { display: flex; flex-direction: column; gap: 12px; align-items: center; width: 100%; max-width: 95%; position: relative; z-index: 10; }
-    
-    .card-context-front { font-size: 26px; font-weight: 500; color: var(--muted); font-style: italic; line-height: 1.3; }
-    .card-text-front { font-family: var(--font-playwrite); font-size: 34px; font-weight: 400; line-height: 1.5; word-wrap: break-word; width: 100%; color: #0f172a; }
-
-    .card-context-back { font-size: 15px; font-weight: 500; color: #94a3b8; font-style: italic; line-height: 1.2; margin-bottom: 2px; }
-    .card-text-back-prompt { font-family: var(--font-playwrite); font-size: 20px; font-weight: 400; line-height: 1.3; color: #e2e8f0; }
-    .card-text-back-answer { border-top: 1px dashed #475569; margin-top: 8px; padding-top: 14px; color: #38bdf8; font-size: 32px; font-weight: 700; width: 100%; }
-
-    .flashcard.fullscreen .card-context-front { font-size: 32px; }
-    .flashcard.fullscreen .card-text-front { font-size: 42px; }
-    .flashcard.fullscreen .card-text-back-answer { font-size: 40px; }
-
-    .card-media-anchor { position: absolute; bottom: 14px; left: 16px; z-index: 1; display: flex; gap: 8px; align-items: center; }
-
-    .card-img-preview { max-height: 140px; border-radius: 8px; border: 1px solid var(--line); cursor: pointer; transition: transform 0.2s; object-fit: contain; }
-    .card-img-preview:hover { transform: scale(1.04); }
-
-    /* ESTILOS DE VÍDEO CON SOPORTE PARA MAXIMIZADO Y MINIATURA */
-    .yt-container, .yt-controls, #btnMaxVideo { pointer-events: auto; }
-
-    .yt-container {
-      width: 100%; max-width: 320px; height: 180px; margin-top: 10px;
-      border-radius: 12px; overflow: hidden; position: relative;
-      transition: transform 0.2s ease, opacity 0.2s ease; z-index: 5; background: #000;
+    .summary-col {
+      position: relative; min-height: 380px; border-radius: 12px; overflow: hidden;
+      background-size: cover; background-position: center; border: 3px solid transparent;
+      display: flex; flex-direction: column;
     }
-
-    .yt-container.maximized {
-      position: fixed !important; top: 50% !important; left: 50% !important;
-      transform: translate(-50%, -50%) !important; width: 92vw !important;
-      height: 80vh !important; max-width: none !important; z-index: 999999 !important;
-      box-shadow: 0 0 0 100vmax rgba(15, 23, 42, 0.9) !important;
+    .col-overlay { position: absolute; top:0; left:0; width:100%; height:100%; z-index: 1; }
+    .col-content { position: relative; z-index: 2; padding: 20px; text-align: center; height: 100%; }
+    .col-content h3 { margin-top: 0; text-transform: uppercase; font-size: 1.4rem; letter-spacing: 1px; }
+    .col-content ul { list-style: none; padding: 0; margin-top: 15px; }
+    .col-content li {
+      padding: 8px 12px; margin-bottom: 8px; border-radius: 6px;
+      font-weight: bold; font-size: 1.1rem; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     }
+    .col-shrek { background-image: url('https://wallpaperaccess.com/full/6204120.jpg'); border-color: #2ecc71; }
+    .col-shrek .col-overlay { background: rgba(46, 204, 113, 0.4); }
+    .col-shrek .col-content { color: #ffffff; text-shadow: 1px 1px 3px #000; }
+    .col-shrek li { background: rgba(39, 174, 96, 0.85); color: #fff; }
 
-/* Oculta texto, contenedores y el botón de 'Correcto!' al maximizar el vídeo */
-.flashcard.has-maximized-video .card-back .card-text-container,
-.flashcard.has-maximized-video .card-back p,
-.flashcard.has-maximized-video .card-back h3,
-.flashcard.has-maximized-video .card-back span,
-.flashcard.has-maximized-video .card-back .success-actions,
-.flashcard.has-maximized-video .card-back #celebrateBtn {
-  opacity: 0 !important;
-  visibility: hidden !important;
-  pointer-events: none !important;
-}
-    
-    .yt-container.minimized {
-      position: fixed !important; top: 50% !important; left: 50% !important; 
-      transform: translate(-50%, -50%) !important; width: 90vw !important; 
-      height: 85vh !important; max-width: none !important; z-index: 2500 !important; 
-      box-shadow: 0 0 0 100vw rgba(15, 23, 42, 0.9) !important;
-    }
+    .col-donkey { background-image: url('https://www.pngkit.com/png/detail/31-314082_donkey-shrek-head-png-donkey-from-shrek-png.png'); border-color: #bdc3c7; }
+    .col-donkey .col-overlay { background: rgba(255, 255, 255, 0.75); }
+    .col-donkey .col-content { color: #2c3e50; }
+    .col-donkey li { background: rgba(255, 255, 255, 0.9); color: #2c3e50; border: 1px solid #ccc; }
 
-    .success-actions { margin-top: 15px; width: 100%; display: flex; justify-content: center; z-index: 10; }
-    .btn-celebrate { background: var(--ok); color: white; font-size: 16px; padding: 10px 24px; border-radius: 50px; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 10px rgba(22, 163, 74, 0.4); }
-    .btn-celebrate:hover { background: #15803d; transform: scale(1.05); }
-
-    .gif-modal, .img-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.88); display: flex; justify-content: center; align-items: center; z-index: 2000; opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
-    .gif-modal.open, .img-modal.open { opacity: 1; pointer-events: auto; }
-    .gif-content { background: #fff; padding: 12px; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); max-width: 90%; max-height: 80%; display: flex; flex-direction: column; align-items: center; animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
-    .gif-content img { max-width: 100%; max-height: 420px; border-radius: 12px; object-fit: contain; background: #f8fafc; }
-    .gif-caption { margin-top: 10px; font-weight: 700; font-size: 16px; color: var(--ink); text-transform: uppercase; }
-
-    .img-modal-content { max-width: 92vw; max-height: 92vh; position: relative; display: flex; flex-direction: column; align-items: center; }
-    .img-modal-content img { max-width: 100%; max-height: 85vh; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); object-fit: contain; }
-    .img-modal-close { position: absolute; top: -40px; right: 0; color: white; font-size: 24px; background: none; border: none; cursor: pointer; }
-
-    @keyframes popIn { 0% { transform: scale(0.7); } 100% { transform: scale(1); } }
-
-    .controls { display: flex; justify-content: center; align-items: center; gap: 14px; width: 100%; max-width: 750px; }
-    .counter { font-size: 15px; font-weight: 700; color: var(--muted); min-width: 80px; text-align: center; }
-
-    .edit-zone { background: #f8fafc; border: 2px dashed var(--line); padding: 14px; border-radius: 12px; margin-top: 10px; }
-    
-    .notion-dropdown { position: relative; width: 100%; }
-    .notion-input-wrapper { position: relative; display: flex; align-items: center; }
-    .notion-input-wrapper::after { content: '▾'; position: absolute; right: 12px; color: var(--muted); pointer-events: none; font-size: 12px; }
-    .notion-menu { 
-      position: absolute; top: 100%; left: 0; width: 100%; background: #ffffff; 
-      border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); 
-      z-index: 100; max-height: 200px; overflow-y: auto; display: none; margin-top: 4px; padding: 4px;
-    }
-    .notion-menu.open { display: block; }
-    .notion-item { 
-      padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px; 
-      color: var(--ink); display: flex; justify-content: space-between; align-items: center;
-    }
-    .notion-item:hover { background: #f1f5f9; }
-
-    /* MODAL QR MANDO */
-    #qrModal { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.8); z-index: 6000; display: none; justify-content: center; align-items: center; }
-    #qrModal.open { display: flex; }
-    .qr-box { background: white; padding: 24px; border-radius: 16px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; }
-
-    /* MANDO MÓVIL */
-    .remote-layout { display: none; flex-direction: column; gap: 10px; width: 100%; max-width: 400px; height: 92vh; margin: 0 auto; justify-content: center; padding: 10px; }
-    .remote-card-info { background: #0f172a; border: 1px solid #334155; padding: 14px; border-radius: 16px; text-align: left; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); }
-    .btn-remote { flex: 1; border: none; border-radius: 16px; font-size: 1.3rem; font-weight: bold; color: white; background: var(--pri); touch-action: manipulation; }
-    .btn-remote-flip { background: var(--ok); }
-    .btn-remote-img { background: var(--purple); max-height: 50px; font-size: 1.1rem; }
-    .btn-remote-yt { background: var(--yt); max-height: 50px; font-size: 1.1rem; }
-    .img-upload-input { font-size: 11px; padding: 4px; }
-    .remote-lvl-row { display: flex; gap: 6px; width: 100%; }
-    .btn-remote-lvl { flex: 1; padding: 10px 4px; font-size: 0.85rem; font-weight: bold; border-radius: 10px; border: none; background: #334155; color: white; cursor: pointer; }
-    .btn-remote-lvl.active { background: var(--pri); }
-    .remote-target-row { display: flex; gap: 6px; width: 100%; }
-    .btn-remote-target { flex: 1; padding: 8px 4px; font-size: 0.72rem; font-weight: 700; border-radius: 10px; border: 2px solid transparent; background: #334155; color: #94a3b8; cursor: pointer; }
-    .btn-remote-target.active { background: #0891b2; color: #fff; border-color: #67e8f9; }
-
-    /* ===== MODO EMBED (usado dentro de cada mitad de la Vista Dividida) ===== */
-    body.embed-mode { padding: 8px; }
-    body.embed-mode .filters,
-    body.embed-mode .editor-box,
-    body.embed-mode .edit-zone,
-    body.embed-mode #btnSplitView,
-    body.embed-mode #btnMandoMovil,
-    body.embed-mode #data-source-badge { display: none !important; }
-    body.embed-mode .layout { gap: 8px; }
-    body.embed-mode .flashcard-wrapper { margin: 6px auto; }
-    body.embed-mode .flashcard { max-width: 100%; height: min(62vh, 480px); }
-
-    /* ===== VISTA DIVIDIDA (dos mitades independientes, cada una con su filtro) ===== */
-    .split-view-container {
-      display: none; position: fixed; inset: 0; background: #0f172a; z-index: 5000;
-    }
-    .split-view-container.open { display: flex; }
-    .split-pane { flex: 1; height: 100%; border: none; background: #f0f4f8; }
-    .split-divider { width: 5px; background: #334155; flex-shrink: 0; }
-    .split-toolbar { position: fixed; top: 10px; right: 10px; z-index: 5001; display: flex; gap: 8px; }
-    .btn-exit-split, .btn-pair-split {
-      background: rgba(220,38,38,0.92); color: #fff; border: none; padding: 10px 16px; border-radius: 10px;
-      font-weight: 700; font-size: 14px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-    }
-    .btn-exit-split:hover { background: #b91c1c; }
-    .btn-pair-split { background: rgba(37,99,235,0.92); }
-    .btn-pair-split:hover { background: #1d4ed8; }
-
-    #splitModal { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.8); z-index: 3000; display: none; justify-content: center; align-items: center; }
-    #splitModal.open { display: flex; }
-    .split-config-box { background: #fff; padding: 24px; border-radius: 16px; display: flex; flex-direction: column; gap: 14px; max-width: 480px; width: 92%; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
-    .split-config-cols { display: flex; gap: 16px; }
-    .split-config-col { flex: 1; display: flex; flex-direction: column; gap: 6px; }
-    .split-config-col label { margin-top: 4px; }
+    .col-bart { background-image: url('https://wallpapers.com/images/hd/bart-and-lisa-simpson-shocked-gaec8yd7cnpugjeg.jpg'); border-color: #f1c40f; }
+    .col-bart .col-overlay { background: rgba(241, 196, 15, 0.45); }
+    .col-bart .col-content { color: #ffffff; text-shadow: 1px 1px 3px #000; }
+    .col-bart li { background: rgba(243, 156, 18, 0.9); color: #fff; }
   </style>
 </head>
 <body>
 
-<!-- CONTENEDOR VISTA PROYECTOR / PC -->
-<div id="appView" class="layout">
-
-  <div class="filters">
-    <div style="font-weight:700; font-size:13px; color:var(--muted); width:100%; margin-bottom:4px;">Curso / Nivel:</div>
-    <div class="filter-group" id="courseFilterGroup"></div>
-
-    <div style="font-weight:700; font-size:13px; color:var(--muted); width:100%; margin-top:8px; margin-bottom:4px;">Asignatura:</div>
-    <div class="filter-group">
-      <button class="filter-btn active" id="btnSubj-ALL" onclick="setSubj('ALL')">Todas</button>
-      <button class="filter-btn" id="btnSubj-Lengua" onclick="setSubj('Lengua')">Lengua 🇪🇸</button>
-      <button class="filter-btn" id="btnSubj-Inglés" onclick="setSubj('Inglés')">Inglés 🇬🇧</button>
-      <button class="filter-btn" id="btnSubj-Matemáticas" onclick="setSubj('Matemáticas')">Matemáticas 📐</button>
-      <button class="filter-btn" id="btnSubj-Sociales" onclick="setSubj('Sociales')">Sociales 🌍</button>
-      <button class="filter-btn" id="btnSubj-Naturales" onclick="setSubj('Naturales')">Naturales 🌿</button>
-    </div>
-
-    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-top: 8px; margin-bottom: 4px; border-top: 1px dashed var(--line); padding-top: 8px;">
-      <div style="font-weight:700; font-size:13px; color:var(--muted); display:flex; align-items:center; gap:8px;">
-        <span>Temas de Estudio (Tags):</span>
-        <button id="btnSelectAllTopics" class="btn-flat" style="padding: 2px 8px; font-size: 11px;" onclick="toggleSelectAllTopics()">Seleccionar todos</button>
-      </div>
-      <div style="display: flex; gap: 4px; align-items: center;">
-        <input id="newTopicInput" placeholder="Añadir nuevo tema..." style="padding: 4px 8px; font-size: 12px; width: 160px;" />
-        <button class="btn-ok" id="addTopicBtn" style="padding: 4px 10px; font-size: 12px;">➕ Crear</button>
-      </div>
-    </div>
-    
-    <div class="filter-group" id="topicFilterGroup"></div>
-    
-    <div id="topicConfirmZone" class="confirmation-bar" style="display: none;">
-      <div style="display:flex; align-items:center; gap:8px;">
-        <span style="font-size:12px; font-weight:700; color:var(--muted);">Selección actual:</span>
-        <div id="topicPillsPreview" class="selected-pills-preview"></div>
-      </div>
-      <div style="display:flex; gap:8px;">
-        <button class="btn-flat" onclick="clearTopicSelection()" style="padding: 6px 12px; font-size: 12px;">🧹 Ver todo</button>
-        <button class="btn-pri" id="btnApplyTopics" onclick="confirmTopicSelection()" style="padding: 6px 16px; font-size: 13px;">
-          ✅ Confirmar selección (<span id="selectedTopicsCount">0</span>)
-        </button>
-      </div>
-    </div>
-
-    <div style="display:flex; align-items:center; gap:8px; width:100%; margin-top:8px; margin-bottom:4px;">
-      <input id="searchTextInput" type="search" placeholder="🔎 Buscar en preguntas y respuestas..." oninput="setSearchText(this.value)" style="flex:1; padding:8px 10px; font-size:13px; border-radius:8px; border:1px solid var(--line);" />
-      <button class="btn-flat" style="padding:8px 10px; font-size:12px;" onclick="clearSearchText()">✕ Limpiar</button>
-    </div>
-
-    <div style="font-weight:700; font-size:13px; color:var(--muted); width:100%; margin-top:8px; margin-bottom:4px;">Dificultad / Nivel de Liga:</div>
-    <div class="filter-group">
-      <button class="filter-btn active" id="btnLvl-ALL" onclick="setLvl('ALL')">Todos los niveles</button>
-      <button class="filter-btn" id="btnLvl-Fácil" onclick="setLvl('Fácil')">Fácil (Bart & Lisa Simpson)</button>
-      <button class="filter-btn" id="btnLvl-Medio" onclick="setLvl('Medio')">Medio (Donkey)</button>
-      <button class="filter-btn" id="btnLvl-Difícil" onclick="setLvl('Difícil')">Difícil (Shrek)</button>
-    </div>
+<header>
+  <div>
+    <h1>🏆 Previa Suiza (Clasificatoria)</h1>
+    <p>Emparejamientos equilibrados y clasificación por categorías</p>
   </div>
+  <div style="display:flex; align-items:center; gap:10px;">
+    <span class="status-tag" id="autosaveStatus">⏳ Cargando...</span>
+    <button class="btn secondary" onclick="handleManualLoadDrive()">🔄 Cargar de Drive</button>
+    <button class="btn secondary" id="exportAll">📥 Exportar (JSON)</button>
+    <button class="btn secondary" onclick="document.getElementById('importFile').click()">📤 Importar</button>
+    <input id="importFile" type="file" accept="application/json" style="display:none" />
+  </div>
+</header>
 
-  <div class="flashcard-wrapper">
-    <div class="flashcard" id="cardElement" onclick="handleCardClick(this)">
-      <button class="btn-fullscreen" id="btnToggleFullscreen" onclick="toggleFullscreen(event)">🖥️ Pantalla Completa</button>
+<div class="wrap">
+  <div class="grid-top">
+    <div class="panel">
+      <div class="group-box">
+        <label>Seleccionar Competición / Clase</label>
+        <div style="display:flex; gap:6px; margin-bottom:6px;">
+          <select id="groupSelect" style="font-weight:bold;"></select>
+          <button class="btn secondary" id="renameGroupBtn" title="Renombrar la competición seleccionada">✏️</button>
+        </div>
+        <div style="display:flex; gap:6px; margin-bottom:6px;">
+          <input type="text" id="newGroupName" placeholder="Ej: 5ºA EF - 2026/09" />
+          <button class="btn ok" id="addGroupBtn" style="white-space:nowrap;">+ Nueva</button>
+        </div>
+        <button class="btn bad" id="deleteGroupBtn" style="width:100%; font-size:11px; padding:4px 8px;">🗑️ Eliminar Clase Seleccionada</button>
+      </div>
+
+      <label>Alumnos (1 por línea)</label>
+      <textarea id="studentsInput" rows="4" placeholder="Pega los nombres aquí..."></textarea>
       
-      <button class="fs-nav-btn fs-nav-prev" onclick="navCard(event, -1)" title="Anterior">⬅️</button>
-      <button class="fs-nav-btn fs-nav-next" onclick="navCard(event, 1)" title="Siguiente">➡️</button>
-
-      <div class="card-inner" id="cardInnerElement">
-        <div class="card-face card-front">
-          <div class="card-meta meta-front" id="metaFront">---</div>
-          <div class="card-topic-meta topic-front" id="topicFront">Sin tema</div>
-          <div class="card-text-container">
-            <div class="card-context-front" id="qContextFront"></div>
-            <div class="card-text-front" id="textFront">Cargando preguntas...</div>
-          </div>
-          <div class="card-media-anchor" id="mediaAnchorFront"></div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-top:6px; align-items:end;">
+        <div>
+          <label>Nº Partidos/Alumno</label>
+          <select id="matchesPerStudentSelect">
+            <option value="4" selected>4 partidos</option>
+            <option value="6">6 partidos</option>
+            <option value="8">8 partidos</option>
+          </select>
         </div>
-        <div class="card-face card-back">
-          <div class="card-meta meta-back" id="metaBack">RESPUESTA</div>
-          <div class="card-topic-meta topic-back" id="topicBack">Sin tema</div>
-          <div class="card-text-container">
-            <div class="card-context-back" id="qContextBack"></div>
-            <div class="card-text-back-prompt" id="textFrontBack">---</div>
-            <div class="card-text-back-answer" id="textBack">---</div>
-          </div>
-          <div class="card-media-anchor" id="mediaAnchorBack"></div>
-          <div class="success-actions">
-            <button class="btn-celebrate" id="celebrateBtn">👍 ¡Correcto!</button>
-          </div>
-        </div>
+        <button class="btn ok" id="saveStudents">💾 Guardar Lista</button>
       </div>
+
+      <button class="btn warn" id="generateMatches" style="width:100%; margin-top:6px;">🎲 Generar Sorteo</button>
     </div>
 
-    <div class="controls">
-      <button class="btn-flat" id="prevBtn" onclick="navCard(event, -1)">⬅️ Anterior</button>
-      <div class="counter" id="cardCounter">0 / 0</div>
-      <button class="btn-flat" id="nextBtn" onclick="navCard(event, 1)">Siguiente ➡️</button>
-      <button class="btn-warn" id="shuffleBtn">🎯 Aleatorio</button>
-      <button class="btn-pri" style="background:#8b5cf6;" id="btnMandoMovil" onclick="openQRModal()">📱 Mando Móvil</button>
-      <button class="btn-pri" style="background:#0891b2;" id="btnSplitView" onclick="openSplitModal()">🔀 Vista Dividida</button>
-    </div>
-  </div>
-
-  <div class="gif-modal" id="gifModal" onclick="closeGifModal()">
-    <div class="gif-content" onclick="event.stopPropagation()">
-      <img id="gifViewer" src="" alt="Celebración" />
-      <div class="gif-caption" id="gifCaption">¡Puntos ganados!</div>
-    </div>
-  </div>
-
-  <!-- VISOR DE IMAGEN MAXIMIZADA -->
-  <div class="img-modal" id="imgModal" onclick="closeImgModal()">
-    <div class="img-modal-content" onclick="event.stopPropagation()">
-      <button class="img-modal-close" onclick="closeImgModal()">✖</button>
-      <img id="imgModalViewer" src="" alt="Imagen ampliada" />
-    </div>
-  </div>
-
-  <div class="edit-zone" id="editZoneContainer">
-    <div style="font-weight: 800; font-size: 12px; text-transform: uppercase; color: var(--warn); margin-bottom: 8px; display: flex; justify-content: space-between;">
-      <span>✏️ Modificar esta tarjeta en tiempo real</span>
-      <span style="color:var(--muted)" id="editTargetIndex">ID: -</span>
-    </div>
-    <div class="row">
-      <div>
-        <label>Instrucción / Contexto</label>
-        <input type="text" id="editQContext" placeholder="Opcional..." />
-      </div>
-      <div>
-        <label>Enunciado Principal</label>
-        <input type="text" id="editQ" />
-      </div>
-      <div style="grid-column: span 2">
-        <label>Solución oculta</label>
-        <input type="text" id="editA" />
-      </div>
-    </div>
-    <div class="row">
-      <div>
-        <label>Asignatura</label>
-        <select id="editSubj">
-          <option value="Lengua">Lengua</option>
-          <option value="Inglés">Inglés</option>
-          <option value="Matemáticas">Matemáticas</option>
-          <option value="Sociales">Sociales</option>
-          <option value="Naturales">Naturales</option>
-        </select>
-      </div>
-      <div>
-        <label>Temas / Tags</label>
-        <div class="notion-dropdown">
-          <div class="notion-input-wrapper">
-            <input type="text" id="editTopic" autocomplete="off" />
-          </div>
-          <div class="notion-menu" id="menuEditTopic"></div>
-        </div>
-      </div>
-      <div>
-        <label>Dificultad</label>
-        <select id="editLvl">
-          <option value="Fácil">Fácil (Bart & Lisa Simpson)</option>
-          <option value="Medio">Medio (Donkey)</option>
-          <option value="Difícil">Difícil (Shrek)</option>
-        </select>
-      </div>
-      <div>
-        <label>Curso</label>
-        <div class="notion-dropdown" id="dropdownEdit">
-          <div class="notion-input-wrapper">
-            <input type="text" id="editCourse" autocomplete="off"/>
-          </div>
-          <div class="notion-menu" id="menuEdit"></div>
-        </div>
-      </div>
-    </div>
-    <div class="row">
-      <div style="grid-column: span 2">
-        <label>Enlace / URL Imagen / Vídeo YT</label>
-        <input type="text" id="editMedia" placeholder="https://... o sube una imagen abajo" />
-      </div>
-      <div>
-        <label>Subir/Auto-comprimir Imagen</label>
-        <input type="file" id="editImgFile" accept="image/*" class="img-upload-input" onchange="handleImageUpload(this, 'editMedia')" />
-      </div>
-      <div style="display:flex; gap:6px;">
-        <button class="btn-ok" id="updateBtn" style="flex:1">💾 Guardar Cambios</button>
-        <button class="btn-bad" id="delBtn" style="padding:8px 12px;">🗑️ Borrar</button>
+    <div class="panel">
+      <label>Partido Seleccionado / Marcador en Directo</label>
+      <div id="matchBox" class="match-box">
+        <div style="text-align:center; color:var(--muted); font-size:13px;">Haz clic en un partido para anotar el resultado.</div>
       </div>
     </div>
   </div>
 
-  <div class="editor-box">
-    <div style="font-weight:700; margin-bottom:10px; color:var(--ink);">✨ Añadir Nueva Tarjeta al Mazo</div>
-    <div class="row">
-      <div>
-        <label>Instrucción / Contexto</label>
-        <input type="text" id="addQContext" placeholder="Opcional..." />
-      </div>
-      <div>
-        <label>Enunciado Principal</label>
-        <input type="text" id="addQ" />
-      </div>
-      <div style="grid-column: span 2">
-        <label>Solución oculta</label>
-        <input type="text" id="addA" />
-      </div>
-    </div>
-    <div class="row">
-      <div>
-        <label>Asignatura</label>
-        <select id="addSubj">
-          <option value="Lengua">Lengua</option>
-          <option value="Inglés">Inglés</option>
-          <option value="Matemáticas">Matemáticas</option>
-          <option value="Sociales">Sociales</option>
-          <option value="Naturales">Naturales</option>
-        </select>
-      </div>
-      <div>
-        <label>Temas / Tags</label>
-        <div class="notion-dropdown">
-          <div class="notion-input-wrapper">
-            <input type="text" id="addTopic" autocomplete="off" />
-          </div>
-          <div class="notion-menu" id="menuAddTopic"></div>
+  <div class="dual-container">
+    <div class="panel">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <label style="margin:0;">📊 Clasificación General</label>
+          <button class="btn ok" style="font-size:11px; padding:3px 8px;" onclick="triggerLeagueFinalSummary(recalc())">🏆 Cuadro de Honor</button>
         </div>
-      </div>
-      <div>
-        <label>Dificultad</label>
-        <select id="addLvl">
-          <option value="Fácil">Fácil (Bart & Lisa Simpson)</option>
-          <option value="Medio">Medio (Donkey)</option>
-          <option value="Difícil">Difícil (Shrek)</option>
-        </select>
-      </div>
-      <div>
-        <label>Curso</label>
-        <div class="notion-dropdown" id="dropdownAdd">
-          <div class="notion-input-wrapper">
-            <input type="text" id="addCourse" autocomplete="off"/>
-          </div>
-          <div class="notion-menu" id="menuAdd"></div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-box" style="background:var(--zone-div1)"></div> 1ª Div</div>
+          <div class="legend-item"><div class="legend-box" style="background:var(--zone-div2)"></div> 2ª Div</div>
+          <div class="legend-item"><div class="legend-box" style="background:var(--zone-div3)"></div> 3ª Div</div>
         </div>
+        <span id="standingsCount" style="font-size:11px; color:var(--muted); font-weight:bold;">0 Alumnos</span>
       </div>
-    </div>
-    <div class="row">
-      <div style="grid-column: span 2">
-        <label>Enlace / URL Imagen / Vídeo YT</label>
-        <input type="text" id="addMedia" placeholder="https://... o sube una imagen" />
+      <div class="columns-2">
+        <table>
+          <thead>
+            <tr><th>#</th><th>Alumno</th><th>PTS</th><th>Des.</th><th>V-E-D</th><th>GF</th><th>GC</th><th>DIF</th></tr>
+          </thead>
+          <tbody id="standingsBody1"></tbody>
+        </table>
+        <table>
+          <thead>
+            <tr><th>#</th><th>Alumno</th><th>PTS</th><th>Des.</th><th>V-E-D</th><th>GF</th><th>GC</th><th>DIF</th></tr>
+          </thead>
+          <tbody id="standingsBody2"></tbody>
+        </table>
       </div>
-      <div>
-        <label>Subir/Auto-comprimir Imagen</label>
-        <input type="file" id="addImgFile" accept="image/*" class="img-upload-input" onchange="handleImageUpload(this, 'addMedia')" />
-      </div>
-      <button class="btn-pri" id="addBtn">➕ Crear Tarjeta</button>
     </div>
 
-    <div style="margin-top:15px; padding-top:12px; border-top:1px dashed var(--line); display:flex; justify-content:space-between; align-items:center;">
-      <button class="btn-flat" id="exportBtn" style="font-size:12px;">📥 Exportar Mazo (.json)</button>
-      <div style="display:flex; align-items:center; gap:6px;">
-        <label style="margin:0; font-size:11px;">Cargar banco:</label>
-        <input type="file" id="importFile" accept="application/json" style="font-size:11px; width:180px; padding:4px;" />
+    <div class="panel">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <label style="margin:0;">📅 Calendario de Partidos</label>
+        <span id="matchProgress" style="font-size:11px; color:var(--muted); font-weight:bold;">0 / 0 Partidos</span>
+      </div>
+      <div class="columns-2">
+        <div id="matchList1" class="match-list"></div>
+        <div id="matchList2" class="match-list"></div>
       </div>
     </div>
   </div>
-
 </div>
 
-<!-- VISTA MANDO REMOTO MÓVIL -->
-<div id="remoteView" class="remote-layout">
-  <div class="remote-target-row" id="remoteTargetRow">
-    <button class="btn-remote-target" id="btnTargetL" onclick="setRemoteTarget('L')">◀️ Izquierda</button>
-    <button class="btn-remote-target active" id="btnTargetAll" onclick="setRemoteTarget('ALL')">🖥️ Normal</button>
-    <button class="btn-remote-target" id="btnTargetR" onclick="setRemoteTarget('R')">▶️ Derecha</button>
-  </div>
-  <div class="remote-lvl-row">
-    <button class="btn-remote-lvl" onclick="sendRemoteCmd('SET_LVL_Fácil')">Fácil</button>
-    <button class="btn-remote-lvl" onclick="sendRemoteCmd('SET_LVL_Medio')">Medio</button>
-    <button class="btn-remote-lvl" onclick="sendRemoteCmd('SET_LVL_Difícil')">Difícil</button>
-  </div>
-  <div class="remote-card-info">
-    <div style="font-size: 11px; text-transform: uppercase; color: #94a3b8; font-weight: 700; margin-bottom: 2px;">Pregunta Activa</div>
-    <div id="remoteQuestionText" style="font-size: 14px; color: #f8fafc; font-weight: 500; margin-bottom: 10px; line-height: 1.3;">-</div>
+<!-- Modal de Resumen Final de Competición -->
+<div id="finalSummaryModal" class="summary-modal-overlay" style="display: none;">
+  <div class="summary-modal-card">
+    <button class="summary-close-btn" onclick="closeFinalSummary()">✖</button>
+    <h2 class="summary-title">🏆 CUADRO DE HONOR 🏆</h2>
     
-    <div style="border-top: 1px dashed #334155; padding-top: 8px;">
-      <div style="font-size: 11px; text-transform: uppercase; color: #38bdf8; font-weight: 700; margin-bottom: 2px;">💡 Solución (Vista Profesor)</div>
-      <div id="remoteAnswerText" style="font-size: 17px; font-weight: 700; color: #4ade80; line-height: 1.3;">-</div>
-    </div>
-  </div>
-
-  <button class="btn-remote" onclick="sendRemoteCmd('PREV')">⬅️ Anterior</button>
-  <button class="btn-remote btn-remote-flip" onclick="sendRemoteCmd('FLIP')">🔄 Girar / Respuesta</button>
-  <button class="btn-remote" onclick="sendRemoteCmd('NEXT')">Siguiente ➡️</button>
-  <button id="btnRemoteImgZoom" onclick="sendRemoteCmd('TOGGLE_ZOOM')">🔍 Ampliar Imagen</button>
-  <button id="btnRemoteYtMax" onclick="sendRemoteCmd('TOGGLE_MAX_VIDEO')">🖥️ Maximizar Vídeo</button>
-</div>
-
-<!-- MODAL QR -->
-<div id="qrModal" onclick="closeQRModal()">
-  <div class="qr-box" onclick="event.stopPropagation()">
-    <h3 style="margin:0; color:var(--ink);">📱 Mando a distancia</h3>
-    <div id="qrcode"></div>
-    <p style="margin:0; font-size:12px; color:var(--muted);">Escanea el QR con tu móvil para controlar la app</p>
-    <button class="btn-flat" onclick="closeQRModal()">Cerrar</button>
-  </div>
-</div>
-
-<!-- MODAL CONFIGURACIÓN VISTA DIVIDIDA -->
-<div id="splitModal" onclick="closeSplitModal()">
-  <div class="split-config-box" onclick="event.stopPropagation()">
-    <h3 style="margin:0; color:var(--ink);">🔀 Pantalla dividida (2 niveles a la vez)</h3>
-    <p style="margin:0; font-size:12px; color:var(--muted);">Elige el curso, la asignatura y/o la dificultad de cada mitad. Deja "Todas" en lo que no quieras filtrar.</p>
-    <div class="split-config-cols">
-      <!-- Panel Izquierdo -->
-      <div class="split-config-col">
-        <label>Panel Izquierdo — Curso</label>
-        <select id="splitCourseL"></select>
-        
-        <label>Panel Izquierdo — Asignatura</label>
-        <select id="splitSubjL">
-          <option value="ALL">Todas las asignaturas</option>
-          <option value="Lengua">Lengua 🇪🇸</option>
-          <option value="Inglés">Inglés 🇬🇧</option>
-          <option value="Matemáticas">Matemáticas 📐</option>
-          <option value="Sociales">Sociales 🌍</option>
-          <option value="Naturales">Naturales 🌿</option>
-        </select>
-
-        <label>Panel Izquierdo — Dificultad</label>
-        <select id="splitLvlL">
-          <option value="ALL">Todos los niveles</option>
-          <option value="Fácil">Fácil</option>
-          <option value="Medio">Medio</option>
-          <option value="Difícil">Difícil</option>
-        </select>
+    <div class="summary-columns-container">
+      <div class="summary-col col-shrek">
+        <div class="col-overlay"></div>
+        <div class="col-content">
+          <h3>Shrek & Fiona</h3>
+          <ul id="listShrek"></ul>
+        </div>
       </div>
 
-      <!-- Panel Derecho -->
-      <div class="split-config-col">
-        <label>Panel Derecho — Curso</label>
-        <select id="splitCourseR"></select>
+      <div class="summary-col col-donkey">
+        <div class="col-overlay"></div>
+        <div class="col-content">
+          <h3>Donkey</h3>
+          <ul id="listDonkey"></ul>
+        </div>
+      </div>
 
-        <label>Panel Derecho — Asignatura</label>
-        <select id="splitSubjR">
-          <option value="ALL">Todas las asignaturas</option>
-          <option value="Lengua">Lengua 🇪🇸</option>
-          <option value="Inglés">Inglés 🇬🇧</option>
-          <option value="Matemáticas">Matemáticas 📐</option>
-
-          <option value="Sociales">Sociales 🌍</option>
-          <option value="Naturales">Naturales 🌿</option>
-        </select>
-
-        <label>Panel Derecho — Dificultad</label>
-        <select id="splitLvlR">
-          <option value="ALL">Todos los niveles</option>
-          <option value="Fácil">Fácil</option>
-          <option value="Medio">Medio</option>
-          <option value="Difícil">Difícil</option>
-        </select>
+      <div class="summary-col col-bart">
+        <div class="col-overlay"></div>
+        <div class="col-content">
+          <h3>Bart & Lisa</h3>
+          <ul id="listBart"></ul>
+        </div>
       </div>
     </div>
-    <div style="display:flex; gap:8px; justify-content:flex-end;">
-      <button class="btn-flat" onclick="closeSplitModal()">Cancelar</button>
-      <button class="btn-pri" style="background:#0891b2;" onclick="activateSplitView()">🔀 Activar vista dividida</button>
-    </div>
   </div>
-</div>
-
-<!-- CONTENEDOR VISTA DIVIDIDA (dos instancias independientes de la app, vía iframe) -->
-<div id="splitViewContainer" class="split-view-container">
-  <div class="split-toolbar">
-    <button class="btn-pair-split" onclick="openQRModal()">📱 Mando</button>
-    <button class="btn-exit-split" onclick="exitSplitView()">↩️ Volver a vista normal</button>
-  </div>
-  <iframe id="splitPaneL" class="split-pane" title="Panel izquierdo"></iframe>
-  <div class="split-divider"></div>
-  <iframe id="splitPaneR" class="split-pane" title="Panel derecho"></iframe>
 </div>
 
 <script>
-const STORAGE_KEY = 'classroom_cards_deck_v4';
-const STORAGE_TOPICS_KEY = 'classroom_cards_topics_v4';
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzUIijdWpsEBlYr2VYRrIsozuyXgS4Q32fkzuYxG-szocv4pb5-KLiaVDgH4tErXTUzbA/exec";
+const LOCAL_STORAGE_KEY = 'previa_suiza_db_v1';
+const GITHUB_FALLBACK_URL = '../datos/00_previa_suiza.json';
+const DEFAULT_FILENAME = '00_previa_suiza.json';
 
-const CELEBRATION_GIFS = {
-  "Fácil": { url: "https://media.tenor.com/YyKNQ-UFO8gAAAAM/the-simpsons-lisa-simpson.gif", caption: "¡Lisa aprueba tu respuesta! ⭐" },
-  "Medio": { url: "https://media.tenor.com/EvNCyjP1IxQAAAAM/feliz-alegre.gif", caption: "¡Donkey aprueba tu respuesta! 🐴" },
-  "Difícil": { url: "https://media.tenor.com/m4k271sucqgAAAAM/shrek-and-fiona-shrek.gif", caption: "¡Brillante! ¡Nivel Shrek y Fiona dominado! 👹" }
+let historyStack = [];
+let currentA = 0, currentB = 0;
+let hasUnsavedChanges = false;
+
+let db = {
+  activeGroup: "Clase 1",
+  groups: {
+    "Clase 1": { students: [], matches: [], tieBreakers: {}, currentMatchId: null, maxMatches: 4, updatedAt: Date.now() }
+  }
 };
 
-let deck = [];
-let filterCourse = 'ALL';
-let filterSubj = 'ALL';
-let filterLvl = 'ALL';
-let selectedTopics = []; 
-let confirmedTopics = []; 
-let customTopics = [];
-let filtered = [];
-let index = 0;
-let filterMemory = {};
-let hasUnsavedChanges = false; // <-- AÑADIDO: Controla si hay cambios pendientes
-
-/* MODO EMBED: cuando esta página se carga dentro de un iframe de la Vista Dividida,
-   con ?embed=1&course=...&lvl=..., se oculta la edición/filtros y se aplica el filtro
-   indicado automáticamente (ver activateSplitView() y el final de loadDeck()). */
-const pageParams = new URLSearchParams(window.location.search);
-const isEmbedMode = pageParams.get('embed') === '1';
-const embedCourseParam = pageParams.get('course') || 'ALL';
-const embedSubjParam = pageParams.get('subj') || 'ALL';
-const embedLvlParam = pageParams.get('lvl') || 'ALL';
-if (isEmbedMode) document.body.classList.add('embed-mode');
-
-// AVISO NATIVO AL CERRAR O RECARGAR SI HAY CAMBIOS
-window.addEventListener('beforeunload', (e) => {
-  if (hasUnsavedChanges) {
-    e.preventDefault();
-    e.returnValue = ''; // Muestra el mensaje estándar del navegador
-  }
-});
-
-const BASE_COURSES = ["5º", "6º"];
-
-/* SÍNTESIS DE AUDIO REALISTA CON WEB AUDIO API */
 let audioCtx = null;
-
-function initAudio() {
+function getAudioContext() {
   if (!audioCtx) {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   }
   if (audioCtx.state === 'suspended') {
     audioCtx.resume();
   }
+  return audioCtx;
 }
 
-function playCardSlide() {
-  initAudio();
-  const bufferSize = audioCtx.sampleRate * 0.12;
-  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-  const data = buffer.getChannelData(0);
+function uid() { return Math.random().toString(36).substr(2, 9); }
 
-  for (let i = 0; i < bufferSize; i++) {
-    data[i] = Math.random() * 2 - 1;
-  }
-
-  const noise = audioCtx.createBufferSource();
-  noise.buffer = buffer;
-
-  const filter = audioCtx.createBiquadFilter();
-  filter.type = 'bandpass';
-  filter.frequency.setValueAtTime(800, audioCtx.currentTime);
-  filter.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.12);
-  filter.Q.value = 1.2;
-
-  const gain = audioCtx.createGain();
-  gain.gain.setValueAtTime(0.01, audioCtx.currentTime);
-  gain.gain.linearRampToValueAtTime(0.35, audioCtx.currentTime + 0.03);
-  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
-
-  noise.connect(filter);
-  filter.connect(gain);
-  gain.connect(audioCtx.destination);
-
-  noise.start();
-}
-
-function playArpa() {
-  initAudio();
-  const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51]; 
-
-  notes.forEach((freq, i) => {
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    const startTime = audioCtx.currentTime + (i * 0.04);
-
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(freq, startTime);
-
-    gain.gain.setValueAtTime(0.15, startTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.3);
-
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-
-    osc.start(startTime);
-    osc.stop(startTime + 0.3);
-  });
-}
-
-document.addEventListener('click', () => initAudio(), { once: true });
-
-function shuffleArray(array) {
-  for (let i = array.length - 1; i > 0; i--) {
+function shuffleArray(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
+    [arr[i], arr[j]] = [arr[j], arr[i]];
   }
+  return arr;
 }
 
-function parseInputItems(inputStr) {
-  if (!inputStr) return [];
-  return inputStr.split(',').map(t => t.trim()).filter(Boolean);
+function getNowFormatted() {
+  const d = new Date();
+  return `${d.toLocaleDateString()} ${d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
 }
 
-function getCardTopics(card) {
-  if (Array.isArray(card.topics)) return card.topics.map(t => t.trim()).filter(Boolean);
-  if (Array.isArray(card.topic)) return card.topic.map(t => t.trim()).filter(Boolean);
-  if (typeof card.topic === 'string' && card.topic.trim() !== "") {
-    return card.topic.split(',').map(t => t.trim()).filter(Boolean);
+function getActiveData() {
+  if (!db.groups || Object.keys(db.groups).length === 0) {
+    db.groups = { "Clase 1": { students: [], matches: [], tieBreakers: {}, currentMatchId: null, maxMatches: 4, updatedAt: Date.now() } };
+    db.activeGroup = "Clase 1";
   }
-  return [];
-}
-
-function getCardCourses(card) {
-  if (!card.course || card.course.trim() === "") return [];
-  return card.course.split(',').map(c => c.trim()).filter(Boolean);
-}
-
-function getAllAvailableTopics() {
-  const allTopics = new Set(customTopics);
-  deck.forEach(c => getCardTopics(c).forEach(t => allTopics.add(t)));
-  return Array.from(allTopics).sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
-}
-
-function getAllAvailableCourses() {
-  const allCourses = new Set(BASE_COURSES);
-  deck.forEach(c => getCardCourses(c).forEach(crs => allCourses.add(crs)));
-  return Array.from(allCourses).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
-}
-
-function saveDeck() { localStorage.setItem(STORAGE_KEY, JSON.stringify(deck)); }
-function saveTopics() { 
-  customTopics.sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
-  localStorage.setItem(STORAGE_TOPICS_KEY, JSON.stringify(customTopics)); 
-}
-
-async function loadDeck() {
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxmsFEuwrNg7QV3lEB9V2BuH8RkfpOOnrwEPZdVQ8dRbAaEbJkqRGVIOGwTprSPHUO5Hg/exec';
-  let origenCargado = "";
-  let cargadoConExito = false;
-
-  // OPTIMIZACIÓN: Si estamos dentro de un iframe (embed-mode), intentamos usar 
-  // los datos que el marco padre ya tiene cargados en memoria o en localStorage.
-  if (isEmbedMode) {
-    try {
-      if (window.parent && window.parent.deck && window.parent.deck.length > 0) {
-        procesarMazo(window.parent.deck);
-        origenCargado = "⚡ Memoria Compartida (Ventana Principal)";
-        cargadoConExito = true;
-      }
-    } catch (e) {
-      // Ignorar posibles restricciones de origen
-    }
+  if (!db.activeGroup || !db.groups[db.activeGroup]) {
+    db.activeGroup = Object.keys(db.groups)[0];
   }
-
-  // Si no es iframe o no se pudo acceder al padre, hacer la carga normal
-  if (!cargadoConExito && !isEmbedMode) {
-    try {
-      const resDrive = await fetch(APPS_SCRIPT_URL, { redirect: 'follow' });
-      if (!resDrive.ok) throw new Error(`Status: ${resDrive.status}`);
-      const dataDrive = await resDrive.json();
-      if (Array.isArray(dataDrive) && dataDrive.length > 0) {
-        procesarMazo(dataDrive);
-        origenCargado = "☁️ Google Drive";
-        cargadoConExito = true;
-      }
-    } catch (errDrive) {
-      console.warn("Fallo al cargar desde Drive via Apps Script:", errDrive);
-    }
-  }
-
-  // Fallback 1: LocalStorage
-  if (!cargadoConExito) {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) { 
-      try { 
-        let parsed = JSON.parse(raw); 
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          procesarMazo(parsed);
-          origenCargado = "💾 Memoria Local (LocalStorage)";
-          cargadoConExito = true;
-        }
-      } catch(e) {} 
-    }
-  }
-
-  // Fallback 2: JSON local
-  if (!cargadoConExito) {
-    try {
-      const resLocal = await fetch('preguntas.json?v=' + new Date().getTime());
-      if (!resLocal.ok) throw new Error('No se encontró preguntas.json local');
-      const dataLocal = await resLocal.json();
-      if (Array.isArray(dataLocal) && dataLocal.length > 0) {
-        procesarMazo(dataLocal);
-        origenCargado = "📁 GitHub (preguntas.json)";
-        cargadoConExito = true;
-      }
-    } catch (errLocal) {
-      console.warn("Fallo al cargar preguntas.json desde GitHub/local:", errLocal);
-    }
-  }
-
-  const rawTopics = localStorage.getItem(STORAGE_TOPICS_KEY);
-  if (rawTopics) {
-    try { 
-      customTopics = JSON.parse(rawTopics); 
-      customTopics.sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
-    } catch(e) {}
-  }
-
-  mostrarAvisoOrigen(origenCargado);
-  applyFilters();
-
-  if (isEmbedMode) {
-    if (embedCourseParam && embedCourseParam !== 'ALL') setCourse(embedCourseParam);
-    if (embedSubjParam && embedSubjParam !== 'ALL') setSubj(embedSubjParam);
-    if (embedLvlParam && embedLvlParam !== 'ALL') setLvl(embedLvlParam);
-  }
+  return db.groups[db.activeGroup];
 }
 
-function procesarMazo(datos) {
-  deck = datos.map(c => {
-    if (c.course === "Ambos (General)") c.course = "";
-    c.qContext = c.qContext || "";
-    c.topics = getCardTopics(c);
-    c.topic = c.topics.join(', ');
-    c.media = c.media || "";
-    return c;
-  });
-
-  deck.forEach(c => {
-    c.topics.forEach(t => {
-      if (!customTopics.includes(t)) customTopics.push(t);
-    });
-  });
-}
-
-function mostrarAvisoOrigen(texto) {
-  let badge = document.getElementById('data-source-badge');
-  if (!badge) {
-    badge = document.createElement('div');
-    badge.id = 'data-source-badge';
-    badge.style.cssText = 'position:fixed; bottom:10px; right:10px; background:#1e293b; color:#94a3b8; border:1px solid #334155; padding:4px 10px; border-radius:20px; font-size:11px; z-index:9999; pointer-events:none; opacity:0.85;';
-    document.body.appendChild(badge);
+function checkUnsavedBeforeAction(actionName = "continuar") {
+  if (hasUnsavedChanges) {
+    return confirm(`Tienes cambios recientes sin exportar o guardar externamente. ¿Seguro que deseas ${actionName}?`);
   }
-  badge.textContent = `Fuente: ${texto || 'Desconocida'}`;
+  return true;
 }
 
-function toggleFullscreen(e) {
-  if (e) e.stopPropagation();
-  const cardEl = document.getElementById('cardElement');
-  const btn = document.getElementById('btnToggleFullscreen');
-  
-  cardEl.classList.toggle('fullscreen');
-  if (cardEl.classList.contains('fullscreen')) {
-    btn.textContent = '❌ Salir Fullscreen';
-  } else {
-    btn.textContent = '🖥️ Pantalla Completa';
-  }
-}
-
-function navCard(e, dir) {
-  if (e) e.stopPropagation();
-  closeImgModal(); // <-- AÑADIDO: Cierra la imagen si estaba maximizada
-  if (!filtered.length) return;
-  playCardSlide();
-  index = (index + dir + filtered.length) % filtered.length;
-  updateView();
-}
-
-document.addEventListener('keydown', (e) => {
-  const cardEl = document.getElementById('cardElement');
-  const isFs = cardEl.classList.contains('fullscreen');
-  const isEditingText = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName) || 
-                        document.activeElement.isContentEditable;
-  
-  if (!isFs || isEditingText) return;
-
-  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+window.addEventListener('beforeunload', (e) => {
+  if (hasUnsavedChanges) {
     e.preventDefault();
-    navCard(null, 1);
-  } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-    e.preventDefault();
-    navCard(null, -1);
-  } else if (e.key === 'Escape') {
-    toggleFullscreen(null);
-  } else if (e.key === ' ' || e.key === 'Enter') {
-    e.preventDefault();
-    handleCardClick(cardEl);
+    e.returnValue = '';
   }
 });
 
-function setupMultiAutocomplete(inputId, menuId, getAvailableItems) {
-  const input = document.getElementById(inputId);
-  const menu = document.getElementById(menuId);
-
-  function renderMenu() {
-    const fullText = input.value;
-    const parts = fullText.split(',');
-    const lastPart = parts[parts.length - 1];
-    const currentTerm = lastPart.trim().toLowerCase();
-
-    const existingItems = parts.slice(0, parts.length - 1).map(p => p.trim().toLowerCase());
-    const available = getAvailableItems().filter(item => !existingItems.includes(item.toLowerCase()));
-    
-    const matches = currentTerm === "" 
-      ? available 
-      : available.filter(item => item.toLowerCase().includes(currentTerm));
-
-    if (matches.length === 0) {
-      menu.classList.remove('open');
-      return;
-    }
-
-    let html = "";
-    matches.forEach(item => {
-      html += `<div class="notion-item" data-val="${item}">📌 ${item}</div>`;
-    });
-    menu.innerHTML = html;
-
-    menu.querySelectorAll('.notion-item[data-val]').forEach(el => {
-      el.onmousedown = (e) => {
-        e.preventDefault();
-        const selected = el.getAttribute('data-val');
-        const currentParts = input.value.split(',').map(p => p.trim());
-        currentParts[currentParts.length - 1] = selected;
-        const cleaned = currentParts.filter(Boolean);
-        input.value = cleaned.join(', ') + ', ';
-        renderMenu();
-        input.focus();
-      };
-    });
-  }
-
-  input.onfocus = () => { renderMenu(); menu.classList.add('open'); };
-  input.onblur = () => { setTimeout(() => menu.classList.remove('open'), 150); };
-  input.oninput = () => { renderMenu(); menu.classList.add('open'); };
+function handleManualLoadDrive() {
+  if (!checkUnsavedBeforeAction("cargar datos de Drive y reemplazar la sesión actual")) return;
+  initDataCascade();
 }
 
-function renderCourseFilterButtons() {
-  const container = document.getElementById('courseFilterGroup');
-  const activeCourses = new Set(BASE_COURSES);
-  deck.forEach(card => getCardCourses(card).forEach(c => activeCourses.add(c)));
-
-  const sortedActive = Array.from(activeCourses).sort((a, b) => 
-    a.localeCompare(b, undefined, {numeric: true, sensitivity: 'base'})
-  );
-
-  let html = `<button class="filter-btn ${filterCourse === 'ALL' ? 'active' : ''}" onclick="setCourse('ALL')">Todos los cursos</button>`;
-  sortedActive.forEach(c => {
-    html += `<button class="filter-btn ${filterCourse === c ? 'active' : ''}" onclick="setCourse('${c}')">${c}</button>`;
-  });
-  container.innerHTML = html;
-}
-
-function matchesCourseFilter(card, selectedCourseFilter) {
-  if (selectedCourseFilter === 'ALL') return true;
-  const cardCourses = getCardCourses(card);
-  if (cardCourses.length === 0) return true;
-  return cardCourses.includes(selectedCourseFilter);
-}
-
-function renderTopicControls() {
-  const topicsVisibles = new Set();
-  let hayPreguntasSinTema = false;
-
-  deck.forEach(card => {
-    if (matchesCourseFilter(card, filterCourse) && (filterSubj === 'ALL' || card.subj === filterSubj)) {
-      const cardTopics = getCardTopics(card);
-      if (cardTopics.length > 0) cardTopics.forEach(t => topicsVisibles.add(t));
-      else hayPreguntasSinTema = true;
-    }
-  });
-
-  const container = document.getElementById('topicFilterGroup');
-  let html = "";
+async function initDataCascade() {
+  setSyncStatus('⏳ Cargando...');
   
-  if (hayPreguntasSinTema) {
-    const isSelected = selectedTopics.includes('NONE');
-    html += `<button class="btn-special ${isSelected ? 'selected' : ''}" onclick="toggleTopicSelection('NONE')">${isSelected ? '✓ ' : ''}🔍 Sin tema asignado</button>`;
-  }
-  
-  Array.from(topicsVisibles).sort((a,b) => a.localeCompare(b,'es',{sensitivity:'base'})).forEach(t => {
-    const isSelected = selectedTopics.includes(t);
-    html += `<button class="btn-topic ${isSelected ? 'selected' : ''}" onclick="toggleTopicSelection('${t.replace(/'/g, "\\'")}')">${isSelected ? '✓ ' : ''}${t}</button>`;
-  });
-
-  container.innerHTML = html;
-  updateTopicConfirmZone();
-}
-
-function toggleTopicSelection(topic) {
-  if (selectedTopics.includes(topic)) {
-    selectedTopics = selectedTopics.filter(t => t !== topic);
-  } else {
-    selectedTopics.push(topic);
-  }
-  if (selectedTopics.length === 0) { confirmedTopics = []; applyFilters(); }
-  else renderTopicControls();
-}
-
-function clearTopicSelection() { selectedTopics = []; confirmedTopics = []; applyFilters(); }
-
-function toggleSelectAllTopics() {
-  const visibleTopics = [];
-  deck.forEach(card => {
-    if (matchesCourseFilter(card, filterCourse) && (filterSubj === 'ALL' || card.subj === filterSubj)) {
-      getCardTopics(card).forEach(t => { if(!visibleTopics.includes(t)) visibleTopics.push(t); });
-    }
-  });
-
-  if (selectedTopics.length === visibleTopics.length) {
-    selectedTopics = []; confirmedTopics = []; applyFilters();
-  } else {
-    selectedTopics = [...visibleTopics]; renderTopicControls();
-  }
-}
-
-function updateTopicConfirmZone() {
-  const confirmZone = document.getElementById('topicConfirmZone');
-  const pillsPreview = document.getElementById('topicPillsPreview');
-  const countSpan = document.getElementById('selectedTopicsCount');
-
-  if (selectedTopics.length === 0) { confirmZone.style.display = 'none'; return; }
-
-  confirmZone.style.display = 'flex';
-  countSpan.textContent = selectedTopics.length;
-
-  let html = "";
-  selectedTopics.forEach(t => html += `<span class="pill-preview">${(t === 'NONE') ? 'Sin tema' : t}</span>`);
-  pillsPreview.innerHTML = html;
-}
-
-function confirmTopicSelection() { confirmedTopics = [...selectedTopics]; applyFilters(); }
-
-document.getElementById('addTopicBtn').onclick = (e) => {
-  e.preventDefault();
-  const input = document.getElementById('newTopicInput');
-  const name = input.value.trim();
-  if(!name) return;
-  if(customTopics.includes(name)) { alert("Este tema ya existe."); return; }
-  customTopics.push(name); saveTopics(); input.value = ''; applyFilters();
-};
-
-function setCourse(val) { filterCourse = val; applyFilters(); }
-function setSubj(val) { filterSubj = val; applyFilters(); }
-function setLvl(val) { filterLvl = val; applyFilters(); }
-
-function updateVisualFilterButtons() {
-  document.querySelectorAll('[id^="btnSubj-"]').forEach(b => b.classList.remove('active'));
-  const activeSubjBtn = document.getElementById(`btnSubj-${filterSubj}`);
-  if (activeSubjBtn) activeSubjBtn.classList.add('active');
-
-  document.querySelectorAll('[id^="btnLvl-"]').forEach(b => b.classList.remove('active'));
-  const activeLvlBtn = document.getElementById(`btnLvl-${filterLvl}`);
-  if (activeLvlBtn) activeLvlBtn.classList.add('active');
-  
-  renderCourseFilterButtons(); renderTopicControls(); 
-}
-
-function applyFilters() {
-  updateVisualFilterButtons();
-  filtered = deck.filter(card => {
-    const matchCourse = matchesCourseFilter(card, filterCourse);
-    const matchSubj = (filterSubj === 'ALL' || card.subj === filterSubj);
-    const matchLvl = (filterLvl === 'ALL' || card.lvl === filterLvl);
-    
-    let matchTopic = true;
-    if (confirmedTopics.length > 0) {
-      const cardTopics = getCardTopics(card);
-      matchTopic = confirmedTopics.some(t => (t === 'NONE') ? cardTopics.length === 0 : cardTopics.includes(t));
-    }
-
-    let matchText = true;
-    if (searchText) {
-      matchText = (card.q && card.q.toLowerCase().includes(searchText))
-        || (card.a && card.a.toLowerCase().includes(searchText))
-        || (card.qContext && card.qContext.toLowerCase().includes(searchText));
-    }
-
-    return matchCourse && matchSubj && matchLvl && matchTopic && matchText;
-  });
-
-  const memoryKey = `${filterCourse}|${filterSubj}|${filterLvl}|${confirmedTopics.join(',')}|${searchText}`;
-  index = (filterMemory[memoryKey] !== undefined && filterMemory[memoryKey] < filtered.length) ? filterMemory[memoryKey] : 0;
-  updateView();
-}
-
-// BÚSQUEDA POR TEXTO en preguntas y respuestas
-let searchText = '';
-function setSearchText(v) {
-  searchText = (v || '').trim().toLowerCase();
-  applyFilters();
-}
-function clearSearchText() {
-  const input = document.getElementById('searchTextInput');
-  if (input) input.value = '';
-  setSearchText('');
-}
-
-function openMediaLink(e, url) { 
-  e.stopPropagation(); 
-  window.open(url, '_blank'); 
-}
-
-/* COMPRESIÓN DE IMÁGENES AL SUBIR */
-function handleImageUpload(inputElement, targetInputId) {
-  const file = inputElement.files[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      let width = img.width;
-      let height = img.height;
-      const maxDim = 1200;
-
-      if (width > maxDim || height > maxDim) {
-        if (width > height) {
-          height = Math.round((height * maxDim) / width);
-          width = maxDim;
-        } else {
-          width = Math.round((width * maxDim) / height);
-          height = maxDim;
-        }
-      }
-
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, width, height);
-      
-      const compressedBase64 = canvas.toDataURL('image/jpeg', 0.75);
-      document.getElementById(targetInputId).value = compressedBase64;
-    };
-    img.src = e.target.result;
-  };
-  reader.readAsDataURL(file);
-}
-
-function isImageUrl(urlStr) {
-  if (!urlStr) return false;
-  const cleanUrl = urlStr.trim();
-  if (cleanUrl.startsWith('data:image/')) return true;
-  if (cleanUrl.includes('lh3.googleusercontent.com')) return true;
-  return /\.(jpeg|jpg|jfif|gif|png|webp|svg)($|\?)/i.test(cleanUrl);
-}
-
-function openImgModal(src) {
-  const viewer = document.getElementById('imgModalViewer');
-  viewer.src = src;
-  document.getElementById('imgModal').classList.add('open');
-}
-
-function closeImgModal() {
-  document.getElementById('imgModal').classList.remove('open');
-}
-
-function toggleImageZoom() {
-  const modal = document.getElementById('imgModal');
-  if (modal.classList.contains('open')) {
-    closeImgModal();
-  } else if (filtered.length) {
-    const imgEl = document.querySelector('#mediaAnchorFront img.card-img-preview');
-    if (imgEl && imgEl.src) {
-      openImgModal(imgEl.src);
-    } else {
-      const mediaUrl = (filtered[index].media || '').trim();
-      if (isImageUrl(mediaUrl)) {
-        openImgModal(mediaUrl);
-      }
-    }
-  }
-}
-
-function parseYouTubeUrl(urlStr) {
-  if (!urlStr) return null;
-
-  try {
-    const url = new URL(urlStr.trim());
-    let id = null;
-
-    if (url.hostname === 'youtu.be') {
-      id = url.pathname.slice(1);
-    } else if (url.hostname.includes('youtube.com')) {
-      id = url.searchParams.get('v');
-      
-      if (!id) {
-        if (url.pathname.startsWith('/embed/')) {
-          id = url.pathname.split('/')[2];
-        } else if (url.pathname.startsWith('/shorts/')) {
-          id = url.pathname.split('/')[2];
-        }
-      }
-    }
-
-    if (!id) return null;
-    id = id.split('?')[0].split('&')[0];
-
-    const timeParam = url.searchParams.get('t') || url.searchParams.get('start');
-    let startSeconds = 0;
-
-    if (timeParam) {
-      const cleaned = timeParam.toLowerCase().replace('s', '');
-      if (cleaned.includes('m')) {
-        const parts = cleaned.split('m');
-        const mins = parseInt(parts[0], 10) || 0;
-        const secs = parseInt(parts[1], 10) || 0;
-        startSeconds = (mins * 60) + secs;
-      } else {
-        startSeconds = parseInt(cleaned, 10) || 0;
-      }
-    }
-
-    return { id, startSeconds };
-  } catch (e) {
-    return null;
-  }
-}
-
-// Devuelve el estado (pregunta/respuesta/etc.) de la tarjeta actual EN ESTA PÁGINA.
-// Se expone como función global para que, en Vista Dividida, la página principal pueda
-// leerla directamente desde dentro de cada iframe (son el mismo origen) y así el mando
-// del móvil pueda seguir mostrando la pregunta/respuesta del panel que se está controlando.
-function obtenerEstadoTarjetaActual() {
-  const currentCard = filtered[index];
-  const mediaFront = document.getElementById('mediaAnchorFront');
-  const mediaBack = document.getElementById('mediaAnchorBack');
-  const hasImg = mediaFront && mediaFront.querySelector('.card-img-preview') !== null;
-  const hasYt = mediaBack && (mediaBack.dataset.hasYt === 'true' || document.getElementById('ytVideoContainer') !== null);
-  return {
-    question: currentCard ? currentCard.q : '',
-    answer: currentCard ? currentCard.a : '',
-    hasImage: hasImg,
-    hasYt: hasYt
-  };
-}
-
-function syncRemoteData() {
-  if (!conn || !conn.open) return;
-  conn.send({ type: 'CARD_SYNC', ...obtenerEstadoTarjetaActual() });
-}
-  
-function updateView() {
-  const cardEl = document.getElementById('cardElement');
-  const innerEl = document.getElementById('cardInnerElement');
-  
-  if (cardEl) cardEl.classList.remove('has-maximized-video');
-
-  const wasFlipped = cardEl.classList.contains('flipped');
-  if (wasFlipped && innerEl) innerEl.style.opacity = '0';
-  cardEl.classList.remove('flipped');
-
-  const counterEl = document.getElementById('cardCounter');
-  const txtF = document.getElementById('textFront');
-  const ctxF = document.getElementById('qContextFront');
-  const ctxB = document.getElementById('qContextBack');
-  const txtFB = document.getElementById('textFrontBack');
-  const txtB = document.getElementById('textBack');
-  const metaF = document.getElementById('metaFront');
-  const topF = document.getElementById('topicFront');
-  const topB = document.getElementById('topicBack');
-  const mediaFront = document.getElementById('mediaAnchorFront');
-  const mediaBack = document.getElementById('mediaAnchorBack');
-
-  if (!filtered.length) {
-    txtF.textContent = "No hay tarjetas con este filtro.";
-    ctxF.textContent = ""; ctxB.textContent = ""; txtFB.textContent = "---"; txtB.textContent = "---";
-    metaF.textContent = "VACÍO"; topF.textContent = "-"; topB.textContent = "-";
-    counterEl.textContent = "0 / 0"; mediaFront.innerHTML = ""; mediaBack.innerHTML = "";
-    if (innerEl) innerEl.style.opacity = '1';
-    syncRemoteData();
-    return;
-  }
-
-  setTimeout(() => {
-    counterEl.textContent = `${index + 1} / ${filtered.length}`;
-    const currentCard = filtered[index];
-    
-    ctxF.textContent = currentCard.qContext || '';
-    ctxB.textContent = currentCard.qContext ? `(${currentCard.qContext})` : '';
-    txtF.textContent = currentCard.q;
-    txtFB.textContent = currentCard.q;
-    txtB.textContent = currentCard.a;
-    
-    const cardCourses = getCardCourses(currentCard);
-    const courseLabel = cardCourses.length > 0 ? cardCourses.join(', ') : "Todos";
-    metaF.textContent = `[${courseLabel}] ${currentCard.subj} • ${currentCard.lvl}`;
-    
-    const cardTopics = getCardTopics(currentCard);
-    const topicLabel = cardTopics.length > 0 ? `📌 ${cardTopics.join(', ')}` : "🔍 Sin tema";
-    topF.textContent = topicLabel; topB.textContent = topicLabel;
-
-    mediaFront.innerHTML = "";
-    mediaBack.innerHTML = "";
-    mediaBack.dataset.hasYt = "false";
-
-    if (currentCard.media && currentCard.media.trim() !== "") {
-      const urls = currentCard.media.split(',').map(u => u.trim());
-
-      urls.forEach(urlStr => {
-        const ytData = parseYouTubeUrl(urlStr);
-        
-        if (ytData) {
-          mediaBack.dataset.ytId = ytData.id;
-          mediaBack.dataset.ytStart = ytData.startSeconds;
-          mediaBack.dataset.hasYt = "true";
-
-          const embedUrl = `https://www.youtube-nocookie.com/embed/${ytData.id}?start=${ytData.startSeconds}&autoplay=0&enablejsapi=1&rel=0`;
-          
-          mediaBack.innerHTML = `
-            <div id="ytVideoContainer" class="yt-container" onclick="event.stopPropagation()">
-              <div style="position: absolute; top: 6px; right: 6px; z-index: 50; display: flex; gap: 6px;" onclick="event.stopPropagation()">
-                <button id="btnMaxVideo" onclick="toggleMaxVideo(event)" style="background: rgba(37,99,235,0.85); color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 2px 8px; font-size: 11px; cursor: pointer;" title="Pantalla Completa">🖥️ Fullscreen</button>
-                <button onclick="closeVideo(event)" style="background: rgba(220,38,38,0.85); color: #fff; border: none; border-radius: 6px; padding: 2px 8px; font-size: 11px; cursor: pointer;" title="Cerrar vídeo">❌</button>
-              </div>
-              <iframe 
-                id="ytIframe"
-                width="100%" 
-                height="100%" 
-                src="${embedUrl}" 
-                title="YouTube video" 
-                frameborder="0" 
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                allowfullscreen>
-              </iframe>
-            </div>`;
-        } else if (isImageUrl(urlStr)) {
-          const imgBtn = `<img src="${urlStr}" class="card-img-preview" onclick="event.stopPropagation(); openImgModal('${urlStr.replace(/'/g, "\\'")}')" title="Clic para maximizar" />`;
-          mediaFront.innerHTML = imgBtn;
-        } else {
-          mediaBack.innerHTML += `<button class="btn-media" onclick="openMediaLink(event, '${urlStr.replace(/'/g, "\\'")}')">🔗 Abrir Enlace Web</button>`;
-        }
+  if (APPS_SCRIPT_URL && APPS_SCRIPT_URL.startsWith("https://script.google.com")) {
+    try {
+      const res = await fetch(`${APPS_SCRIPT_URL}?file=${DEFAULT_FILENAME}`, { 
+        method: 'GET', 
+        redirect: 'follow' 
       });
-    }
+      
+      const result = await res.json();
+      const groupsData = result.data?.groups || result.groups;
 
-    // SINCRONIZACIÓN CON EL PANEL DE EDICIÓN
-    const editTargetEl = document.getElementById('editTargetIndex');
-    const editQContextEl = document.getElementById('editQContext');
-    const editQEl = document.getElementById('editQ');
-    const editAEl = document.getElementById('editA');
-    const editSubjEl = document.getElementById('editSubj');
-    const editTopicEl = document.getElementById('editTopic');
-    const editLvlEl = document.getElementById('editLvl');
-    const editCourseEl = document.getElementById('editCourse');
-    const editMediaEl = document.getElementById('editMedia');
-
-    if (editTargetEl) editTargetEl.textContent = `ID: ${currentCard.id || index + 1}`;
-    if (editQContextEl) editQContextEl.value = currentCard.qContext || '';
-    if (editQEl) editQEl.value = currentCard.q || '';
-    if (editAEl) editAEl.value = currentCard.a || '';
-    if (editSubjEl) editSubjEl.value = currentCard.subj || 'Lengua';
-    if (editTopicEl) editTopicEl.value = getCardTopics(currentCard).join(', ');
-    if (editLvlEl) editLvlEl.value = currentCard.lvl || 'Fácil';
-    if (editCourseEl) editCourseEl.value = getCardCourses(currentCard).join(', ');
-    if (editMediaEl) editMediaEl.value = currentCard.media || '';
-
-    if (innerEl) innerEl.style.opacity = '1';
-    syncRemoteData();
-  }, 150);
-}
-
-// Variable global para controlar el temporizador de reproducción
-let ytPlayTimeout = null;
-
-function handleCardClick(cardElement) {
-  closeImgModal(); // <-- AÑADIDO: Cierra la imagen maximizada al voltear la tarjeta
-  
-  cardElement.classList.toggle('flipped');
-  const isFlipped = cardElement.classList.contains('flipped');
-  const mediaBack = document.getElementById('mediaAnchorBack');
-
-  if (isFlipped) {
-    // ... resto del código de volteo existente ...
-    playArpa();
-
-    if (mediaBack && mediaBack.dataset.hasYt === "true") {
-      const iframe = document.getElementById('ytIframe');
-      const startSec = parseInt(mediaBack.dataset.ytStart, 10) || 0;
-
-      if (iframe && iframe.contentWindow) {
-        // 1. Cancelamos cualquier temporizador previo
-        if (ytPlayTimeout) clearTimeout(ytPlayTimeout);
-
-        // 2. Pausamos inmediatamente por si YouTube intentó un arranque automático nativo en el 1er giro
-        iframe.contentWindow.postMessage(
-          JSON.stringify({
-            event: 'command',
-            func: 'pauseVideo',
-            args: []
-          }),
-          '*'
-        );
-
-        // 3. Reubicamos el vídeo en el segundo exacto de la tarjeta
-        iframe.contentWindow.postMessage(
-          JSON.stringify({
-            event: 'command',
-            func: 'seekTo',
-            args: [startSec, true]
-          }),
-          '*'
-        );
-
-        // 4. Programamos la reproducción tras los 2 segundos
-        ytPlayTimeout = setTimeout(() => {
-          iframe.contentWindow.postMessage(
-            JSON.stringify({
-              event: 'command',
-              func: 'playVideo',
-              args: []
-            }),
-            '*'
-          );
-        }, 2000);
+      if ((result.success || groupsData) && groupsData) {
+        db = result.data ? result.data : result;
+        saveLocal(); 
+        setSyncStatus('☁️ Sincronizado (Drive)'); 
+        hasUnsavedChanges = false; 
+        finishLoad(); 
+        return;
       }
-    }
-
-    if (filtered.length) {
-      const currentCard = filtered[index];
-      if (currentCard.subj === 'Inglés') {
-        const palabraLimpia = currentCard.a.trim();
-        if (palabraLimpia.split(/\s+/).length <= 3) {
-          setTimeout(() => speakBritish(palabraLimpia), 250);
-        }
-      }
-    }
-  } else {
-    playCardSlide();
-
-    // Al regresar al frente, cancelamos la reproducción programada y pausamos el vídeo
-    if (ytPlayTimeout) clearTimeout(ytPlayTimeout);
-
-    if (mediaBack && mediaBack.dataset.hasYt === "true") {
-      const iframe = document.getElementById('ytIframe');
-      if (iframe && iframe.contentWindow) {
-        iframe.contentWindow.postMessage(
-          JSON.stringify({
-            event: 'command',
-            func: 'pauseVideo',
-            args: []
-          }),
-          '*'
-        );
-      }
+    } catch (e) { 
+      console.error("Error al conectar o parsear Drive:", e); 
     }
   }
+
+  const rawLocal = localStorage.getItem(LOCAL_STORAGE_KEY);
+  if (rawLocal) {
+    try {
+      const parsed = JSON.parse(rawLocal);
+      if (parsed.groups && Object.keys(parsed.groups).length > 0) {
+        db = parsed; 
+        setSyncStatus('💾 Cargado (Local)'); 
+        finishLoad(); 
+        return;
+      }
+    } catch (e) {}
+  }
+
+  setSyncStatus('⚠️ Modo local básico');
+  finishLoad();
+}
   
-  syncRemoteData();
+function finishLoad() { getActiveData(); updateGroupSelector(); render(); }
+function saveLocal() { localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(db)); }
+function save() { 
+  const state = getActiveData(); 
+  state.updatedAt = Date.now(); 
+  saveLocal(); 
+  hasUnsavedChanges = true;
+}
+function setSyncStatus(text) { const el = document.getElementById('autosaveStatus'); if (el) el.textContent = text; }
+function pushHistory() { historyStack.push(JSON.stringify(db)); updateUndoButton(); }
+
+function updateUndoButton() {
+  const btn = document.getElementById('btnUndo');
+  if (!btn) return;
+  btn.disabled = historyStack.length === 0;
+  btn.textContent = historyStack.length > 0 ? `↩️ Deshacer Último Marcador (${historyStack.length})` : `↩️ Deshacer Último Marcador`;
 }
 
-function ensureVideoLoaded() {
-  const cardEl = document.getElementById('cardElement');
-  if (!cardEl.classList.contains('flipped')) {
-    handleCardClick(cardEl);
-  }
+function updateGroupSelector() {
+  const select = document.getElementById('groupSelect');
+  select.innerHTML = '';
+  const sortedNames = Object.keys(db.groups).sort((a, b) => (db.groups[b].updatedAt || 0) - (db.groups[a].updatedAt || 0));
+  sortedNames.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name; opt.textContent = name;
+    if (name === db.activeGroup) opt.selected = true;
+    select.appendChild(opt);
+  });
 }
 
-function toggleMaxVideo(e) {
-  if (e) {
-    e.stopPropagation();
-    e.preventDefault();
+// GENERADOR DE SORTEO ALEATORIO SUIZO
+function generateSchedule(students, maxMatches) {
+  if (students.length < 2) return [];
+
+  let bestMatches = [];
+  let minRepeats = Infinity;
+
+  for (let run = 0; run < 50; run++) {
+    let matches = [];
+    let pairs = new Map();
+    let homeCount = {}, awayCount = {}, totalMatches = {};
+    students.forEach(s => { homeCount[s] = 0; awayCount[s] = 0; totalMatches[s] = 0; });
+
+    let attempts = 0;
+    while (attempts < 3000) {
+      attempts++;
+      let pool = students.filter(s => totalMatches[s] < maxMatches);
+      if (pool.length < 2) break;
+
+      shuffleArray(pool);
+      pool.sort((a, b) => totalMatches[a] - totalMatches[b]);
+
+      let a = pool[0];
+      let candidatePool = pool.slice(1);
+      shuffleArray(candidatePool);
+
+      let candidateB = candidatePool.filter(b => !pairs.has(`${a}||${b}`) && !pairs.has(`${b}||${a}`));
+      if (candidateB.length === 0) candidateB = candidatePool;
+
+      candidateB.sort((b1, b2) => {
+        let times1 = (pairs.get(`${a}||${b1}`) || 0) + (pairs.get(`${b1}||${a}`) || 0);
+        let times2 = (pairs.get(`${a}||${b2}`) || 0) + (pairs.get(`${b2}||${a}`) || 0);
+        return (times1 - times2) || (Math.random() - 0.5);
+      });
+
+      let b = candidateB[0];
+      let home = a, away = b;
+      if (homeCount[a] > awayCount[a] || awayCount[b] > homeCount[b]) { home = b; away = a; }
+
+      let pairKey = `${home}||${away}`;
+      pairs.set(pairKey, (pairs.get(pairKey) || 0) + 1);
+      homeCount[home]++; awayCount[away]++;
+      totalMatches[home]++; totalMatches[away]++;
+      matches.push({ id: uid(), a: home, b: away, result: null });
+    }
+
+    let repeats = 0;
+    pairs.forEach(count => { if (count > 1) repeats += (count - 1); });
+
+    const allReachedTarget = students.every(s => totalMatches[s] === maxMatches);
+    if (allReachedTarget && repeats < minRepeats) {
+      minRepeats = repeats;
+      bestMatches = matches;
+      if (repeats === 0) break;
+    } else if (bestMatches.length === 0 && matches.length > 0) {
+      bestMatches = matches;
+    }
   }
-  
-  const container = document.getElementById('ytVideoContainer');
-  const btnMax = document.getElementById('btnMaxVideo');
-  const cardEl = document.getElementById('cardElement');
-  
-  if (!container) {
-    if (cardEl) cardEl.classList.remove('has-maximized-video');
+
+  return shuffleArray(bestMatches);
+}
+
+function recalc() {
+  const state = getActiveData();
+  let map = {};
+  if (!state.tieBreakers) state.tieBreakers = {};
+  state.students.forEach(s => {
+    map[s] = { name: s, pts: 0, v: 0, e: 0, d: 0, gf: 0, gc: 0, p: 0, extra: parseFloat(state.tieBreakers[s]) || 0 };
+  });
+
+  state.matches.forEach(m => {
+    if (m.result) {
+      let A = map[m.a], B = map[m.b];
+      if (!A || !B) return;
+      A.p++; B.p++;
+      let parts = m.result.split('-').map(Number);
+      let gA = parts[0], gB = parts[1];
+      A.gf += gA; A.gc += gB; B.gf += gB; B.gc += gA;
+      
+      // 1 punto por cada gol/acierto anotado
+      A.pts += gA; 
+      B.pts += gB;
+
+      if (gA > gB) { A.v++; B.d++; }
+      else if (gB > gA) { B.v++; A.d++; }
+      else { A.e++; B.e++; }
+    }
+  });
+
+  return Object.values(map).sort((x, y) => {
+    if (y.pts !== x.pts) return y.pts - x.pts;
+    if (y.extra !== x.extra) return y.extra - x.extra;
+    let difX = x.gf - x.gc, difY = y.gf - y.gc;
+    if (difY !== difX) return difY - difX;
+    if (y.gf !== x.gf) return y.gf - x.gf;
+    return x.name.localeCompare(y.name);
+  });
+}
+
+function renderStandings() {
+  const ranked = recalc();
+  const total = ranked.length;
+  document.getElementById('standingsCount').textContent = `${total} Alumnos`;
+
+  const base = Math.floor(total / 3);
+  const remainder = total % 3;
+  const div1Count = base + (remainder >= 1 ? 1 : 0);
+  const div2Count = base + (remainder === 2 ? 1 : 0);
+
+  const tbody1 = document.getElementById('standingsBody1');
+  const tbody2 = document.getElementById('standingsBody2');
+  tbody1.innerHTML = ''; tbody2.innerHTML = '';
+
+  const half = Math.ceil(total / 2);
+
+  ranked.forEach((r, i) => {
+    const tr = document.createElement('tr');
+    const medal = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+    const safeName = r.name.replace(/'/g, "\\'");
+    const extraText = r.extra > 0 ? `+${r.extra}` : r.extra;
+    const diff = r.gf - r.gc;
+    const diffText = diff > 0 ? `+${diff}` : diff;
+
+    if (i < div1Count) tr.style.backgroundColor = 'var(--zone-div1)';
+    else if (i < div1Count + div2Count) tr.style.backgroundColor = 'var(--zone-div2)';
+    else tr.style.backgroundColor = 'var(--zone-div3)';
+
+    tr.innerHTML = `
+      <td class="rank ${medal}">${i + 1}</td>
+      <td><span class="editable-name" title="Clic para cambiar nombre" onclick="enableNameEdit(this, '${safeName}')">${r.name}</span></td>
+      <td><strong style="color:var(--pri)">${r.pts}</strong></td>
+      <td>
+        <div class="tie-ctrl">
+          <button class="btn-tie" onclick="modifyTiebreaker('${safeName}', -0.1)">-</button>
+          <span>${extraText}</span>
+          <button class="btn-tie" onclick="modifyTiebreaker('${safeName}', 0.1)">+</button>
+        </div>
+      </td>
+      <td style="font-size:10px; color:var(--muted);">${r.v}-${r.e}-${r.d}</td>
+      <td>${r.gf}</td>
+      <td style="color:var(--muted);">${r.gc}</td>
+      <td><strong>${diffText}</strong></td>
+    `;
+
+    if (i < half) tbody1.appendChild(tr);
+    else tbody2.appendChild(tr);
+  });
+}
+
+function enableNameEdit(spanEl, oldName) {
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'edit-name-input';
+  input.value = oldName;
+
+  // Bandera anti-reentrada: al pulsar Enter, finishEdit() llama a render(),
+  // que elimina este <input> del DOM. Eliminar un elemento con foco dispara
+  // un "blur" automático del navegador, y ese blur volvía a llamar a
+  // finishEdit() por segunda vez (justo en mitad del renderizado ya en curso),
+  // descuadrando el vaciado/relleno de las dos columnas y duplicando filas.
+  let finished = false;
+
+  const finishEdit = () => {
+    if (finished) return;
+    finished = true;
+    input.onblur = null;
+    input.onkeydown = null;
+
+    const newName = input.value.trim();
+    if (newName && newName !== oldName) {
+      renameParticipant(oldName, newName);
+    } else {
+      renderStandings();
+    }
+  };
+
+  input.onblur = finishEdit;
+  input.onkeydown = (e) => {
+    if (e.key === 'Enter') {
+      finishEdit();
+    } else if (e.key === 'Escape') {
+      if (finished) return;
+      finished = true;
+      input.onblur = null;
+      input.onkeydown = null;
+      renderStandings();
+    }
+  };
+
+  spanEl.parentNode.replaceChild(input, spanEl);
+  input.focus();
+  input.select();
+}
+
+function renameParticipant(oldName, newName) {
+  pushHistory();
+  const state = getActiveData();
+
+  // 1. Reemplazar solo el nombre en la posición exacta del array de alumnos
+  const idx = state.students.indexOf(oldName);
+  if (idx !== -1) {
+    state.students[idx] = newName;
+  }
+
+  // 2. Actualizar desempates
+  if (state.tieBreakers && state.tieBreakers[oldName] !== undefined) {
+    state.tieBreakers[newName] = state.tieBreakers[oldName];
+    delete state.tieBreakers[oldName];
+  }
+
+  // 3. Actualizar partidos
+  state.matches.forEach(m => {
+    if (m.a === oldName) m.a = newName;
+    if (m.b === oldName) m.b = newName;
+  });
+
+  save();
+  // Se renderiza de nuevo toda la estructura limpia
+  render();
+}
+
+function modifyTiebreaker(student, amt) {
+  pushHistory();
+  const state = getActiveData();
+  if (!state.tieBreakers) state.tieBreakers = {};
+  let cur = parseFloat(state.tieBreakers[student]) || 0;
+  state.tieBreakers[student] = Math.round((cur + amt) * 10) / 10;
+  save(); renderStandings();
+}
+
+function renderMatches() {
+  const state = getActiveData();
+  const list1 = document.getElementById('matchList1');
+  const list2 = document.getElementById('matchList2');
+  list1.innerHTML = ''; list2.innerHTML = '';
+
+  const doneCount = state.matches.filter(m => m.result).length;
+  document.getElementById('matchProgress').textContent = `${doneCount} / ${state.matches.length} Jugados`;
+
+  const half = Math.ceil(state.matches.length / 2);
+
+  state.matches.forEach((m, i) => {
+    const div = document.createElement('div');
+    div.className = `match-item ${m.result ? 'done' : ''}`;
+    let res = m.result ? `<strong style="color:var(--ok)">${m.result}</strong>` : `<span class="pill">Jugar</span>`;
+    div.innerHTML = `<span><strong>${m.a}</strong> vs <strong>${m.b}</strong></span> ${res}`;
+    
+    div.onclick = () => {
+      state.currentMatchId = m.id;
+      if (m.result) {
+        let parts = m.result.split('-').map(Number);
+        currentA = parts[0]; currentB = parts[1];
+      } else {
+        currentA = 0; currentB = 0;
+      }
+      saveLocal(); renderMatchEditor();
+    };
+
+    if (i < half) list1.appendChild(div);
+    else list2.appendChild(div);
+  });
+}
+
+function renderMatchEditor() {
+  const state = getActiveData();
+  const box = document.getElementById('matchBox');
+  const match = state.matches.find(m => m.id === state.currentMatchId) || state.matches.find(m => !m.result);
+
+  if (!match) {
+    box.innerHTML = `
+      <div style="text-align:center; color:var(--ok); font-weight:bold; font-size:13px;">🏆 ¡Fase de Clasificación Completa!</div>
+      <button id="btnUndo" class="btn undo" disabled>↩️ Deshacer Último Marcador</button>
+    `;
+    setupUndoHandler();
     return;
   }
 
-  const isMax = container.classList.contains('maximized');
-  container.classList.remove('minimized');
+  state.currentMatchId = match.id;
 
-  if (!isMax) {
-    container.classList.add('maximized');
-    if (cardEl) cardEl.classList.add('has-maximized-video');
-    if (btnMax) btnMax.textContent = '❌ Restaurar';
+  box.innerHTML = `
+    <div style="font-size:11px; font-weight:bold; color:var(--muted); text-align:center; text-transform:uppercase;">Partido Seleccionado</div>
+    <div class="goal-row">
+      <span><strong>${match.a}</strong></span>
+      <div class="counter-box">
+        <button class="btn-counter" onclick="changeGoal('A', -1)">-</button>
+        <span class="counter-value" id="valA">${currentA}</span>
+        <button class="btn-counter" onclick="changeGoal('A', 1)">+</button>
+      </div>
+    </div>
+    <div class="goal-row">
+      <span><strong>${match.b}</strong></span>
+      <div class="counter-box">
+        <button class="btn-counter" onclick="changeGoal('B', -1)">-</button>
+        <span class="counter-value" id="valB">${currentB}</span>
+        <button class="btn-counter" onclick="changeGoal('B', 1)">+</button>
+      </div>
+    </div>
+    <button class="btn ok" id="saveGoalBtn" style="width:100%;">⚽ Guardar Marcador</button>
+    <button id="btnUndo" class="btn undo" disabled>↩️ Deshacer Último Marcador</button>
+  `;
+
+  document.getElementById('saveGoalBtn').onclick = () => {
+    pushHistory();
+    match.result = `${currentA}-${currentB}`;
+    
+    if (currentA === currentB) {
+      playSoundEffect('draw');
+    } else {
+      playSoundEffect('victory');
+    }
+
+    state.currentMatchId = null;
+    currentA = 0; currentB = 0;
+    save(); 
+    render();
+
+    const pending = state.matches.filter(m => !m.result).length;
+    if (pending === 0) {
+      triggerLeagueFinalSummary(recalc());
+    }
+  };
+
+  setupUndoHandler();
+}
+
+function setupUndoHandler() {
+  const btn = document.getElementById('btnUndo');
+  if (btn) {
+    btn.onclick = () => {
+      if (historyStack.length === 0) return;
+      db = JSON.parse(historyStack.pop());
+      save(); updateGroupSelector(); render();
+    };
+  }
+  updateUndoButton();
+}
+
+function changeGoal(team, amt) {
+  if (amt > 0) {
+    playSoundEffect('goal');
   } else {
-    container.classList.remove('maximized');
-    if (cardEl) cardEl.classList.remove('has-maximized-video');
-    if (btnMax) btnMax.textContent = '🖥️ Fullscreen';
+    playSoundEffect('var');
+  }
+
+  if (team === 'A') {
+    currentA = Math.max(0, currentA + amt);
+  } else {
+    currentB = Math.max(0, currentB + amt);
+  }
+  document.getElementById('valA').textContent = currentA;
+  document.getElementById('valB').textContent = currentB;
+}
+
+// SINTETIZADOR DE EFECTOS DE SONIDO (Web Audio API)
+function playSoundEffect(type) {
+  try {
+    const ctx = getAudioContext();
+    const now = ctx.currentTime;
+
+    if (type === 'goal') {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(220, now);
+      osc.frequency.exponentialRampToValueAtTime(440, now + 0.3);
+      
+      gain.gain.setValueAtTime(0.01, now);
+      gain.gain.linearRampToValueAtTime(0.3, now + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.6);
+
+    } else if (type === 'var') {
+      const playWhistlePuff = (startTime) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(2800, startTime);
+        osc.frequency.linearRampToValueAtTime(2600, startTime + 0.08);
+
+        gain.gain.setValueAtTime(0.01, startTime);
+        gain.gain.linearRampToValueAtTime(0.2, startTime + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.08);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start(startTime);
+        osc.stop(startTime + 0.08);
+      };
+
+      playWhistlePuff(now);
+      playWhistlePuff(now + 0.1);
+
+    } else if (type === 'victory') {
+      const bufferSize = ctx.sampleRate * 1.5;
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const output = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        output[i] = Math.random() * 2 - 1;
+      }
+
+      const whiteNoise = ctx.createBufferSource();
+      whiteNoise.buffer = buffer;
+
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(1000, now);
+      filter.Q.setValueAtTime(1.5, now);
+
+      const gainNode = ctx.createGain();
+      gainNode.gain.setValueAtTime(0.01, now);
+      gainNode.gain.exponentialRampToValueAtTime(0.3, now + 0.2);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
+
+      whiteNoise.connect(filter);
+      filter.connect(gainNode);
+      gainNode.connect(ctx.destination);
+
+      whiteNoise.start(now);
+      whiteNoise.stop(now + 1.5);
+
+      const notes = [523.25, 659.25, 783.99, 1046.50];
+      notes.forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const oscGain = ctx.createGain();
+        
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+
+        oscGain.gain.setValueAtTime(0.01, now + idx * 0.08);
+        oscGain.gain.exponentialRampToValueAtTime(0.15, now + idx * 0.08 + 0.05);
+        oscGain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.6);
+
+        osc.connect(oscGain);
+        oscGain.connect(ctx.destination);
+
+        osc.start(now + idx * 0.08);
+        osc.stop(now + idx * 0.08 + 0.6);
+      });
+
+    } else if (type === 'draw') {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(320, now);
+      osc.frequency.linearRampToValueAtTime(180, now + 0.5);
+      
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.5);
+    }
+  } catch (e) {
+    console.warn("Audio Context error:", e);
   }
 }
 
-// CÓDIGO CORREGIDO:
-function closeVideo(e) {
-  if (e) {
-    e.stopPropagation();
-    e.preventDefault();
-  }
-  const mediaBack = document.getElementById('mediaAnchorBack');
-  const cardEl = document.getElementById('cardElement');
-  if (cardEl) cardEl.classList.remove('has-maximized-video');
-  if (mediaBack) mediaBack.innerHTML = '';
+function triggerLeagueFinalSummary(standingsArray) {
+  const total = standingsArray.length;
+  if (total === 0) return;
+
+  const base = Math.floor(total / 3);
+  const remainder = total % 3;
+
+  const shrekCount = base + (remainder >= 1 ? 1 : 0);
+  const donkeyCount = base + (remainder === 2 ? 1 : 0);
+
+  const names = standingsArray.map(player => typeof player === 'string' ? player : player.name);
+
+  const shrekList = names.slice(0, shrekCount);
+  const donkeyList = names.slice(shrekCount, shrekCount + donkeyCount);
+  const bartList = names.slice(shrekCount + donkeyCount);
+
+  showFinalSummary(shrekList, donkeyList, bartList, false);
 }
 
-document.getElementById('celebrateBtn').onclick = (e) => {
-  e.stopPropagation(); 
-  if (!filtered.length) return;
-  const currentCard = filtered[index];
-  const gifData = CELEBRATION_GIFS[currentCard.lvl || "Fácil"];
-  if (gifData) {
-    const viewer = document.getElementById('gifViewer');
-    viewer.src = ""; viewer.src = gifData.url;
-    document.getElementById('gifCaption').textContent = gifData.caption;
-    document.getElementById('gifModal').classList.add('open');
-  }
-};
+function showFinalSummary(shrekList = [], donkeyList = [], bartList = [], isDraw = false) {
+  playSoundEffect(isDraw ? 'draw' : 'victory');
 
-function closeGifModal() { document.getElementById('gifModal').classList.remove('open'); }
+  const renderList = (id, items) => {
+    const el = document.getElementById(id);
+    if (!items || items.length === 0) {
+      el.innerHTML = '<li><em>Sin clasificados</em></li>';
+    } else {
+      el.innerHTML = items.map(name => `<li>${name}</li>`).join('');
+    }
+  };
 
-function speakBritish(text) {
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  const ukVoice = window.speechSynthesis.getVoices().find(v => v.lang === 'en-GB' || v.lang === 'en_GB');
-  if (ukVoice) utterance.voice = ukVoice;
-  utterance.lang = 'en-GB';
-  window.speechSynthesis.speak(utterance);
+  renderList('listShrek', shrekList);
+  renderList('listDonkey', donkeyList);
+  renderList('listBart', bartList);
+
+  document.getElementById('finalSummaryModal').style.display = 'flex';
 }
 
-document.getElementById('shuffleBtn').onclick = () => {
-  if (!filtered.length) return;
-  playCardSlide();
-  shuffleArray(filtered); index = 0; updateView();
+function closeFinalSummary() {
+  document.getElementById('finalSummaryModal').style.display = 'none';
+}
+
+function render() {
+  const state = getActiveData();
+  document.getElementById('studentsInput').value = (state.students || []).join('\n');
+  if (state.maxMatches) document.getElementById('matchesPerStudentSelect').value = state.maxMatches;
+  renderStandings();
+  renderMatches();
+  renderMatchEditor();
+}
+
+document.getElementById('addGroupBtn').onclick = () => {
+  const input = document.getElementById('newGroupName');
+  let name = input.value.trim();
+  if (!name) name = `Clase - ${getNowFormatted()}`;
+  else if (!name.includes('-')) name = `${name} (${getNowFormatted().split(' ')[0]})`;
+
+  if (!db.groups[name]) {
+    db.groups[name] = { students: [], matches: [], tieBreakers: {}, currentMatchId: null, maxMatches: 4, updatedAt: Date.now() };
+  }
+  db.activeGroup = name;
+  input.value = '';
+  save(); updateGroupSelector(); render();
 };
 
-// AL GUARDAR CAMBIOS DE EDICIÓN
-document.getElementById('updateBtn').onclick = () => {
-  if (!filtered.length) return;
-  const currentCard = filtered[index];
-  currentCard.qContext = document.getElementById('editQContext').value.trim();
-  currentCard.q = document.getElementById('editQ').value.trim();
-  currentCard.a = document.getElementById('editA').value.trim();
-  currentCard.subj = document.getElementById('editSubj').value;
-  currentCard.lvl = document.getElementById('editLvl').value;
-  currentCard.course = document.getElementById('editCourse').value.trim();
-  currentCard.topics = parseInputItems(document.getElementById('editTopic').value);
-  currentCard.topic = currentCard.topics.join(', ');
-  currentCard.media = document.getElementById('editMedia').value.trim();
-  
-  hasUnsavedChanges = true; // <-- MARCAR CAMBIO PENDIENTE
-  saveDeck(); 
-  applyFilters();
-};
-
-// AL BORRAR UNA TARJETA
-document.getElementById('delBtn').onclick = () => {
-  if (!filtered.length || !confirm("¿Seguro que deseas eliminar esta tarjeta?")) return;
-  const globalIndex = deck.indexOf(filtered[index]);
-  if (globalIndex > -1) { 
-    deck.splice(globalIndex, 1); 
-    hasUnsavedChanges = true; // <-- MARCAR CAMBIO PENDIENTE
-    saveDeck(); 
-    applyFilters(); 
+document.getElementById('renameGroupBtn').onclick = () => {
+  const oldName = db.activeGroup;
+  const newName = prompt(`Nuevo nombre para la competición:`, oldName);
+  if (newName && newName.trim() !== '' && newName !== oldName) {
+    const cleanName = newName.trim();
+    pushHistory();
+    db.groups[cleanName] = db.groups[oldName];
+    delete db.groups[oldName];
+    db.activeGroup = cleanName;
+    save(); updateGroupSelector(); render();
   }
 };
 
-// AL CREAR UNA NUEVA TARJETA
-document.getElementById('addBtn').onclick = () => {
-  const q = document.getElementById('addQ').value.trim();
-  const a = document.getElementById('addA').value.trim();
-  if (!q || !a) { alert("Completa al menos la pregunta y la respuesta."); return; }
-
-  const topics = parseInputItems(document.getElementById('addTopic').value);
-  deck.push({
-    qContext: document.getElementById('addQContext').value.trim(),
-    q, a,
-    subj: document.getElementById('addSubj').value,
-    lvl: document.getElementById('addLvl').value,
-    course: document.getElementById('addCourse').value.trim(),
-    topics: topics, topic: topics.join(', '),
-    media: document.getElementById('addMedia').value.trim()
-  });
-
-  hasUnsavedChanges = true; // <-- MARCAR CAMBIO PENDIENTE
-  saveDeck();
-  document.getElementById('addQContext').value = '';
-  document.getElementById('addQ').value = '';
-  document.getElementById('addA').value = '';
-  document.getElementById('addMedia').value = '';
-  document.getElementById('addImgFile').value = '';
-  applyFilters();
+document.getElementById('deleteGroupBtn').onclick = () => {
+  if (Object.keys(db.groups).length <= 1) { alert("Debes tener al menos una competición creada."); return; }
+  if (confirm(`¿Estás seguro de eliminar permanentemente "${db.activeGroup}"?`)) {
+    pushHistory();
+    delete db.groups[db.activeGroup];
+    db.activeGroup = Object.keys(db.groups)[0];
+    save(); updateGroupSelector(); render();
+  }
 };
 
-// AL EXPORTAR EL JSON (SE DESACTIVA LA ALERTA)
-document.getElementById('exportBtn').onclick = () => {
-  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(deck, null, 2));
-  const downloadAnchor = document.createElement('a');
-  downloadAnchor.setAttribute("href", dataStr);
-  downloadAnchor.setAttribute("download", "preguntas.json");
-  document.body.appendChild(downloadAnchor);
-  downloadAnchor.click(); 
-  downloadAnchor.remove();
-
-  hasUnsavedChanges = false; // <-- CAMBIOS GUARDADOS / EXPORTADOS CON ÉXITO
+document.getElementById('groupSelect').onchange = (e) => {
+  const targetGroup = e.target.value;
+  if (!checkUnsavedBeforeAction("cambiar de competición")) {
+    e.target.value = db.activeGroup;
+    return;
+  }
+  db.activeGroup = targetGroup;
+  saveLocal(); 
+  render();
 };
 
-// AL IMPORTAR UN FICHERO
-document.getElementById('importFile').onchange = (e) => {
+document.getElementById('saveStudents').onclick = () => {
+  const state = getActiveData();
+  state.students = [...new Set(document.getElementById('studentsInput').value.split(/\n+/).map(s => s.trim()).filter(Boolean))];
+  state.maxMatches = parseInt(document.getElementById('matchesPerStudentSelect').value, 10) || 4;
+  save(); render(); alert(`Lista guardada correctamente.`);
+};
+
+document.getElementById('generateMatches').onclick = () => {
+  const state = getActiveData();
+  if (state.students.length < 2) { alert('Añade al menos 2 alumnos.'); return; }
+  const maxMatches = parseInt(document.getElementById('matchesPerStudentSelect').value, 10) || 4;
+  if (confirm(`¿Generar un nuevo sorteo de ${maxMatches} partidos por alumno para "${db.activeGroup}"?`)) {
+    historyStack = [];
+    state.maxMatches = maxMatches;
+    state.matches = generateSchedule(state.students, maxMatches);
+    state.tieBreakers = {};
+    state.currentMatchId = state.matches[0]?.id || null;
+    save(); render();
+  }
+};
+
+document.getElementById('exportAll').onclick = () => {
+  const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = DEFAULT_FILENAME; a.click();
+  hasUnsavedChanges = false;
+};
+
+document.getElementById('importFile').addEventListener('change', async (e) => {
   const file = e.target.files[0];
   if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (evt) => {
-    try {
-      const importedData = JSON.parse(evt.target.result);
-      if (Array.isArray(importedData)) { 
-        procesarMazo(importedData); 
-        saveDeck();
-        hasUnsavedChanges = false; // <-- RESETEAR AL CARGAR UN NUEVO ARCHIVO
-        mostrarAvisoOrigen("📁 Archivo importado manualmente");
-        applyFilters(); 
-        alert("¡Mazo importado con éxito!"); 
-      }
-    } catch(err) { alert("Archivo JSON no válido."); }
-  };
-  reader.readAsText(file);
-};
-
-setupMultiAutocomplete('addCourse', 'menuAdd', getAllAvailableCourses);
-setupMultiAutocomplete('editCourse', 'menuEdit', getAllAvailableCourses);
-setupMultiAutocomplete('addTopic', 'menuAddTopic', getAllAvailableTopics);
-setupMultiAutocomplete('editTopic', 'menuEditTopic', getAllAvailableTopics);
-
-/* LÓGICA DE CONTROL REMOTO CON PEERJS */
-let peer = null, conn = null;
-const urlParams = new URLSearchParams(window.location.search);
-const remoteTargetId = urlParams.get('remote');
-
-let remoteTarget = 'ALL'; // 'ALL' = vista normal, 'L' = panel izquierdo, 'R' = panel derecho (Vista Dividida)
-
-function sendRemoteCmd(cmd) {
-  if (conn) conn.send({ cmd: cmd, target: remoteTarget });
-  if (navigator.vibrate) navigator.vibrate(40);
-}
-
-function setRemoteTarget(t) {
-  remoteTarget = t;
-  document.querySelectorAll('.btn-remote-target').forEach(b => b.classList.remove('active'));
-  const idMap = { ALL: 'btnTargetAll', L: 'btnTargetL', R: 'btnTargetR' };
-  const btn = document.getElementById(idMap[t]);
-  if (btn) btn.classList.add('active');
-  // 'SYNC' no navega ni gira nada: solo pide la pregunta/respuesta ACTUAL de ese panel,
-  // para que el mando se actualice al instante al cambiar de lado (sin esperar a
-  // pulsar Siguiente/Anterior/Girar).
-  sendRemoteCmd('SYNC');
-}
-
-if (remoteTargetId) {
-  document.getElementById('appView').style.display = 'none';
-  document.getElementById('remoteView').style.display = 'flex';
-  peer = new Peer({
-    config: {
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'turn:openrelay.metered.ca:80', username: 'openrelay', credential: 'openrelay' },
-        { urls: 'turn:openrelay.metered.ca:443', username: 'openrelay', credential: 'openrelay' },
-        { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelay', credential: 'openrelay' }
-      ]
-    }
-  });
-  
-  peer.on('open', () => { 
-    conn = peer.connect(remoteTargetId);
-    conn.on('data', (data) => {
-      if (data && data.type === 'CARD_SYNC') {
-        document.getElementById('remoteQuestionText').textContent = data.question || 'Sin pregunta';
-        document.getElementById('remoteAnswerText').textContent = data.answer || 'Sin respuesta';
-        
-        const imgBtn = document.getElementById('btnRemoteImgZoom');
-        if (imgBtn) imgBtn.style.display = data.hasImage ? 'block' : 'none';
-
-        const ytMaxBtn = document.getElementById('btnRemoteYtMax');
-        if (ytMaxBtn) ytMaxBtn.style.display = data.hasYt ? 'block' : 'none';
-      }
-    });
-  });
-
-} else {
-  peer = new Peer({
-    config: {
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'turn:openrelay.metered.ca:80', username: 'openrelay', credential: 'openrelay' },
-        { urls: 'turn:openrelay.metered.ca:443', username: 'openrelay', credential: 'openrelay' },
-        { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelay', credential: 'openrelay' }
-      ]
-    }
-  });
-  
-    peer.on('open', (id) => {
-    const remoteUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}?remote=${id}`;
-    
-    // Generar código QR para el mando a distancia
-    const qrContainer = document.getElementById('qrcode');
-    if (qrContainer) {
-      qrContainer.innerHTML = '';
-      new QRCode(qrContainer, {
-        text: remoteUrl,
-        width: 180,
-        height: 180
-      });
-    }
-  });
-
-  peer.on('connection', (c) => {
-    conn = c;
-    conn.on('data', (data) => {
-      // Compatibilidad con el formato antiguo (string) y el nuevo ({cmd, target})
-      const cmd = (typeof data === 'string') ? data : data.cmd;
-      const target = (typeof data === 'object' && data && data.target) ? data.target : 'ALL';
-      if (!cmd) return;
-
-      if (target === 'L' || target === 'R') {
-        ejecutarComandoEnPanel(target, cmd);
-      } else {
-        ejecutarComandoLocal(cmd);
-        syncRemoteData(); // así 'SYNC' (al pulsar "🖥️ Normal") también actualiza el mando al instante
-      }
-    });
-    // Enviar datos actuales al conectar el mando
-    setTimeout(syncRemoteData, 500);
-  });
-}
-
-// Ejecuta un comando del mando SOBRE ESTA MISMA página (proyector en vista normal,
-// o dentro de uno de los paneles de la Vista Dividida cuando se llama desde dentro).
-function ejecutarComandoLocal(cmd) {
-  const cardEl = document.getElementById('cardElement');
-  if (cmd === 'PREV') navCard(null, -1);
-  else if (cmd === 'NEXT') navCard(null, 1);
-  else if (cmd === 'FLIP') handleCardClick(cardEl);
-  else if (cmd === 'TOGGLE_ZOOM') toggleImageZoom();
-  else if (cmd === 'TOGGLE_MAX_VIDEO') toggleMaxVideo(null);
-  else if (cmd.startsWith('SET_LVL_')) setLvl(cmd.replace('SET_LVL_', ''));
-}
-
-// Reenvía un comando desde la página principal (el mando ya emparejado aquí) hacia uno de
-// los dos iframes de la Vista Dividida. Se usa postMessage en vez de llamar directamente a
-// una función del iframe: postMessage es el mecanismo estándar para comunicar frames y
-// funciona de forma fiable aunque el navegador restrinja el acceso directo a propiedades
-// entre documentos (algo que sí puede pasar, en silencio, con contentWindow.miFuncion()).
-function ejecutarComandoEnPanel(target, cmd) {
-  const container = document.getElementById('splitViewContainer');
-  if (!container || !container.classList.contains('open')) return;
-  const pane = document.getElementById(target === 'L' ? 'splitPaneL' : 'splitPaneR');
-  if (!pane || !pane.contentWindow) return;
-  pane.contentWindow.postMessage({ type: 'SPLIT_REMOTE_CMD', cmd: cmd, target: target }, '*');
-}
-
-// Cada panel embebido ejecuta el comando recibido y, tras un pequeño margen (para que
-// termine la animación de volteo/cambio de tarjeta), devuelve su pregunta/respuesta actual
-// a la página principal, para que el mando del móvil las siga mostrando correctamente.
-window.addEventListener('message', (e) => {
-  if (!e.data) return;
-  if (e.data.type === 'SPLIT_REMOTE_CMD') {
-    ejecutarComandoLocal(e.data.cmd);
-    setTimeout(() => {
-      try {
-        window.parent.postMessage({ type: 'SPLIT_CARD_STATE', target: e.data.target, ...obtenerEstadoTarjetaActual() }, '*');
-      } catch (err) { /* ignorar */ }
-    }, 180);
-  }
-  if (e.data.type === 'SPLIT_CARD_STATE') {
-    // Esto lo recibe la página principal desde el panel que se acaba de controlar
-    if (conn && conn.open) {
-      conn.send({ type: 'CARD_SYNC', question: e.data.question, answer: e.data.answer, hasImage: e.data.hasImage, hasYt: e.data.hasYt });
-    }
-  }
+  try {
+    const data = JSON.parse(await file.text());
+    pushHistory();
+    if (data.groups) {
+      db = data; saveLocal(); setSyncStatus('📂 Archivo local'); hasUnsavedChanges = false; updateGroupSelector(); render();
+      alert('Todas las competiciones han sido importadas con éxito.');
+    } else alert('El archivo cargado no tiene una estructura multiclase válida.');
+  } catch(err) { alert('Archivo JSON no válido.'); }
+  e.target.value = '';
 });
 
-/* FUNCIONES DE MODALES Y VISTA DIVIDIDA */
-function openQRModal() {
-  document.getElementById('qrModal').classList.add('open');
-}
-
-function closeQRModal() {
-  document.getElementById('qrModal').classList.remove('open');
-}
-
-function openSplitModal() {
-  const courses = getAllAvailableCourses();
-  const buildOptions = (selId) => {
-    const select = document.getElementById(selId);
-    if (!select) return;
-    let html = '<option value="ALL">Todos los cursos</option>';
-    courses.forEach(c => {
-      html += `<option value="${c}">${c}</option>`;
-    });
-    select.innerHTML = html;
-  };
-  buildOptions('splitCourseL');
-  buildOptions('splitCourseR');
-  document.getElementById('splitModal').classList.add('open');
-}
-
-function closeSplitModal() {
-  document.getElementById('splitModal').classList.remove('open');
-}
-
-function activateSplitView() {
-  const cL = document.getElementById('splitCourseL').value;
-  const sL = document.getElementById('splitSubjL').value;
-  const lL = document.getElementById('splitLvlL').value;
-
-  const cR = document.getElementById('splitCourseR').value;
-  const sR = document.getElementById('splitSubjR').value;
-  const lR = document.getElementById('splitLvlR').value;
-
-  const basePath = window.location.pathname;
-  const srcL = `${basePath}?embed=1&course=${encodeURIComponent(cL)}&subj=${encodeURIComponent(sL)}&lvl=${encodeURIComponent(lL)}`;
-  const srcR = `${basePath}?embed=1&course=${encodeURIComponent(cR)}&subj=${encodeURIComponent(sR)}&lvl=${encodeURIComponent(lR)}`;
-
-  document.getElementById('splitPaneL').src = srcL;
-  document.getElementById('splitPaneR').src = srcR;
-
-  document.getElementById('splitViewContainer').classList.add('open');
-  closeSplitModal();
-}
-
-function exitSplitView() {
-  document.getElementById('splitViewContainer').classList.remove('open');
-  document.getElementById('splitPaneL').src = 'about:blank';
-  document.getElementById('splitPaneR').src = 'about:blank';
-}
-
-// Inicialización de la aplicación
-window.addEventListener('DOMContentLoaded', () => {
-  loadDeck();
-});
+// Inicialización
+initDataCascade();
 </script>
+
 </body>
 </html>
