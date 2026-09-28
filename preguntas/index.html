@@ -207,17 +207,18 @@
     .qr-box { background: white; padding: 24px; border-radius: 16px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; }
 
     /* MANDO MÓVIL */
-    .remote-layout { display: none; flex-direction: column; gap: 10px; width: 100%; max-width: 400px; height: 92vh; margin: 0 auto; justify-content: center; padding: 10px; }
-    .remote-card-info { background: #0f172a; border: 1px solid #334155; padding: 14px; border-radius: 16px; text-align: left; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); }
-    .btn-remote { flex: 1; border: none; border-radius: 16px; font-size: 1.3rem; font-weight: bold; color: white; background: var(--pri); touch-action: manipulation; }
+    .remote-layout { display: none; flex-direction: column; gap: 8px; width: 100%; max-width: 400px; height: 92vh; height: 100dvh; max-height: 92vh; max-height: 100dvh; margin: 0 auto; padding: 8px; box-sizing: border-box; overflow-y: auto; }
+    .remote-card-info { background: #0f172a; border: 1px solid #334155; padding: 10px 14px; border-radius: 16px; text-align: left; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); flex: 0 0 auto; }
+    .btn-remote { flex: 1 1 0; min-height: 50px; max-height: 110px; border: none; border-radius: 16px; font-size: 1.3rem; font-weight: bold; color: white; background: var(--pri); touch-action: manipulation; }
     .btn-remote-flip { background: var(--ok); }
-    .btn-remote-img { background: var(--purple); max-height: 50px; font-size: 1.1rem; }
-    .btn-remote-yt { background: var(--yt); max-height: 50px; font-size: 1.1rem; }
+    .btn-remote-img, .btn-remote-yt { flex: 0 0 auto; min-height: 44px; max-height: 50px; font-size: 1.1rem; border: none; border-radius: 16px; font-weight: bold; color: white; touch-action: manipulation; }
+    .btn-remote-img { background: var(--purple); }
+    .btn-remote-yt { background: var(--yt); }
     .img-upload-input { font-size: 11px; padding: 4px; }
-    .remote-lvl-row { display: flex; gap: 6px; width: 100%; }
+    .remote-lvl-row { display: flex; gap: 6px; width: 100%; flex: 0 0 auto; }
     .btn-remote-lvl { flex: 1; padding: 10px 4px; font-size: 0.85rem; font-weight: bold; border-radius: 10px; border: none; background: #334155; color: white; cursor: pointer; }
     .btn-remote-lvl.active { background: var(--pri); }
-    .remote-target-row { display: flex; gap: 6px; width: 100%; }
+    .remote-target-row { display: flex; gap: 6px; width: 100%; flex: 0 0 auto; }
     .btn-remote-target { flex: 1; padding: 8px 4px; font-size: 0.72rem; font-weight: 700; border-radius: 10px; border: 2px solid transparent; background: #334155; color: #94a3b8; cursor: pointer; }
     .btn-remote-target.active { background: #0891b2; color: #fff; border-color: #67e8f9; }
 
@@ -549,8 +550,8 @@
   <button class="btn-remote" onclick="sendRemoteCmd('PREV')">⬅️ Anterior</button>
   <button class="btn-remote btn-remote-flip" onclick="sendRemoteCmd('FLIP')">🔄 Girar / Respuesta</button>
   <button class="btn-remote" onclick="sendRemoteCmd('NEXT')">Siguiente ➡️</button>
-  <button id="btnRemoteImgZoom" onclick="sendRemoteCmd('TOGGLE_ZOOM')">🔍 Ampliar Imagen</button>
-  <button id="btnRemoteYtMax" onclick="sendRemoteCmd('TOGGLE_MAX_VIDEO')">🖥️ Maximizar Vídeo</button>
+  <button class="btn-remote-img" id="btnRemoteImgZoom" onclick="sendRemoteCmd('TOGGLE_ZOOM')">🔍 Ampliar Imagen</button>
+  <button class="btn-remote-yt" id="btnRemoteYtMax" onclick="sendRemoteCmd('TOGGLE_MAX_VIDEO')">🖥️ Maximizar Vídeo</button>
 </div>
 
 <!-- MODAL QR -->
