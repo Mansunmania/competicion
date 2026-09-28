@@ -302,6 +302,11 @@
       </div>
     </div>
 
+    <div style="display:flex; align-items:center; gap:8px; width:100%; margin-top:8px; margin-bottom:4px;">
+      <input id="searchTextInput" type="search" placeholder="🔎 Buscar en preguntas y respuestas..." oninput="setSearchText(this.value)" style="flex:1; padding:8px 10px; font-size:13px; border-radius:8px; border:1px solid var(--line);" />
+      <button class="btn-flat" style="padding:8px 10px; font-size:12px;" onclick="clearSearchText()">✕ Limpiar</button>
+    </div>
+
     <div style="font-weight:700; font-size:13px; color:var(--muted); width:100%; margin-top:8px; margin-bottom:4px;">Dificultad / Nivel de Liga:</div>
     <div class="filter-group">
       <button class="filter-btn active" id="btnLvl-ALL" onclick="setLvl('ALL')">Todos los niveles</button>
@@ -1121,12 +1126,32 @@ function applyFilters() {
       const cardTopics = getCardTopics(card);
       matchTopic = confirmedTopics.some(t => (t === 'NONE') ? cardTopics.length === 0 : cardTopics.includes(t));
     }
-    return matchCourse && matchSubj && matchLvl && matchTopic;
+
+    let matchText = true;
+    if (searchText) {
+      matchText = (card.q && card.q.toLowerCase().includes(searchText))
+        || (card.a && card.a.toLowerCase().includes(searchText))
+        || (card.qContext && card.qContext.toLowerCase().includes(searchText));
+    }
+
+    return matchCourse && matchSubj && matchLvl && matchTopic && matchText;
   });
 
-  const memoryKey = `${filterCourse}|${filterSubj}|${filterLvl}|${confirmedTopics.join(',')}`;
+  const memoryKey = `${filterCourse}|${filterSubj}|${filterLvl}|${confirmedTopics.join(',')}|${searchText}`;
   index = (filterMemory[memoryKey] !== undefined && filterMemory[memoryKey] < filtered.length) ? filterMemory[memoryKey] : 0;
   updateView();
+}
+
+// BÚSQUEDA POR TEXTO en preguntas y respuestas
+let searchText = '';
+function setSearchText(v) {
+  searchText = (v || '').trim().toLowerCase();
+  applyFilters();
+}
+function clearSearchText() {
+  const input = document.getElementById('searchTextInput');
+  if (input) input.value = '';
+  setSearchText('');
 }
 
 function openMediaLink(e, url) { 
