@@ -12,6 +12,13 @@
   <link rel="preconnect" href="https://www.googlevideo.com">
   
   <!-- PeerJS para Control Remoto WebRTC y QRCode.js -->
+  <!-- CAMBIO: se usa jsdelivr (reparte el tráfico entre varias CDN: Cloudflare, Fastly...)
+       en vez de unpkg.com y cdnjs.cloudflare.com, que dependen ÚNICAMENTE de Cloudflare.
+       Esto reduce (no garantiza al 100%) las probabilidades de verse afectado por los
+       bloqueos de IPs de Cloudflare que aplican los operadores españoles durante los
+       partidos de LaLiga, ya que jsdelivr no siempre resuelve contra el mismo proveedor.
+       Si algún día tampoco cargara, cambia estas dos URLs por las que tenías antes
+       (unpkg.com / cdnjs.cloudflare.com) o prueba con cdn.jsdelivr.net/gh/... -->
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 
@@ -196,94 +203,96 @@
     #qrModal.open { display: flex; }
     .qr-box { background: white; padding: 24px; border-radius: 16px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; }
 
-    /* ESTILOS DEL MANDO MÓVIL REPARADOS PARA ESCALA NATIVA 1:1 */
-.remote-layout {
-  display: none;
-  flex-direction: column;
-  gap: 10px;
-  width: 100%;
-  height: 100dvh;
-  padding: 12px;
-  box-sizing: border-box;
-  overflow: hidden;
-  background: var(--bg);
-}
+    /* ESTILOS DEL MANDO MÓVIL CON PROPORCIONES PROPORCIONALES FIX */
+    .remote-layout {
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+      width: 100%;
+      height: 100%;
+      max-height: 100%;
+      padding: 10px;
+      box-sizing: border-box;
+      overflow: hidden;
+      background: var(--bg);
+    }
 
-.remote-card-info {
-  background: #0f172a;
-  border: 1px solid #334155;
-  padding: 12px 16px;
-  border-radius: 16px;
-  text-align: left;
-  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
-  flex: 0 0 auto;
-}
+    .remote-card-info {
+      background: #0f172a;
+      border: 1px solid #334155;
+      padding: 10px 14px;
+      border-radius: 14px;
+      text-align: left;
+      box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
+      flex: 0 0 auto;
+    }
 
-.btn-remote {
-  flex: 1 1 0%;
-  width: 100%;
-  border: none;
-  border-radius: 16px;
-  font-size: 1.35rem;
-  font-weight: 700;
-  color: white;
-  background: var(--pri);
-  touch-action: manipulation;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.btn-remote-flip { background: var(--ok); }
+    .btn-remote {
+      flex: 1 1 0%;
+      width: 100%;
+      border: none;
+      border-radius: 14px;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: white;
+      background: var(--pri);
+      touch-action: manipulation;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      max-height: 100px;
+    }
+    .btn-remote-flip { background: var(--ok); }
 
-.btn-remote-img, .btn-remote-yt {
-  flex: 0 0 auto;
-  height: 48px;
-  width: 100%;
-  font-size: 1rem;
-  border: none;
-  border-radius: 14px;
-  font-weight: 700;
-  color: white;
-  touch-action: manipulation;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.btn-remote-img { background: var(--purple); }
-.btn-remote-yt { background: var(--yt); }
+    .btn-remote-img, .btn-remote-yt {
+      flex: 0 0 auto;
+      height: 44px;
+      width: 100%;
+      font-size: 0.95rem;
+      border: none;
+      border-radius: 12px;
+      font-weight: 700;
+      color: white;
+      touch-action: manipulation;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn-remote-img { background: var(--purple); }
+    .btn-remote-yt { background: var(--yt); }
 
-.remote-target-row, .remote-lvl-row {
-  display: flex;
-  gap: 8px;
-  width: 100%;
-  flex: 0 0 auto;
-}
+    .remote-target-row, .remote-lvl-row {
+      display: flex;
+      gap: 6px;
+      width: 100%;
+      flex: 0 0 auto;
+    }
 
-.btn-remote-target {
-  flex: 1;
-  padding: 10px 4px;
-  font-size: 0.85rem;
-  font-weight: 700;
-  border-radius: 10px;
-  border: 2px solid transparent;
-  background: #1e293b;
-  color: #94a3b8;
-  cursor: pointer;
-}
-.btn-remote-target.active { background: #0891b2; color: #fff; border-color: #67e8f9; }
+    .btn-remote-target {
+      flex: 1;
+      padding: 8px 2px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      border-radius: 8px;
+      border: 2px solid transparent;
+      background: #1e293b;
+      color: #94a3b8;
+      cursor: pointer;
+    }
+    .btn-remote-target.active { background: #0891b2; color: #fff; border-color: #67e8f9; }
 
-.btn-remote-lvl {
-  flex: 1;
-  padding: 10px 4px;
-  font-size: 0.9rem;
-  font-weight: 700;
-  border-radius: 10px;
-  border: none;
-  background: #1e293b;
-  color: #ffffff;
-  cursor: pointer;
-}
-.btn-remote-lvl.active { background: var(--pri); }
+    .btn-remote-lvl {
+      flex: 1;
+      padding: 8px 2px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      border-radius: 8px;
+      border: none;
+      background: #1e293b;
+      color: #ffffff;
+      cursor: pointer;
+    }
+    .btn-remote-lvl.active { background: var(--pri); }
 
     body.embed-mode { padding: 8px; }
     body.embed-mode .filters,
@@ -626,7 +635,7 @@
 <div id="splitModal" onclick="closeSplitModal()">
   <div class="split-config-box" onclick="event.stopPropagation()">
     <h3 style="margin:0; color:var(--ink);">🔀 Pantalla dividida (2 niveles a la vez)</h3>
-    <p style="margin:0; font-size:12px; color:var(--muted);">Elige el curso, la asignatura y/o la dificultad de cada mitad. Deja "Todas" en lo que no quieras filtrar.</p>
+    <p style="margin:0; font-size:12px; color:var(--muted);">Elige el curso, la asignatura, el tema y/o la dificultad de cada mitad.</p>
     <div class="split-config-cols">
       <div class="split-config-col">
         <label>Panel Izquierdo — Curso</label>
@@ -641,6 +650,9 @@
           <option value="Sociales">Sociales 🌍</option>
           <option value="Naturales">Naturales 🌿</option>
         </select>
+
+        <label>Panel Izquierdo — Tema</label>
+        <select id="splitTopicL"></select>
 
         <label>Panel Izquierdo — Dificultad</label>
         <select id="splitLvlL">
@@ -664,6 +676,9 @@
           <option value="Sociales">Sociales 🌍</option>
           <option value="Naturales">Naturales 🌿</option>
         </select>
+
+        <label>Panel Derecho — Tema</label>
+        <select id="splitTopicR"></select>
 
         <label>Panel Derecho — Dificultad</label>
         <select id="splitLvlR">
@@ -718,6 +733,8 @@ const isEmbedMode = pageParams.get('embed') === '1';
 const embedCourseParam = pageParams.get('course') || 'ALL';
 const embedSubjParam = pageParams.get('subj') || 'ALL';
 const embedLvlParam = pageParams.get('lvl') || 'ALL';
+const embedTopicParam = pageParams.get('topic') || 'ALL';
+
 if (isEmbedMode) document.body.classList.add('embed-mode');
 
 window.addEventListener('beforeunload', (e) => {
@@ -840,7 +857,6 @@ function saveTopics() {
   localStorage.setItem(STORAGE_TOPICS_KEY, JSON.stringify(customTopics)); 
 }
 
-// OPTIMIZACIÓN A: Carga de datos con tiempo límite de 2.5s para Apps Script
 async function loadDeck() {
   const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxmsFEuwrNg7QV3lEB9V2BuH8RkfpOOnrwEPZdVQ8dRbAaEbJkqRGVIOGwTprSPHUO5Hg/exec';
   let origenCargado = "";
@@ -859,7 +875,7 @@ async function loadDeck() {
   if (!cargadoConExito && !isEmbedMode) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2500); // Max 2.5 seg de espera en red
+      const timeoutId = setTimeout(() => controller.abort(), 2500);
       
       const resDrive = await fetch(APPS_SCRIPT_URL, { redirect: 'follow', signal: controller.signal });
       clearTimeout(timeoutId);
@@ -914,13 +930,15 @@ async function loadDeck() {
   }
 
   mostrarAvisoOrigen(origenCargado);
-  applyFilters();
 
   if (isEmbedMode) {
-    if (embedCourseParam && embedCourseParam !== 'ALL') setCourse(embedCourseParam);
-    if (embedSubjParam && embedSubjParam !== 'ALL') setSubj(embedSubjParam);
-    if (embedLvlParam && embedLvlParam !== 'ALL') setLvl(embedLvlParam);
+    if (embedCourseParam && embedCourseParam !== 'ALL') filterCourse = embedCourseParam;
+    if (embedSubjParam && embedSubjParam !== 'ALL') filterSubj = embedSubjParam;
+    if (embedLvlParam && embedLvlParam !== 'ALL') filterLvl = embedLvlParam;
+    if (embedTopicParam && embedTopicParam !== 'ALL') confirmedTopics = [embedTopicParam];
   }
+
+  applyFilters();
 }
 
 function procesarMazo(datos) {
@@ -1752,12 +1770,25 @@ setupMultiAutocomplete('editCourse', 'menuEdit', getAllAvailableCourses);
 setupMultiAutocomplete('addTopic', 'menuAddTopic', getAllAvailableTopics);
 setupMultiAutocomplete('editTopic', 'menuEditTopic', getAllAvailableTopics);
 
-/* LÓGICA DE CONTROL REMOTO CON PEERJS Y MEDICIÓN DINÁMICA DE PANTALLA */
+/* LÓGICA DE CONTROL REMOTO PEERJS Y AJUSTE DE MEDIDAS MÓVIL */
 let peer = null, conn = null;
 const urlParams = new URLSearchParams(window.location.search);
 const remoteTargetId = urlParams.get('remote');
 
 let remoteTarget = 'ALL';
+
+function adjustRemoteViewHeight() {
+  const remoteView = document.getElementById('remoteView');
+  if (remoteView && remoteView.style.display !== 'none') {
+    const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    remoteView.style.height = `${h}px`;
+  }
+}
+
+window.addEventListener('resize', adjustRemoteViewHeight);
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', adjustRemoteViewHeight);
+}
 
 function sendRemoteCmd(cmd) {
   if (conn) conn.send({ cmd: cmd, target: remoteTarget });
@@ -1792,6 +1823,7 @@ if (remoteTargetId) {
   });
   
   peer.on('open', () => { 
+    adjustRemoteViewHeight();
     conn = peer.connect(remoteTargetId);
     conn.on('data', (data) => {
       if (data && data.type === 'CARD_SYNC') {
@@ -1841,8 +1873,16 @@ if (remoteTargetId) {
       const target = (typeof data === 'object' && data && data.target) ? data.target : 'ALL';
       if (!cmd) return;
 
-      if (target === 'L' || target === 'R') {
-        ejecutarComandoEnPanel(target, cmd);
+      const splitContainer = document.getElementById('splitViewContainer');
+      const isSplitActive = splitContainer && splitContainer.classList.contains('open');
+
+      if (isSplitActive) {
+        if (target === 'ALL') {
+          ejecutarComandoEnPanel('L', cmd);
+          ejecutarComandoEnPanel('R', cmd);
+        } else {
+          ejecutarComandoEnPanel(target, cmd);
+        }
       } else {
         ejecutarComandoLocal(cmd);
         syncRemoteData();
@@ -1908,6 +1948,20 @@ function openSplitModal() {
   };
   buildOptions('splitCourseL');
   buildOptions('splitCourseR');
+
+  const topics = getAllAvailableTopics();
+  const buildTopicOptions = (selId) => {
+    const select = document.getElementById(selId);
+    if (!select) return;
+    let html = '<option value="ALL">Todos los temas</option>';
+    topics.forEach(t => {
+      html += `<option value="${t}">${t}</option>`;
+    });
+    select.innerHTML = html;
+  };
+  buildTopicOptions('splitTopicL');
+  buildTopicOptions('splitTopicR');
+
   document.getElementById('splitModal').classList.add('open');
 }
 
@@ -1918,15 +1972,17 @@ function closeSplitModal() {
 function activateSplitView() {
   const cL = document.getElementById('splitCourseL').value;
   const sL = document.getElementById('splitSubjL').value;
+  const tL = document.getElementById('splitTopicL').value;
   const lL = document.getElementById('splitLvlL').value;
 
   const cR = document.getElementById('splitCourseR').value;
   const sR = document.getElementById('splitSubjR').value;
+  const tR = document.getElementById('splitTopicR').value;
   const lR = document.getElementById('splitLvlR').value;
 
   const basePath = window.location.pathname;
-  const srcL = `${basePath}?embed=1&course=${encodeURIComponent(cL)}&subj=${encodeURIComponent(sL)}&lvl=${encodeURIComponent(lL)}`;
-  const srcR = `${basePath}?embed=1&course=${encodeURIComponent(cR)}&subj=${encodeURIComponent(sR)}&lvl=${encodeURIComponent(lR)}`;
+  const srcL = `${basePath}?embed=1&course=${encodeURIComponent(cL)}&subj=${encodeURIComponent(sL)}&topic=${encodeURIComponent(tL)}&lvl=${encodeURIComponent(lL)}`;
+  const srcR = `${basePath}?embed=1&course=${encodeURIComponent(cR)}&subj=${encodeURIComponent(sR)}&topic=${encodeURIComponent(tR)}&lvl=${encodeURIComponent(lR)}`;
 
   document.getElementById('splitPaneL').src = srcL;
   document.getElementById('splitPaneR').src = srcR;
