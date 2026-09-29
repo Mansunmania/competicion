@@ -547,7 +547,7 @@
 <!-- VISTA MANDO REMOTO MÓVIL -->
 <div id="remoteView" class="remote-layout">
   <div class="remote-target-row" id="remoteTargetRow">
-    <button class="btn-remote-target" id="btnTargetL" onclick="setRemoteTarget('L')">◀️️ Izquierda</button>
+    <button class="btn-remote-target" id="btnTargetL" onclick="setRemoteTarget('L')">◀ Izquierda</button>
     <button class="btn-remote-target active" id="btnTargetAll" onclick="setRemoteTarget('ALL')">🖥️ Normal</button>
     <button class="btn-remote-target" id="btnTargetR" onclick="setRemoteTarget('R')">▶️ Derecha</button>
   </div>
@@ -683,13 +683,14 @@ let index = 0;
 let filterMemory = {};
 let hasUnsavedChanges = false;
 
-const pageParams = new URLSearchParams(window.location.search);
-const isEmbedMode = pageParams.get('embed') === '1';
-const isRemoteAppMode = pageParams.get('app') === '1';
-const embedCourseParam = pageParams.get('course') || 'ALL';
-const embedSubjParam = pageParams.get('subj') || 'ALL';
-const embedLvlParam = pageParams.get('lvl') || 'ALL';
-const embedTopicParam = pageParams.get('topic') || 'ALL';
+const urlParams = new URLSearchParams(window.location.search);
+const isEmbedMode = urlParams.get('embed') === '1';
+const isRemoteAppMode = urlParams.get('app') === '1';
+const remoteTargetId = urlParams.get('remote');
+const embedCourseParam = urlParams.get('course') || 'ALL';
+const embedSubjParam = urlParams.get('subj') || 'ALL';
+const embedLvlParam = urlParams.get('lvl') || 'ALL';
+const embedTopicParam = urlParams.get('topic') || 'ALL';
 
 if (isEmbedMode) document.body.classList.add('embed-mode');
 
@@ -1728,7 +1729,6 @@ setupMultiAutocomplete('editTopic', 'menuEditTopic', getAllAvailableTopics);
 
 /* LÓGICA DE CONTROL REMOTO CON PIN Y WEBRTC PEERJS */
 let peer = null, conn = null;
-const remoteTargetId = urlParams.get('remote');
 let generatedPin = "";
 let remoteTarget = 'ALL';
 
@@ -1774,55 +1774,57 @@ function connectWithPin() {
   setupRemoteConnection(targetId);
 }
 
-if (isRemoteAppMode) {
-  document.getElementById('appView').style.display = 'none';
-  document.getElementById('pinView').style.display = 'flex';
-} else if (remoteTargetId) {
-  document.getElementById('appView').style.display = 'none';
-  document.getElementById('remoteView').style.display = 'flex';
-  setupRemoteConnection(remoteTargetId);
-} else {
-  // PANTALLA PRINCIPAL DE PROYECCIÓN
-  generatedPin = Math.floor(1000 + Math.random() * 9000).toString();
-  const mainPeerId = 'classroom-pin-' + generatedPin;
+function initRemoteOrAppLogic() {
+  if (isRemoteAppMode) {
+    document.getElementById('appView').style.display = 'none';
+    document.getElementById('pinView').style.display = 'flex';
+  } else if (remoteTargetId) {
+    document.getElementById('appView').style.display = 'none';
+    document.getElementById('remoteView').style.display = 'flex';
+    setupRemoteConnection(remoteTargetId);
+  } else {
+    // PANTALLA PRINCIPAL DE PROYECCIÓN
+    generatedPin = Math.floor(1000 + Math.random() * 9000).toString();
+    const mainPeerId = 'classroom-pin-' + generatedPin;
 
-  peer = new Peer(mainPeerId);
-  
-  peer.on('open', (id) => {
-    document.getElementById('displayPinCode').textContent = generatedPin;
-    const remoteUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}?remote=${id}`;
+    peer = new Peer(mainPeerId);
     
-    const qrContainer = document.getElementById('qrcode');
-    if (qrContainer) {
-      qrContainer.innerHTML = '';
-      new QRCode(qrContainer, { text: remoteUrl, width: 160, height: 160 });
-    }
-  });
-
-  peer.on('connection', (c) => {
-    conn = c;
-    conn.on('data', (data) => {
-      const cmd = (typeof data === 'string') ? data : data.cmd;
-      const target = (typeof data === 'object' && data && data.target) ? data.target : 'ALL';
-      if (!cmd) return;
-
-      const splitContainer = document.getElementById('splitViewContainer');
-      const isSplitActive = splitContainer && splitContainer.classList.contains('open');
-
-      if (isSplitActive) {
-        if (target === 'ALL') {
-          ejecutarComandoEnPanel('L', cmd);
-          ejecutarComandoEnPanel('R', cmd);
-        } else {
-          ejecutarComandoEnPanel(target, cmd);
-        }
-      } else {
-        ejecutarComandoLocal(cmd);
-        syncRemoteData();
+    peer.on('open', (id) => {
+      document.getElementById('displayPinCode').textContent = generatedPin;
+      const remoteUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}?remote=${id}`;
+      
+      const qrContainer = document.getElementById('qrcode');
+      if (qrContainer) {
+        qrContainer.innerHTML = '';
+        new QRCode(qrContainer, { text: remoteUrl, width: 160, height: 160 });
       }
     });
-    setTimeout(syncRemoteData, 500);
-  });
+
+    peer.on('connection', (c) => {
+      conn = c;
+      conn.on('data', (data) => {
+        const cmd = (typeof data === 'string') ? data : data.cmd;
+        const target = (typeof data === 'object' && data && data.target) ? data.target : 'ALL';
+        if (!cmd) return;
+
+        const splitContainer = document.getElementById('splitViewContainer');
+        const isSplitActive = splitContainer && splitContainer.classList.contains('open');
+
+        if (isSplitActive) {
+          if (target === 'ALL') {
+            ejecutarComandoEnPanel('L', cmd);
+            ejecutarComandoEnPanel('R', cmd);
+          } else {
+            ejecutarComandoEnPanel(target, cmd);
+          }
+        } else {
+          ejecutarComandoLocal(cmd);
+          syncRemoteData();
+        }
+      });
+      setTimeout(syncRemoteData, 500);
+    });
+  }
 }
 
 function ejecutarComandoLocal(cmd) {
@@ -1950,9 +1952,8 @@ function exitSplitView() {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
-  if (!isRemoteAppMode && !remoteTargetId) {
-    loadDeck();
-  }
+  loadDeck();
+  initRemoteOrAppLogic();
 });
 </script>
 </body>
