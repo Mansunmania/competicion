@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Mazo Flippity Completo - Proyector Classroom</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -203,36 +203,34 @@
     #qrModal.open { display: flex; }
     .qr-box { background: white; padding: 24px; border-radius: 16px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; }
 
-    /* ESTILOS DEL MANDO MÓVIL CON PROPORCIONES PROPORCIONALES FIX */
+    /* ESTILOS DEL MANDO MÓVIL (NATIVO COMPLETO Y MÁXIMA VISIBILIDAD) */
     .remote-layout {
       display: none;
       flex-direction: column;
-      gap: 8px;
+      gap: 12px;
       width: 100%;
-      height: 100%;
-      max-height: 100%;
-      padding: 10px;
+      min-height: 100vh;
+      padding: 12px;
       box-sizing: border-box;
-      overflow: hidden;
       background: var(--bg);
     }
 
     .remote-card-info {
       background: #0f172a;
       border: 1px solid #334155;
-      padding: 10px 14px;
-      border-radius: 14px;
+      padding: 12px 16px;
+      border-radius: 16px;
       text-align: left;
       box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
-      flex: 0 0 auto;
+      width: 100%;
     }
 
     .btn-remote {
-      flex: 1 1 0%;
       width: 100%;
+      padding: 22px 10px;
       border: none;
-      border-radius: 14px;
-      font-size: 1.25rem;
+      border-radius: 16px;
+      font-size: 1.3rem;
       font-weight: 700;
       color: white;
       background: var(--pri);
@@ -240,17 +238,16 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      max-height: 100px;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
     }
     .btn-remote-flip { background: var(--ok); }
 
     .btn-remote-img, .btn-remote-yt {
-      flex: 0 0 auto;
-      height: 44px;
       width: 100%;
-      font-size: 0.95rem;
+      padding: 14px 10px;
+      font-size: 1rem;
       border: none;
-      border-radius: 12px;
+      border-radius: 14px;
       font-weight: 700;
       color: white;
       touch-action: manipulation;
@@ -263,17 +260,16 @@
 
     .remote-target-row, .remote-lvl-row {
       display: flex;
-      gap: 6px;
+      gap: 8px;
       width: 100%;
-      flex: 0 0 auto;
     }
 
     .btn-remote-target {
       flex: 1;
-      padding: 8px 2px;
-      font-size: 0.8rem;
+      padding: 12px 4px;
+      font-size: 0.85rem;
       font-weight: 700;
-      border-radius: 8px;
+      border-radius: 10px;
       border: 2px solid transparent;
       background: #1e293b;
       color: #94a3b8;
@@ -283,10 +279,10 @@
 
     .btn-remote-lvl {
       flex: 1;
-      padding: 8px 2px;
-      font-size: 0.85rem;
+      padding: 12px 4px;
+      font-size: 0.9rem;
       font-weight: 700;
-      border-radius: 8px;
+      border-radius: 10px;
       border: none;
       background: #1e293b;
       color: #ffffff;
@@ -389,7 +385,7 @@
 
   <div class="flashcard-wrapper">
     <div class="flashcard" id="cardElement" onclick="handleCardClick(this)">
-      <button class="btn-fullscreen" id="btnToggleFullscreen" onclick="toggleFullscreen(event)">🖥️ Pantalla Completa</button>
+      <button class="btn-fullscreen" id="btnToggleFullscreen" onclick="toggleFullscreen(event)">🖥️️ Pantalla Completa</button>
       
       <button class="fs-nav-btn fs-nav-prev" onclick="navCard(event, -1)" title="Anterior">⬅️</button>
       <button class="fs-nav-btn fs-nav-next" onclick="navCard(event, 1)" title="Siguiente">➡️</button>
@@ -618,7 +614,7 @@
 
   <button class="btn-remote" onclick="sendRemoteCmd('PREV')">⬅️ Anterior</button>
   <button class="btn-remote btn-remote-flip" onclick="sendRemoteCmd('FLIP')">🔄 Girar / Respuesta</button>
-  <button class="btn-remote" onclick="sendRemoteCmd('NEXT')">Siguiente ➡️</button>
+  <button class="btn-remote" onclick="sendRemoteCmd('NEXT')">Siguiente ➡️️</button>
   <button class="btn-remote-img" id="btnRemoteImgZoom" style="display:none;" onclick="sendRemoteCmd('TOGGLE_ZOOM')">🔍 Ampliar Imagen</button>
   <button class="btn-remote-yt" id="btnRemoteYtMax" style="display:none;" onclick="sendRemoteCmd('TOGGLE_MAX_VIDEO')">🖥️ Maximizar Vídeo</button>
 </div>
@@ -639,10 +635,10 @@
     <div class="split-config-cols">
       <div class="split-config-col">
         <label>Panel Izquierdo — Curso</label>
-        <select id="splitCourseL"></select>
+        <select id="splitCourseL" onchange="updateSplitTopicDropdown('L')"></select>
         
         <label>Panel Izquierdo — Asignatura</label>
-        <select id="splitSubjL">
+        <select id="splitSubjL" onchange="updateSplitTopicDropdown('L')">
           <option value="ALL">Todas las asignaturas</option>
           <option value="Lengua">Lengua 🇪🇸</option>
           <option value="Inglés">Inglés 🇬🇧</option>
@@ -665,10 +661,10 @@
 
       <div class="split-config-col">
         <label>Panel Derecho — Curso</label>
-        <select id="splitCourseR"></select>
+        <select id="splitCourseR" onchange="updateSplitTopicDropdown('R')"></select>
 
         <label>Panel Derecho — Asignatura</label>
-        <select id="splitSubjR">
+        <select id="splitSubjR" onchange="updateSplitTopicDropdown('R')">
           <option value="ALL">Todas las asignaturas</option>
           <option value="Lengua">Lengua 🇪🇸</option>
           <option value="Inglés">Inglés 🇬🇧</option>
@@ -1770,25 +1766,12 @@ setupMultiAutocomplete('editCourse', 'menuEdit', getAllAvailableCourses);
 setupMultiAutocomplete('addTopic', 'menuAddTopic', getAllAvailableTopics);
 setupMultiAutocomplete('editTopic', 'menuEditTopic', getAllAvailableTopics);
 
-/* LÓGICA DE CONTROL REMOTO PEERJS Y AJUSTE DE MEDIDAS MÓVIL */
+/* LÓGICA DE CONTROL REMOTO PEERJS */
 let peer = null, conn = null;
 const urlParams = new URLSearchParams(window.location.search);
 const remoteTargetId = urlParams.get('remote');
 
 let remoteTarget = 'ALL';
-
-function adjustRemoteViewHeight() {
-  const remoteView = document.getElementById('remoteView');
-  if (remoteView && remoteView.style.display !== 'none') {
-    const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-    remoteView.style.height = `${h}px`;
-  }
-}
-
-window.addEventListener('resize', adjustRemoteViewHeight);
-if (window.visualViewport) {
-  window.visualViewport.addEventListener('resize', adjustRemoteViewHeight);
-}
 
 function sendRemoteCmd(cmd) {
   if (conn) conn.send({ cmd: cmd, target: remoteTarget });
@@ -1808,7 +1791,6 @@ if (remoteTargetId) {
   document.getElementById('appView').style.display = 'none';
   const remoteViewEl = document.getElementById('remoteView');
   remoteViewEl.style.display = 'flex';
-  adjustRemoteViewHeight();
 
   peer = new Peer({
     config: {
@@ -1823,7 +1805,6 @@ if (remoteTargetId) {
   });
   
   peer.on('open', () => { 
-    adjustRemoteViewHeight();
     conn = peer.connect(remoteTargetId);
     conn.on('data', (data) => {
       if (data && data.type === 'CARD_SYNC') {
@@ -1935,6 +1916,35 @@ function closeQRModal() {
   document.getElementById('qrModal').classList.remove('open');
 }
 
+function updateSplitTopicDropdown(side) {
+  const courseVal = document.getElementById(`splitCourse${side}`).value;
+  const subjVal = document.getElementById(`splitSubj${side}`).value;
+  const topicSelect = document.getElementById(`splitTopic${side}`);
+
+  if (!topicSelect) return;
+
+  const filteredTopics = new Set();
+  deck.forEach(card => {
+    const matchesCourse = matchesCourseFilter(card, courseVal);
+    const matchesSubj = (subjVal === 'ALL' || card.subj === subjVal);
+    
+    if (matchesCourse && matchesSubj) {
+      getCardTopics(card).forEach(t => filteredTopics.add(t));
+    }
+  });
+
+  const sortedTopics = Array.from(filteredTopics).sort((a, b) => 
+    a.localeCompare(b, 'es', { sensitivity: 'base' })
+  );
+
+  let html = '<option value="ALL">Todos los temas</option>';
+  sortedTopics.forEach(t => {
+    html += `<option value="${t}">${t}</option>`;
+  });
+
+  topicSelect.innerHTML = html;
+}
+
 function openSplitModal() {
   const courses = getAllAvailableCourses();
   const buildOptions = (selId) => {
@@ -1949,18 +1959,8 @@ function openSplitModal() {
   buildOptions('splitCourseL');
   buildOptions('splitCourseR');
 
-  const topics = getAllAvailableTopics();
-  const buildTopicOptions = (selId) => {
-    const select = document.getElementById(selId);
-    if (!select) return;
-    let html = '<option value="ALL">Todos los temas</option>';
-    topics.forEach(t => {
-      html += `<option value="${t}">${t}</option>`;
-    });
-    select.innerHTML = html;
-  };
-  buildTopicOptions('splitTopicL');
-  buildTopicOptions('splitTopicR');
+  updateSplitTopicDropdown('L');
+  updateSplitTopicDropdown('R');
 
   document.getElementById('splitModal').classList.add('open');
 }
