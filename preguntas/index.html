@@ -2,8 +2,15 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Mazo Flippity Completo - Proyector Classroom</title>
+  
+  <!-- Configuración PWA / Web App para pantalla completa nativa en móvil -->
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#0f172a" />
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playwrite+DE+Grund:wght@100..400&display=swap" rel="stylesheet">
@@ -11,14 +18,6 @@
   <link rel="dns-prefetch" href="https://www.youtube-nocookie.com">
   <link rel="preconnect" href="https://www.googlevideo.com">
   
-  <!-- PeerJS para Control Remoto WebRTC y QRCode.js -->
-  <!-- CAMBIO: se usa jsdelivr (reparte el tráfico entre varias CDN: Cloudflare, Fastly...)
-       en vez de unpkg.com y cdnjs.cloudflare.com, que dependen ÚNICAMENTE de Cloudflare.
-       Esto reduce (no garantiza al 100%) las probabilidades de verse afectado por los
-       bloqueos de IPs de Cloudflare que aplican los operadores españoles durante los
-       partidos de LaLiga, ya que jsdelivr no siempre resuelve contra el mismo proveedor.
-       Si algún día tampoco cargara, cambia estas dos URLs por las que tenías antes
-       (unpkg.com / cdnjs.cloudflare.com) o prueba con cdn.jsdelivr.net/gh/... -->
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 
@@ -126,18 +125,12 @@
     .flashcard.fullscreen .card-text-back-answer { font-size: 40px; }
 
     .card-media-anchor { position: absolute; bottom: 14px; left: 16px; z-index: 1; display: flex; gap: 8px; align-items: center; }
-
     .card-img-preview { max-height: 140px; border-radius: 8px; border: 1px solid var(--line); cursor: pointer; transition: transform 0.2s; object-fit: contain; }
-    .card-img-preview:hover { transform: scale(1.04); }
-
-    .yt-container, .yt-controls, #btnMaxVideo { pointer-events: auto; }
 
     .yt-container {
       width: 100%; max-width: 320px; height: 180px; margin-top: 10px;
-      border-radius: 12px; overflow: hidden; position: relative;
-      transition: transform 0.2s ease, opacity 0.2s ease; z-index: 5; background: #000;
+      border-radius: 12px; overflow: hidden; position: relative; z-index: 5; background: #000;
     }
-
     .yt-container.maximized {
       position: fixed !important; top: 50% !important; left: 50% !important;
       transform: translate(-50%, -50%) !important; width: 92vw !important;
@@ -145,187 +138,134 @@
       box-shadow: 0 0 0 100vmax rgba(15, 23, 42, 0.9) !important;
     }
 
-    .flashcard.has-maximized-video .card-back .card-text-container,
-    .flashcard.has-maximized-video .card-back p,
-    .flashcard.has-maximized-video .card-back h3,
-    .flashcard.has-maximized-video .card-back span,
-    .flashcard.has-maximized-video .card-back .success-actions,
-    .flashcard.has-maximized-video .card-back #celebrateBtn {
-      opacity: 0 !important;
-      visibility: hidden !important;
-      pointer-events: none !important;
-    }
-    
-    .yt-container.minimized {
-      position: fixed !important; top: 50% !important; left: 50% !important; 
-      transform: translate(-50%, -50%) !important; width: 90vw !important; 
-      height: 85vh !important; max-width: none !important; z-index: 2500 !important; 
-      box-shadow: 0 0 0 100vw rgba(15, 23, 42, 0.9) !important;
-    }
-
     .success-actions { margin-top: 15px; width: 100%; display: flex; justify-content: center; z-index: 10; }
     .btn-celebrate { background: var(--ok); color: white; font-size: 16px; padding: 10px 24px; border-radius: 50px; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 10px rgba(22, 163, 74, 0.4); }
-    .btn-celebrate:hover { background: #15803d; transform: scale(1.05); }
 
     .gif-modal, .img-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.88); display: flex; justify-content: center; align-items: center; z-index: 2000; opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
     .gif-modal.open, .img-modal.open { opacity: 1; pointer-events: auto; }
-    .gif-content { background: #fff; padding: 12px; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); max-width: 90%; max-height: 80%; display: flex; flex-direction: column; align-items: center; animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
-    .gif-content img { max-width: 100%; max-height: 420px; border-radius: 12px; object-fit: contain; background: #f8fafc; }
-    .gif-caption { margin-top: 10px; font-weight: 700; font-size: 16px; color: var(--ink); text-transform: uppercase; }
+    .gif-content { background: #fff; padding: 12px; border-radius: 20px; max-width: 90%; max-height: 80%; display: flex; flex-direction: column; align-items: center; }
+    .gif-content img { max-width: 100%; max-height: 420px; border-radius: 12px; object-fit: contain; }
 
     .img-modal-content { max-width: 92vw; max-height: 92vh; position: relative; display: flex; flex-direction: column; align-items: center; }
-    .img-modal-content img { max-width: 100%; max-height: 85vh; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); object-fit: contain; }
+    .img-modal-content img { max-width: 100%; max-height: 85vh; border-radius: 12px; object-fit: contain; }
     .img-modal-close { position: absolute; top: -40px; right: 0; color: white; font-size: 24px; background: none; border: none; cursor: pointer; }
-
-    @keyframes popIn { 0% { transform: scale(0.7); } 100% { transform: scale(1); } }
 
     .controls { display: flex; justify-content: center; align-items: center; gap: 14px; width: 100%; max-width: 750px; }
     .counter { font-size: 15px; font-weight: 700; color: var(--muted); min-width: 80px; text-align: center; }
-
     .edit-zone { background: #f8fafc; border: 2px dashed var(--line); padding: 14px; border-radius: 12px; margin-top: 10px; }
-    
-    .notion-dropdown { position: relative; width: 100%; }
-    .notion-input-wrapper { position: relative; display: flex; align-items: center; }
-    .notion-input-wrapper::after { content: '▾'; position: absolute; right: 12px; color: var(--muted); pointer-events: none; font-size: 12px; }
-    .notion-menu { 
-      position: absolute; top: 100%; left: 0; width: 100%; background: #ffffff; 
-      border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); 
-      z-index: 100; max-height: 200px; overflow-y: auto; display: none; margin-top: 4px; padding: 4px;
-    }
-    .notion-menu.open { display: block; }
-    .notion-item { 
-      padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 14px; 
-      color: var(--ink); display: flex; justify-content: space-between; align-items: center;
-    }
-    .notion-item:hover { background: #f1f5f9; }
 
+    /* ESTILOS DEL MANDO MÓVIL Y PANTALLA DE PIN */
+    .remote-layout {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+      max-width: 420px;
+      margin: 0 auto;
+      padding: 16px 12px 30px 12px;
+      box-sizing: border-box;
+    }
+
+    .pin-entry-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      background: #0f172a;
+      color: #fff;
+      padding: 30px 20px;
+      border-radius: 20px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      text-align: center;
+    }
+
+    .pin-input {
+      font-size: 2.2rem;
+      letter-spacing: 12px;
+      text-align: center;
+      width: 180px;
+      padding: 10px;
+      border-radius: 12px;
+      border: 2px solid #334155;
+      background: #1e293b;
+      color: #38bdf8;
+      font-weight: bold;
+    }
+
+    .remote-card-info {
+      background: #0f172a;
+      border: 1px solid #334155;
+      padding: 14px;
+      border-radius: 16px;
+      text-align: left;
+      box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
+    }
+
+    .btn-remote {
+      width: 100%;
+      min-height: 68px;
+      padding: 18px 12px;
+      border: none;
+      border-radius: 16px;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: white;
+      background: var(--pri);
+      touch-action: manipulation;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.15);
+    }
+    .btn-remote-flip { background: var(--ok); min-height: 78px; }
+
+    .btn-remote-img, .btn-remote-yt {
+      width: 100%;
+      min-height: 50px;
+      padding: 12px 10px;
+      font-size: 0.95rem;
+      border: none;
+      border-radius: 14px;
+      font-weight: 700;
+      color: white;
+      touch-action: manipulation;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn-remote-img { background: var(--purple); }
+    .btn-remote-yt { background: var(--yt); }
+
+    .remote-target-row, .remote-lvl-row { display: flex; gap: 8px; width: 100%; }
+    .btn-remote-target, .btn-remote-lvl {
+      flex: 1; padding: 10px 4px; font-size: 0.85rem; font-weight: 700; border-radius: 10px; border: none; background: #1e293b; color: #ffffff; cursor: pointer;
+    }
+    .btn-remote-target.active, .btn-remote-lvl.active { background: var(--pri); }
+
+    /* MODALES */
     #qrModal { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.8); z-index: 6000; display: none; justify-content: center; align-items: center; }
     #qrModal.open { display: flex; }
     .qr-box { background: white; padding: 24px; border-radius: 16px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; }
 
-    /* ESTILOS DEL MANDO REMOTO MÓVIL (TAMAÑO EQUILIBRADO Y CÓMODO) */
-.remote-layout {
-  display: none;
-  flex-direction: column;
-  gap: 12px;
-  width: 100%;
-  max-width: 420px;
-  margin: 0 auto;
-  padding: 16px 12px 30px 12px;
-  box-sizing: border-box;
-}
-
-.remote-card-info {
-  background: #0f172a;
-  border: 1px solid #334155;
-  padding: 14px;
-  border-radius: 16px;
-  text-align: left;
-  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
-}
-
-.btn-remote {
-  width: 100%;
-  min-height: 68px;
-  padding: 18px 12px;
-  border: none;
-  border-radius: 16px;
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: white;
-  background: var(--pri);
-  touch-action: manipulation;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.15);
-}
-.btn-remote-flip { 
-  background: var(--ok); 
-  min-height: 78px; /* Un poco más alto para el botón principal de girar */
-}
-
-.btn-remote-img, .btn-remote-yt {
-  width: 100%;
-  min-height: 50px;
-  padding: 12px 10px;
-  font-size: 0.95rem;
-  border: none;
-  border-radius: 14px;
-  font-weight: 700;
-  color: white;
-  touch-action: manipulation;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.btn-remote-img { background: var(--purple); }
-.btn-remote-yt { background: var(--yt); }
-
-.remote-target-row, .remote-lvl-row {
-  display: flex;
-  gap: 8px;
-  width: 100%;
-}
-
-.btn-remote-target {
-  flex: 1;
-  padding: 10px 4px;
-  font-size: 0.85rem;
-  font-weight: 700;
-  border-radius: 10px;
-  border: 2px solid transparent;
-  background: #1e293b;
-  color: #94a3b8;
-  cursor: pointer;
-}
-.btn-remote-target.active { background: #0891b2; color: #fff; border-color: #67e8f9; }
-
-.btn-remote-lvl {
-  flex: 1;
-  padding: 10px 4px;
-  font-size: 0.9rem;
-  font-weight: 700;
-  border-radius: 10px;
-  border: none;
-  background: #1e293b;
-  color: #ffffff;
-  cursor: pointer;
-}
-.btn-remote-lvl.active { background: var(--pri); }
-
+    /* EMBED Y VISTA DIVIDIDA */
     body.embed-mode { padding: 8px; }
-    body.embed-mode .filters,
-    body.embed-mode .editor-box,
-    body.embed-mode .edit-zone,
-    body.embed-mode #btnSplitView,
-    body.embed-mode #btnMandoMovil,
-    body.embed-mode #data-source-badge { display: none !important; }
-    body.embed-mode .layout { gap: 8px; }
-    body.embed-mode .flashcard-wrapper { margin: 6px auto; }
+    body.embed-mode .filters, body.embed-mode .editor-box, body.embed-mode .edit-zone, body.embed-mode #btnSplitView, body.embed-mode #btnMandoMovil, body.embed-mode #data-source-badge { display: none !important; }
     body.embed-mode .flashcard { max-width: 100%; height: min(62vh, 480px); }
 
-    .split-view-container {
-      display: none; position: fixed; inset: 0; background: #0f172a; z-index: 5000;
-    }
+    .split-view-container { display: none; position: fixed; inset: 0; background: #0f172a; z-index: 5000; }
     .split-view-container.open { display: flex; }
     .split-pane { flex: 1; height: 100%; border: none; background: #f0f4f8; }
     .split-divider { width: 5px; background: #334155; flex-shrink: 0; }
     .split-toolbar { position: fixed; top: 10px; right: 10px; z-index: 5001; display: flex; gap: 8px; }
-    .btn-exit-split, .btn-pair-split {
-      background: rgba(220,38,38,0.92); color: #fff; border: none; padding: 10px 16px; border-radius: 10px;
-      font-weight: 700; font-size: 14px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-    }
-    .btn-exit-split:hover { background: #b91c1c; }
+    .btn-exit-split, .btn-pair-split { background: rgba(220,38,38,0.92); color: #fff; border: none; padding: 10px 16px; border-radius: 10px; font-weight: 700; font-size: 14px; cursor: pointer; }
     .btn-pair-split { background: rgba(37,99,235,0.92); }
-    .btn-pair-split:hover { background: #1d4ed8; }
 
     #splitModal { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.8); z-index: 3000; display: none; justify-content: center; align-items: center; }
     #splitModal.open { display: flex; }
-    .split-config-box { background: #fff; padding: 24px; border-radius: 16px; display: flex; flex-direction: column; gap: 14px; max-width: 480px; width: 92%; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
+    .split-config-box { background: #fff; padding: 24px; border-radius: 16px; display: flex; flex-direction: column; gap: 14px; max-width: 480px; width: 92%; }
     .split-config-cols { display: flex; gap: 16px; }
     .split-config-col { flex: 1; display: flex; flex-direction: column; gap: 6px; }
-    .split-config-col label { margin-top: 4px; }
   </style>
 </head>
 <body>
@@ -594,10 +534,20 @@
 
 </div>
 
+<!-- VISTA ENTRADA DE PIN DE LA APP MÓVIL -->
+<div id="pinView" class="remote-layout" style="display:none;">
+  <div class="pin-entry-box">
+    <h2 style="margin:0; font-size: 1.5rem;">📱 Classroom Remote</h2>
+    <p style="margin:0; font-size: 0.9rem; color: #94a3b8;">Introduce el PIN de 4 dígitos para conectar</p>
+    <input type="number" id="pinInput" class="pin-input" placeholder="0000" maxlength="4" oninput="if(this.value.length===4) connectWithPin();" />
+    <button class="btn-remote" onclick="connectWithPin()">🚀 Conectar</button>
+  </div>
+</div>
+
 <!-- VISTA MANDO REMOTO MÓVIL -->
 <div id="remoteView" class="remote-layout">
   <div class="remote-target-row" id="remoteTargetRow">
-    <button class="btn-remote-target" id="btnTargetL" onclick="setRemoteTarget('L')">◀️ Izquierda</button>
+    <button class="btn-remote-target" id="btnTargetL" onclick="setRemoteTarget('L')">◀️️ Izquierda</button>
     <button class="btn-remote-target active" id="btnTargetAll" onclick="setRemoteTarget('ALL')">🖥️ Normal</button>
     <button class="btn-remote-target" id="btnTargetR" onclick="setRemoteTarget('R')">▶️ Derecha</button>
   </div>
@@ -623,11 +573,16 @@
   <button class="btn-remote-yt" id="btnRemoteYtMax" style="display:none;" onclick="sendRemoteCmd('TOGGLE_MAX_VIDEO')">🖥️ Maximizar Vídeo</button>
 </div>
 
+<!-- MODAL QR & PIN EN PANTALLA PRINCIPAL -->
 <div id="qrModal" onclick="closeQRModal()">
   <div class="qr-box" onclick="event.stopPropagation()">
     <h3 style="margin:0; color:var(--ink);">📱 Mando a distancia</h3>
+    <div style="background: #f1f5f9; padding: 12px 20px; border-radius: 12px; border: 2px dashed #8b5cf6;">
+      <div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">PIN de Conexión Rápida</div>
+      <div id="displayPinCode" style="font-size: 2.2rem; font-weight: 900; color: #2563eb; letter-spacing: 4px;">----</div>
+    </div>
     <div id="qrcode"></div>
-    <p style="margin:0; font-size:12px; color:var(--muted);">Escanea el QR con tu móvil para controlar la app</p>
+    <p style="margin:0; font-size:12px; color:var(--muted);">Escanea el QR o introduce el PIN en la App Web</p>
     <button class="btn-flat" onclick="closeQRModal()">Cerrar</button>
   </div>
 </div>
@@ -730,6 +685,7 @@ let hasUnsavedChanges = false;
 
 const pageParams = new URLSearchParams(window.location.search);
 const isEmbedMode = pageParams.get('embed') === '1';
+const isRemoteAppMode = pageParams.get('app') === '1';
 const embedCourseParam = pageParams.get('course') || 'ALL';
 const embedSubjParam = pageParams.get('subj') || 'ALL';
 const embedLvlParam = pageParams.get('lvl') || 'ALL';
@@ -1770,11 +1726,10 @@ setupMultiAutocomplete('editCourse', 'menuEdit', getAllAvailableCourses);
 setupMultiAutocomplete('addTopic', 'menuAddTopic', getAllAvailableTopics);
 setupMultiAutocomplete('editTopic', 'menuEditTopic', getAllAvailableTopics);
 
-/* LÓGICA DE CONTROL REMOTO PEERJS SIN RETARDOS */
+/* LÓGICA DE CONTROL REMOTO CON PIN Y WEBRTC PEERJS */
 let peer = null, conn = null;
-const urlParams = new URLSearchParams(window.location.search);
 const remoteTargetId = urlParams.get('remote');
-
+let generatedPin = "";
 let remoteTarget = 'ALL';
 
 function sendRemoteCmd(cmd) {
@@ -1791,15 +1746,10 @@ function setRemoteTarget(t) {
   sendRemoteCmd('SYNC');
 }
 
-if (remoteTargetId) {
-  document.getElementById('appView').style.display = 'none';
-  const remoteViewEl = document.getElementById('remoteView');
-  remoteViewEl.style.display = 'flex';
-
+function setupRemoteConnection(targetId) {
   peer = new Peer();
-  
   peer.on('open', () => { 
-    conn = peer.connect(remoteTargetId);
+    conn = peer.connect(targetId);
     conn.on('data', (data) => {
       if (data && data.type === 'CARD_SYNC') {
         document.getElementById('remoteQuestionText').textContent = data.question || 'Sin pregunta';
@@ -1813,21 +1763,39 @@ if (remoteTargetId) {
       }
     });
   });
+}
 
+function connectWithPin() {
+  const pin = document.getElementById('pinInput').value.trim();
+  if (pin.length !== 4) return;
+  const targetId = 'classroom-pin-' + pin;
+  document.getElementById('pinView').style.display = 'none';
+  document.getElementById('remoteView').style.display = 'flex';
+  setupRemoteConnection(targetId);
+}
+
+if (isRemoteAppMode) {
+  document.getElementById('appView').style.display = 'none';
+  document.getElementById('pinView').style.display = 'flex';
+} else if (remoteTargetId) {
+  document.getElementById('appView').style.display = 'none';
+  document.getElementById('remoteView').style.display = 'flex';
+  setupRemoteConnection(remoteTargetId);
 } else {
-  peer = new Peer();
+  // PANTALLA PRINCIPAL DE PROYECCIÓN
+  generatedPin = Math.floor(1000 + Math.random() * 9000).toString();
+  const mainPeerId = 'classroom-pin-' + generatedPin;
+
+  peer = new Peer(mainPeerId);
   
   peer.on('open', (id) => {
+    document.getElementById('displayPinCode').textContent = generatedPin;
     const remoteUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}?remote=${id}`;
     
     const qrContainer = document.getElementById('qrcode');
     if (qrContainer) {
       qrContainer.innerHTML = '';
-      new QRCode(qrContainer, {
-        text: remoteUrl,
-        width: 180,
-        height: 180
-      });
+      new QRCode(qrContainer, { text: remoteUrl, width: 160, height: 160 });
     }
   });
 
@@ -1982,7 +1950,9 @@ function exitSplitView() {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
-  loadDeck();
+  if (!isRemoteAppMode && !remoteTargetId) {
+    loadDeck();
+  }
 });
 </script>
 </body>
