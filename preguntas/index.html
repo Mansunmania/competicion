@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Mazo Flippity Completo - Proyector Classroom</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -203,48 +203,46 @@
     #qrModal.open { display: flex; }
     .qr-box { background: white; padding: 24px; border-radius: 16px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; }
 
-    /* ESTILOS DEL MANDO MÓVIL (NATIVO COMPLETO Y MÁXIMA VISIBILIDAD) */
+    /* ESTILOS DEL MANDO REMOTO MÓVIL (RESTAURADOS DE LA VERSIÓN ORIGINAL TXT) */
     .remote-layout {
       display: none;
       flex-direction: column;
       gap: 12px;
       width: 100%;
-      min-height: 100vh;
-      padding: 12px;
-      box-sizing: border-box;
-      background: var(--bg);
+      max-width: 400px;
+      height: 90vh;
+      margin: 0 auto;
+      justify-content: center;
+      padding: 10px;
     }
 
     .remote-card-info {
       background: #0f172a;
       border: 1px solid #334155;
-      padding: 12px 16px;
+      padding: 14px;
       border-radius: 16px;
       text-align: left;
       box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
-      width: 100%;
     }
 
     .btn-remote {
-      width: 100%;
-      padding: 22px 10px;
+      flex: 1;
       border: none;
       border-radius: 16px;
-      font-size: 1.3rem;
-      font-weight: 700;
+      font-size: 1.4rem;
+      font-weight: bold;
       color: white;
       background: var(--pri);
       touch-action: manipulation;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
     }
     .btn-remote-flip { background: var(--ok); }
 
     .btn-remote-img, .btn-remote-yt {
+      height: 48px;
       width: 100%;
-      padding: 14px 10px;
       font-size: 1rem;
       border: none;
       border-radius: 14px;
@@ -266,7 +264,7 @@
 
     .btn-remote-target {
       flex: 1;
-      padding: 12px 4px;
+      padding: 10px 4px;
       font-size: 0.85rem;
       font-weight: 700;
       border-radius: 10px;
@@ -279,7 +277,7 @@
 
     .btn-remote-lvl {
       flex: 1;
-      padding: 12px 4px;
+      padding: 10px 4px;
       font-size: 0.9rem;
       font-weight: 700;
       border-radius: 10px;
@@ -385,7 +383,7 @@
 
   <div class="flashcard-wrapper">
     <div class="flashcard" id="cardElement" onclick="handleCardClick(this)">
-      <button class="btn-fullscreen" id="btnToggleFullscreen" onclick="toggleFullscreen(event)">🖥️️ Pantalla Completa</button>
+      <button class="btn-fullscreen" id="btnToggleFullscreen" onclick="toggleFullscreen(event)">🖥️ Pantalla Completa</button>
       
       <button class="fs-nav-btn fs-nav-prev" onclick="navCard(event, -1)" title="Anterior">⬅️</button>
       <button class="fs-nav-btn fs-nav-next" onclick="navCard(event, 1)" title="Siguiente">➡️</button>
@@ -614,7 +612,7 @@
 
   <button class="btn-remote" onclick="sendRemoteCmd('PREV')">⬅️ Anterior</button>
   <button class="btn-remote btn-remote-flip" onclick="sendRemoteCmd('FLIP')">🔄 Girar / Respuesta</button>
-  <button class="btn-remote" onclick="sendRemoteCmd('NEXT')">Siguiente ➡️️</button>
+  <button class="btn-remote" onclick="sendRemoteCmd('NEXT')">Siguiente ➡️</button>
   <button class="btn-remote-img" id="btnRemoteImgZoom" style="display:none;" onclick="sendRemoteCmd('TOGGLE_ZOOM')">🔍 Ampliar Imagen</button>
   <button class="btn-remote-yt" id="btnRemoteYtMax" style="display:none;" onclick="sendRemoteCmd('TOGGLE_MAX_VIDEO')">🖥️ Maximizar Vídeo</button>
 </div>
@@ -1766,7 +1764,7 @@ setupMultiAutocomplete('editCourse', 'menuEdit', getAllAvailableCourses);
 setupMultiAutocomplete('addTopic', 'menuAddTopic', getAllAvailableTopics);
 setupMultiAutocomplete('editTopic', 'menuEditTopic', getAllAvailableTopics);
 
-/* LÓGICA DE CONTROL REMOTO PEERJS */
+/* LÓGICA DE CONTROL REMOTO PEERJS SIN RETARDOS */
 let peer = null, conn = null;
 const urlParams = new URLSearchParams(window.location.search);
 const remoteTargetId = urlParams.get('remote');
@@ -1792,17 +1790,7 @@ if (remoteTargetId) {
   const remoteViewEl = document.getElementById('remoteView');
   remoteViewEl.style.display = 'flex';
 
-  peer = new Peer({
-    config: {
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'turn:openrelay.metered.ca:80', username: 'openrelay', credential: 'openrelay' },
-        { urls: 'turn:openrelay.metered.ca:443', username: 'openrelay', credential: 'openrelay' },
-        { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelay', credential: 'openrelay' }
-      ]
-    }
-  });
+  peer = new Peer();
   
   peer.on('open', () => { 
     conn = peer.connect(remoteTargetId);
@@ -1821,17 +1809,7 @@ if (remoteTargetId) {
   });
 
 } else {
-  peer = new Peer({
-    config: {
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'turn:openrelay.metered.ca:80', username: 'openrelay', credential: 'openrelay' },
-        { urls: 'turn:openrelay.metered.ca:443', username: 'openrelay', credential: 'openrelay' },
-        { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelay', credential: 'openrelay' }
-      ]
-    }
-  });
+  peer = new Peer();
   
   peer.on('open', (id) => {
     const remoteUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}?remote=${id}`;
