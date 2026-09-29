@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Mazo Flippity Completo - Proyector Classroom</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -196,73 +196,94 @@
     #qrModal.open { display: flex; }
     .qr-box { background: white; padding: 24px; border-radius: 16px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; }
 
-    /* ESTILOS REESTRUCTURADOS Y AJUSTADOS PARA EL MANDO MÓVIL */
-    .remote-layout {
-      display: none;
-      flex-direction: column;
-      gap: 10px;
-      width: 100%;
-      max-width: 450px;
-      margin: 0 auto;
-      padding: 12px;
-      box-sizing: border-box;
-      overflow: hidden;
-      background: var(--bg);
-    }
-    .remote-card-info {
-      background: #0f172a;
-      border: 1px solid #334155;
-      padding: 12px 16px;
-      border-radius: 16px;
-      text-align: left;
-      box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
-      flex: 0 0 auto;
-    }
-    .btn-remote {
-      flex: 1 1 0%;
-      min-height: 52px;
-      max-height: 90px;
-      border: none;
-      border-radius: 16px;
-      font-size: 1.25rem;
-      font-weight: 700;
-      color: white;
-      background: var(--pri);
-      touch-action: manipulation;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .btn-remote-flip { background: var(--ok); }
-    .btn-remote-img, .btn-remote-yt {
-      flex: 0 0 auto;
-      height: 46px;
-      font-size: 1rem;
-      border: none;
-      border-radius: 14px;
-      font-weight: 700;
-      color: white;
-      touch-action: manipulation;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .btn-remote-img { background: var(--purple); }
-    .btn-remote-yt { background: var(--yt); }
-    
-    .remote-target-row { display: flex; gap: 8px; width: 100%; flex: 0 0 auto; }
-    .btn-remote-target {
-      flex: 1; padding: 10px 4px; font-size: 0.8rem; font-weight: 700;
-      border-radius: 10px; border: 2px solid transparent; background: #1e293b; color: #94a3b8; cursor: pointer;
-    }
-    .btn-remote-target.active { background: #0891b2; color: #fff; border-color: #67e8f9; }
+    /* ESTILOS DEL MANDO MÓVIL REPARADOS PARA ESCALA NATIVA 1:1 */
+.remote-layout {
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  height: 100dvh;
+  padding: 12px;
+  box-sizing: border-box;
+  overflow: hidden;
+  background: var(--bg);
+}
 
-    .remote-lvl-row { display: flex; gap: 8px; width: 100%; flex: 0 0 auto; }
-    .btn-remote-lvl {
-      flex: 1; padding: 10px 4px; font-size: 0.85rem; font-weight: 700;
-      border-radius: 10px; border: none; background: #1e293b; color: #ffffff; cursor: pointer;
-    }
-    .btn-remote-lvl.active { background: var(--pri); }
+.remote-card-info {
+  background: #0f172a;
+  border: 1px solid #334155;
+  padding: 12px 16px;
+  border-radius: 16px;
+  text-align: left;
+  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
+  flex: 0 0 auto;
+}
+
+.btn-remote {
+  flex: 1 1 0%;
+  width: 100%;
+  border: none;
+  border-radius: 16px;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: white;
+  background: var(--pri);
+  touch-action: manipulation;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-remote-flip { background: var(--ok); }
+
+.btn-remote-img, .btn-remote-yt {
+  flex: 0 0 auto;
+  height: 48px;
+  width: 100%;
+  font-size: 1rem;
+  border: none;
+  border-radius: 14px;
+  font-weight: 700;
+  color: white;
+  touch-action: manipulation;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-remote-img { background: var(--purple); }
+.btn-remote-yt { background: var(--yt); }
+
+.remote-target-row, .remote-lvl-row {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  flex: 0 0 auto;
+}
+
+.btn-remote-target {
+  flex: 1;
+  padding: 10px 4px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background: #1e293b;
+  color: #94a3b8;
+  cursor: pointer;
+}
+.btn-remote-target.active { background: #0891b2; color: #fff; border-color: #67e8f9; }
+
+.btn-remote-lvl {
+  flex: 1;
+  padding: 10px 4px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  border-radius: 10px;
+  border: none;
+  background: #1e293b;
+  color: #ffffff;
+  cursor: pointer;
+}
+.btn-remote-lvl.active { background: var(--pri); }
 
     body.embed-mode { padding: 8px; }
     body.embed-mode .filters,
@@ -1737,20 +1758,6 @@ const urlParams = new URLSearchParams(window.location.search);
 const remoteTargetId = urlParams.get('remote');
 
 let remoteTarget = 'ALL';
-
-// OPTIMIZACIÓN B: Medición física exacta de la pantalla en dispositivos móviles
-function adjustRemoteViewHeight() {
-  const remoteView = document.getElementById('remoteView');
-  if (remoteView && remoteView.style.display !== 'none') {
-    const actualHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-    remoteView.style.height = `${actualHeight}px`;
-  }
-}
-
-window.addEventListener('resize', adjustRemoteViewHeight);
-if (window.visualViewport) {
-  window.visualViewport.addEventListener('resize', adjustRemoteViewHeight);
-}
 
 function sendRemoteCmd(cmd) {
   if (conn) conn.send({ cmd: cmd, target: remoteTarget });
