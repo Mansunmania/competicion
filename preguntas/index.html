@@ -738,6 +738,15 @@ window.addEventListener('beforeunload', (e) => {
   }
 });
 
+// Receptor de sincronización de mazo aleatorio para vistas emparejadas e iframes
+window.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SHUFFLE_DECK' && Array.isArray(event.data.newDeck)) {
+    // Actualizamos el mazo con la mezcla recibida y reaplicamos la vista
+    procesarMazo(event.data.newDeck);
+    applyFilters();
+  }
+});
+
 const BASE_COURSES = ["5º", "6º"];
 
 let audioCtx = null;
@@ -1624,9 +1633,25 @@ function speakBritish(text) {
 }
 
 document.getElementById('shuffleBtn').onclick = () => {
-  if (!filtered.length) return;
+  if (!deck || !deck.length) return;
   playCardSlide();
-  shuffleArray(filtered); index = 0; updateView();
+  
+  // 1. Mezclamos el mazo global completo de forma persistente
+  shuffleArray(deck);
+  
+  // 2. Si la vista principal está abierta, re-aplicamos los filtros sobre el nuevo mazo
+  applyFilters();
+  
+  // 3. Si la Pantalla Dividida está activa, notificamos a los dos paneles (iframes) para que se reordenen
+  const paneL = document.getElementById('splitPaneL');
+  const paneR = document.getElementById('splitPaneR');
+  
+  if (paneL && paneL.contentWindow) {
+    paneL.contentWindow.postMessage({ type: 'SHUFFLE_DECK', newDeck: deck }, '*');
+  }
+  if (paneR && paneR.contentWindow) {
+    paneR.contentWindow.postMessage({ type: 'SHUFFLE_DECK', newDeck: deck }, '*');
+  }
 };
 
 document.getElementById('updateBtn').onclick = () => {
@@ -1982,6 +2007,9 @@ function activateSplitView() {
 
   document.getElementById('splitPaneL').src = srcL;
   document.getElementById('splitPaneR').src = srcR;
+
+  // Al activar la vista dividida, asegúrate de asignar window.deck = deck
+window.deck = deck;
 
   document.getElementById('splitViewContainer').classList.add('open');
   closeSplitModal();
