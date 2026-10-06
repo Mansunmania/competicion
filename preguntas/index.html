@@ -989,8 +989,16 @@ function navCard(e, dir) {
   if (e) e.stopPropagation();
   closeImgModal();
   if (!filtered.length) return;
+  
   playCardSlide();
   index = (index + dir + filtered.length) % filtered.length;
+  
+  // Guardamos la nueva posición en la memoria del filtro actual
+  const searchInputEl = document.getElementById('searchInput');
+  const searchText = searchInputEl ? searchInputEl.value.trim().toLowerCase() : '';
+  const currentFilterKey = `${filterCourse}|${filterSubj}|${filterLvl}|${confirmedTopics.join(',')}|${searchText}`;
+  filterIndexMemory[currentFilterKey] = index;
+
   updateView();
 }
 
@@ -1184,15 +1192,18 @@ function updateVisualFilterButtons() {
   renderCourseFilterButtons(); renderTopicControls(); 
 }
 
-// 1. MEJORA EN 'applyFilters': Mantiene la tarjeta actual si sigue presente en el nuevo filtro
+// Objeto global para almacenar la posición en la que te quedaste según el filtro activo
+// Memoria para recordar la posición por cada combinación de filtros
+const filterIndexMemory = {};
+
 function applyFilters() {
   updateVisualFilterButtons();
 
   const searchInputEl = document.getElementById('searchInput');
   const searchText = searchInputEl ? searchInputEl.value.trim().toLowerCase() : '';
 
-  // Guardamos la tarjeta que el usuario está viendo en este instante
-  const currentCardBeforeFilter = filtered[index];
+  // Clave identificadora única de la vista de filtros actual
+  const currentFilterKey = `${filterCourse}|${filterSubj}|${filterLvl}|${confirmedTopics.join(',')}|${searchText}`;
 
   filtered = deck.filter(card => {
     const matchCourse = matchesCourseFilter(card, filterCourse);
@@ -1215,21 +1226,28 @@ function applyFilters() {
     return matchCourse && matchSubj && matchLvl && matchTopic && matchText;
   });
 
-  // Intentamos reubicar el índice en la misma tarjeta que estaba viendo
-  if (currentCardBeforeFilter) {
-    const foundIndex = filtered.indexOf(currentCardBeforeFilter);
-    if (foundIndex !== -1) {
-      index = foundIndex;
-    } else {
-      // Si la tarjeta ya no cumple con el nuevo filtro, conservamos la posición o vamos al índice guardado en memoria
-      const memoryKey = `${filterCourse}|${filterSubj}|${filterLvl}|${confirmedTopics.join(',')}|${searchText}`;
-      index = (filterMemory[memoryKey] !== undefined && filterMemory[memoryKey] < filtered.length) ? filterMemory[memoryKey] : 0;
-    }
+  // Si ya existía un índice guardado para este filtro, lo recuperamos; de lo contrario, empezamos en 0
+  if (filterIndexMemory[currentFilterKey] !== undefined) {
+    index = filterIndexMemory[currentFilterKey];
   } else {
     index = 0;
   }
 
+  // Control de límites por si ha disminuido el número de tarjetas
+  if (index >= filtered.length) {
+    index = Math.max(0, filtered.length - 1);
+  }
+
   updateView();
+}
+
+// Guarda la posición actual antes de cambiar de tarjeta (Añadir en tus funciones de cambio de tarjeta)
+function trackCurrentIndex() {
+  const searchInputEl = document.getElementById('searchInput');
+  const searchText = searchInputEl ? searchInputEl.value.trim().toLowerCase() : '';
+  const currentFilterKey = `\({filterCourse}|\){filterSubj}|\({filterLvl}|\){confirmedTopics.join(',')}|${searchText}`;
+  
+  filterIndexMemory[currentFilterKey] = index;
 }
 
 function openMediaLink(e, url) { 
@@ -1652,17 +1670,22 @@ function speakBritish(text) {
 document.getElementById('shuffleBtn').onclick = () => {
   if (!deck || !deck.length) return;
   playCardSlide();
-  
-  // Guardamos la tarjeta actual
-  const currentCard = filtered[index];
 
-  // Mezclamos el mazo global
+  // 1. Barajamos el mazo global por completo
   shuffleArray(deck);
-  
-  // Re-aplicamos filtros (ahora conservará 'currentCard' en su nuevo lugar aleatorio)
+
+  // 2. Al barajar todo, borramos la memoria de posiciones previas para empezar limpios
+  for (let key in filterIndexMemory) {
+    delete filterIndexMemory[key];
+  }
+
+  // 3. Forzamos la posición a 0 (la nueva primera tarjeta tras el desorden)
+  index = 0;
+
+  // 4. Actualizamos el listado filtrado con el nuevo orden aleatorio
   applyFilters();
-  
-  // Si la Pantalla Dividida está activa, notificamos a los dos paneles para sincronizar
+
+  // Sincronización con la vista dividida
   const paneL = document.getElementById('splitPaneL');
   const paneR = document.getElementById('splitPaneR');
   
