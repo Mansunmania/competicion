@@ -1184,11 +1184,15 @@ function updateVisualFilterButtons() {
   renderCourseFilterButtons(); renderTopicControls(); 
 }
 
+// 1. MEJORA EN 'applyFilters': Mantiene la tarjeta actual si sigue presente en el nuevo filtro
 function applyFilters() {
   updateVisualFilterButtons();
 
   const searchInputEl = document.getElementById('searchInput');
   const searchText = searchInputEl ? searchInputEl.value.trim().toLowerCase() : '';
+
+  // Guardamos la tarjeta que el usuario está viendo en este instante
+  const currentCardBeforeFilter = filtered[index];
 
   filtered = deck.filter(card => {
     const matchCourse = matchesCourseFilter(card, filterCourse);
@@ -1211,8 +1215,20 @@ function applyFilters() {
     return matchCourse && matchSubj && matchLvl && matchTopic && matchText;
   });
 
-  const memoryKey = `${filterCourse}|${filterSubj}|${filterLvl}|${confirmedTopics.join(',')}|${searchText}`;
-  index = (filterMemory[memoryKey] !== undefined && filterMemory[memoryKey] < filtered.length) ? filterMemory[memoryKey] : 0;
+  // Intentamos reubicar el índice en la misma tarjeta que estaba viendo
+  if (currentCardBeforeFilter) {
+    const foundIndex = filtered.indexOf(currentCardBeforeFilter);
+    if (foundIndex !== -1) {
+      index = foundIndex;
+    } else {
+      // Si la tarjeta ya no cumple con el nuevo filtro, conservamos la posición o vamos al índice guardado en memoria
+      const memoryKey = `${filterCourse}|${filterSubj}|${filterLvl}|${confirmedTopics.join(',')}|${searchText}`;
+      index = (filterMemory[memoryKey] !== undefined && filterMemory[memoryKey] < filtered.length) ? filterMemory[memoryKey] : 0;
+    }
+  } else {
+    index = 0;
+  }
+
   updateView();
 }
 
@@ -1632,17 +1648,21 @@ function speakBritish(text) {
   window.speechSynthesis.speak(utterance);
 }
 
+// 2. MEJORA EN 'shuffleBtn': Mantiene la pregunta en pantalla al aleatorizar el mazo
 document.getElementById('shuffleBtn').onclick = () => {
   if (!deck || !deck.length) return;
   playCardSlide();
   
-  // 1. Mezclamos el mazo global completo de forma persistente
+  // Guardamos la tarjeta actual
+  const currentCard = filtered[index];
+
+  // Mezclamos el mazo global
   shuffleArray(deck);
   
-  // 2. Si la vista principal está abierta, re-aplicamos los filtros sobre el nuevo mazo
+  // Re-aplicamos filtros (ahora conservará 'currentCard' en su nuevo lugar aleatorio)
   applyFilters();
   
-  // 3. Si la Pantalla Dividida está activa, notificamos a los dos paneles (iframes) para que se reordenen
+  // Si la Pantalla Dividida está activa, notificamos a los dos paneles para sincronizar
   const paneL = document.getElementById('splitPaneL');
   const paneR = document.getElementById('splitPaneR');
   
@@ -1990,6 +2010,7 @@ function closeSplitModal() {
   document.getElementById('splitModal').classList.remove('open');
 }
 
+// 3. MEJORA EN 'activateSplitView': Pasa el estado actual del mazo y no el mazo original
 function activateSplitView() {
   const cL = document.getElementById('splitCourseL').value;
   const sL = document.getElementById('splitSubjL').value;
@@ -2005,11 +2026,11 @@ function activateSplitView() {
   const srcL = `${basePath}?embed=1&course=${encodeURIComponent(cL)}&subj=${encodeURIComponent(sL)}&topic=${encodeURIComponent(tL)}&lvl=${encodeURIComponent(lL)}`;
   const srcR = `${basePath}?embed=1&course=${encodeURIComponent(cR)}&subj=${encodeURIComponent(sR)}&topic=${encodeURIComponent(tR)}&lvl=${encodeURIComponent(lR)}`;
 
+  // Compartimos la versión viva (ya mezclada si procede) del mazo con los marcos
+  window.deck = deck;
+
   document.getElementById('splitPaneL').src = srcL;
   document.getElementById('splitPaneR').src = srcR;
-
-  // Al activar la vista dividida, asegúrate de asignar window.deck = deck
-window.deck = deck;
 
   document.getElementById('splitViewContainer').classList.add('open');
   closeSplitModal();
