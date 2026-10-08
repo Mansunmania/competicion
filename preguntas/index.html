@@ -303,6 +303,46 @@
     .split-config-box { background: #fff; padding: 24px; border-radius: 16px; display: flex; flex-direction: column; gap: 14px; max-width: 480px; width: 92%; }
     .split-config-cols { display: flex; gap: 16px; }
     .split-config-col { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+    /* --- FIX: Menú desplegable flotante con scroll --- */
+.notion-dropdown {
+  position: relative; /* Contenedor de referencia para el desplegable */
+  width: 100%;
+}
+
+.notion-menu {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 9999; /* Asegura que flote sobre otros inputs y botones */
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  max-height: 180px; /* Limita la altura máxima */
+  overflow-y: auto;  /* Mantiene el scroll interno */
+  margin-top: 4px;
+}
+
+.notion-menu.open {
+  display: block;
+}
+
+.notion-item {
+  padding: 8px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.notion-item:hover {
+  background: #f1f5f9;
+  color: var(--pri);
+}
   </style>
 </head>
 <body>
