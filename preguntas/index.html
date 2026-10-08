@@ -918,7 +918,7 @@ async function loadDeck() {
   if (!cargadoConExito && !isEmbedMode) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2500);
+      const timeoutId = setTimeout(() => controller.abort(), 4500);
       
       const resDrive = await fetch(APPS_SCRIPT_URL, { redirect: 'follow', signal: controller.signal });
       clearTimeout(timeoutId);
